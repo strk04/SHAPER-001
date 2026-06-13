@@ -29,7 +29,8 @@
   --space-6: 32px;
   --space-7: 48px;
 
-  --sidebar-width: 380px;
+  --nav-width:      160px;
+  --controls-width: 320px;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -76,38 +77,124 @@ button, input, select, textarea { font: inherit; }
   box-shadow: none;
 }
 
-/* ── Layout ────────────────────────────────────────────── */
+/* ── Layout: 3 columns ─────────────────────────────────── */
 .app {
-  display: flex;
+  display: grid;
+  grid-template-columns: var(--nav-width) var(--controls-width) 1fr;
   height: 100vh;
   overflow: hidden;
 }
 
-.sidebar {
-  width: var(--sidebar-width);
-  flex: 0 0 var(--sidebar-width);
+/* Col 1 — Nav */
+.nav-col {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--paper);
+  border-right: 1px solid var(--paper-3);
+  overflow: hidden;
+}
+
+.nav-header {
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--paper-3);
+  flex: 0 0 auto;
+}
+
+h1 {
+  margin: 0;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Tablist */
+[role="tablist"] {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-2) 0;
+}
+
+[role="tab"] {
+  display: block;
+  width: 100%;
+  padding: var(--space-2) var(--space-4);
+  border: 0;
+  border-left: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink-4);
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  transition: color var(--transition), border-color var(--transition);
+}
+
+[role="tab"]:hover:not([aria-disabled="true"]) {
+  color: var(--ink-3);
+}
+
+[role="tab"][aria-selected="true"] {
+  color: var(--ink);
+  border-left-color: var(--ink);
+}
+
+[role="tab"][aria-disabled="true"] {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+[role="tab"]:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+/* Export footer */
+.export-footer {
+  flex: 0 0 auto;
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--paper-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.export-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+
+/* Col 2 — Controls */
+.controls-col {
   height: 100%;
   overflow-y: auto;
   background: var(--paper);
   border-right: 1px solid var(--paper-3);
 }
 
-.controls {
+/* Panels */
+[role="tabpanel"] {
   padding: var(--space-5);
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: var(--space-3);
 }
 
-/* ── Title ─────────────────────────────────────────────── */
-h1 {
-  margin: 0 0 var(--space-5);
-  padding: 0 0 var(--space-4);
-  border-bottom: 1px solid var(--paper-3);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+.panel-sep {
+  height: 1px;
+  background: var(--paper-3);
+}
+
+.panel-placeholder {
+  color: var(--ink-4);
+  margin: 0;
 }
 
 /* ── Labels ────────────────────────────────────────────── */
@@ -223,52 +310,15 @@ legend {
   color: var(--ink);
 }
 
-/* Top-level fieldsets inside .controls get a section separator */
-.controls > fieldset {
-  padding-top: var(--space-5);
-  margin-top: var(--space-4);
-  border-top: 1px solid var(--paper-3);
-}
-
-/* Inner fieldsets inside .controls > fieldset — no extra separator */
-.controls > fieldset fieldset {
+/* Top-level fieldsets inside panels — no extra separator (panel-sep handles it) */
+[role="tabpanel"] > fieldset {
   padding-top: 0;
   margin-top: 0;
   border-top: 0;
 }
 
-/* Layout for top-level fieldsets */
+/* Layout for control groups inside panels */
 .mode,
-.format,
-.animation,
-.colors {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-/* Subgroups (Línia / Paraula / Caràcter / Composició) */
-.subgroup {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.params {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
-
-.params > legend { display: none; }
-
-/* Separator between subgroups */
-.params > .subgroup + .subgroup {
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--paper-3);
-}
-
-/* Inner fieldsets inside section-2d / section-3d */
 .form3d,
 .camera3d,
 .motion3d,
@@ -278,28 +328,12 @@ legend {
   gap: var(--space-3);
 }
 
-/* Custom drawing editors */
-.custom-editor {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.draw-canvas {
-  display: block;
-  width: 100%;
-  max-width: 280px;
-  background: var(--paper);
-  border: 1px solid var(--paper-3);
-  border-radius: var(--radius);
-  cursor: crosshair;
-  touch-action: none;
-}
-
-.stamp-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1);
+/* SVG file inputs */
+input[type="file"] {
+  font: inherit;
+  font-size: var(--text-xs);
+  color: var(--ink-3);
+  cursor: pointer;
 }
 
 /* Custom size form */
@@ -450,63 +484,13 @@ button:disabled {
   letter-spacing: 0;
 }
 
-/* Save SVG — bottom of sidebar */
 #saveSvg {
   margin-top: var(--space-5);
 }
 
-/* ── Collapsible <details> sections ────────────────────── */
-.section {
-  border: 0;
-  padding: 0;
-  margin-top: var(--space-4);
-}
-
-.section > summary {
-  display: flex;
-  align-items: center;
-  list-style: none;
-  padding: var(--space-3) 0;
-  cursor: pointer;
-  user-select: none;
-  border-top: 1px solid var(--paper-3);
-}
-
-.section > summary::-webkit-details-marker { display: none; }
-
-.section > summary > h2 {
-  display: inline;
-  margin: 0;
-  font-size: var(--text-xs);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--ink);
-}
-
-/* +/− indicator */
-.section > summary::after {
-  content: '+';
-  margin-left: auto;
-  color: var(--ink-4);
-  font-weight: 400;
-}
-
-.section[open] > summary::after {
-  content: '−';
-}
-
-/* Content inside open section */
-.section > .field,
-.section > fieldset {
-  padding-bottom: var(--space-4);
-}
-
-/* Separator between inner fieldsets in 3D section */
-.section > fieldset + fieldset {
-  margin-top: var(--space-3);
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--paper-3);
+/* ── Fieldset legend inside panels ─────────────────────── */
+[role="tabpanel"] legend {
+  margin-bottom: var(--space-2);
 }
 
 /* ── Stage / Artwork ───────────────────────────────────── */
@@ -544,17 +528,49 @@ button:disabled {
 }
 
 /* ── Responsive ────────────────────────────────────────── */
-@media (max-width: 800px) {
+@media (max-width: 900px) {
   html, body { overflow: auto; }
 
   .app {
+    display: flex;
     flex-direction: column;
     height: auto;
   }
 
-  .sidebar {
+  .nav-col {
     width: 100%;
-    flex: 0 0 auto;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--paper-3);
+    overflow: visible;
+  }
+
+  [role="tablist"] {
+    flex-direction: row;
+    flex-wrap: wrap;
+    overflow: visible;
+    padding: var(--space-2) var(--space-4);
+    gap: 0;
+  }
+
+  [role="tab"] {
+    border-left: 0;
+    border-bottom: 2px solid transparent;
+    padding: var(--space-2) var(--space-3);
+  }
+
+  [role="tab"][aria-selected="true"] {
+    border-bottom-color: var(--ink);
+  }
+
+  .export-footer {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    border-top: 1px solid var(--paper-3);
+  }
+
+  .controls-col {
     height: auto;
     border-right: none;
     border-bottom: 1px solid var(--paper-3);

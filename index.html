@@ -8,302 +8,296 @@
   </head>
   <body>
     <div class="app">
-      <aside class="sidebar" aria-label="Controls">
-        <form id="controls" class="controls" autocomplete="off">
+
+      <!-- COL 1: Nav index + Export footer -->
+      <div class="nav-col">
+        <div class="nav-header">
           <h1>SHAPER 001</h1>
+        </div>
 
+        <div role="tablist" aria-orientation="vertical" aria-label="Seccions">
+          <button role="tab" id="tab-atom"    aria-selected="true"  tabindex="0"  aria-controls="panel-atom">Àtom</button>
+          <button role="tab" id="tab-mode"    aria-selected="false" tabindex="-1" aria-controls="panel-mode">Mode</button>
+          <button role="tab" id="tab-format"  aria-selected="false" tabindex="-1" aria-controls="panel-format">Format</button>
+          <button role="tab" id="tab-colors"  aria-selected="false" tabindex="-1" aria-controls="panel-colors">Colors</button>
+          <button role="tab" id="tab-presets" aria-selected="false" tabindex="-1" aria-controls="panel-presets" aria-disabled="true">Presets</button>
+        </div>
+
+        <div class="export-footer" role="group" aria-label="Controls d'exportació">
+          <button type="button" id="playPause" aria-label="Reprodueix l'animació">Reprodueix</button>
           <div class="field">
-                                <label id="lbl-text" for="text">Text</label>
-                                <textarea id="text" name="text" rows="2">Ritme compartit. Flux individual.</textarea>
-                              </div>
+            <label id="lbl-videoqty" for="videoQuality">Qualitat vídeo</label>
+            <select id="videoQuality" name="videoQuality" aria-labelledby="lbl-videoqty">
+              <option value="low">Baixa</option>
+              <option value="medium" selected>Mitjana</option>
+              <option value="high">Alta</option>
+            </select>
+          </div>
+          <button type="button" id="recordVideo">Grava vídeo</button>
+          <p id="recordTimer" class="record-timer" aria-hidden="true"></p>
+          <p id="recordStatus" class="record-status" role="status"></p>
+          <div class="export-row">
+            <button type="button" id="savePng">IMG</button>
+            <button type="button" id="saveSvg">SVG</button>
+          </div>
+        </div>
+      </div>
 
-          <div class="field">
-                                <label id="lbl-font" for="font">Tipografia</label>
-                                <select id="font" name="font">
-                                  <option value="times-regular">Times New Roman Regular</option>
-                                  <option value="times-bold">Times New Roman Bold</option>
-                                  <option value="courier-regular" selected>Courier Regular</option>
-                                  <option value="courier-bold">Courier Bold</option>
-                                  <option value="helvetica-regular">Helvetica Regular</option>
-                                  <option value="helvetica-bold">Helvetica Bold</option>
-                                </select>
-                              </div>
+      <!-- COL 2: Section panels -->
+      <div class="controls-col">
+        <form id="controls" autocomplete="off">
 
-          <fieldset class="mode">
-                                <legend>Mode</legend>
-                                <div class="mode-row">
-                                  <input type="radio" id="mode2d" name="mode" value="2d" checked />
-                                  <label for="mode2d">2D</label>
-                                  <input type="radio" id="mode3d" name="mode" value="3d" />
-                                  <label for="mode3d">3D</label>
-                                </div>
-                              </fieldset>
+          <!-- ÀTOM ─────────────────────────────────────── -->
+          <div role="tabpanel" id="panel-atom" aria-labelledby="tab-atom">
 
-          <fieldset class="format">
-                                <legend>Format</legend>
-                                <div class="field">
-                                  <label id="lbl-format-select" for="format-select">Format de sortida</label>
-                                  <select id="format-select" name="format-select">
-                                    <option value="1080x1920">9:16 — Stories / Reels</option>
-                                    <option value="1920x1080">16:9 — Pantalla / YouTube</option>
-                                    <option value="1080x1080">1:1 — Post quadrat</option>
-                                    <option value="1080x1350" selected>4:5 — Post vertical</option>
-                                    <option value="1350x1080">5:4 — Post apaïsat</option>
-                                    <option value="1485x2100">A4 vertical (impremta)</option>
-                                    <option value="2100x1485">A4 apaïsat (impremta)</option>
-                                    <option value="custom">Personalitzat...</option>
-                                  </select>
-                                </div>
+            <div class="slider" data-key="fontSize" data-min="12" data-max="160" data-step="1"></div>
 
-                                <div id="custom-size-row" class="custom-size" hidden>
-                                  <div class="field">
-                                    <label id="lbl-custom-unit" for="custom-unit">Unitat</label>
-                                    <select id="custom-unit" name="custom-unit">
-                                      <option value="px">px</option>
-                                      <option value="cm">cm</option>
-                                    </select>
-                                  </div>
-                                  <div id="custom-dpi-row" class="field" hidden>
-                                    <label id="lbl-custom-dpi" for="custom-dpi">DPI</label>
-                                    <select id="custom-dpi" name="custom-dpi">
-                                      <option value="72">72 — Web</option>
-                                      <option value="150">150</option>
-                                      <option value="300" selected>300 — Impremta</option>
-                                    </select>
-                                  </div>
-                                  <div class="field size-field">
-                                    <label id="lbl-custom-width" for="custom-width">Amplada <span class="custom-unit-label">px</span></label>
-                                    <input type="number" id="custom-width" name="custom-width" min="100" step="1" value="1080" />
-                                  </div>
-                                  <div class="field size-field">
-                                    <label id="lbl-custom-height" for="custom-height">Alçada <span class="custom-unit-label">px</span></label>
-                                    <input type="number" id="custom-height" name="custom-height" min="100" step="1" value="1350" />
-                                  </div>
-                                  <button type="button" id="apply-custom-size" class="btn-primary">Aplica format</button>
-                                  <p id="formatStatus" class="format-status" role="status"></p>
-                                </div>
-                              </fieldset>
+            <div class="field">
+              <label id="lbl-font" for="font">Tipografia</label>
+              <select id="font" name="font">
+                <option value="times-regular">Times New Roman Regular</option>
+                <option value="times-bold">Times New Roman Bold</option>
+                <option value="courier-regular" selected>Courier Regular</option>
+                <option value="courier-bold">Courier Bold</option>
+                <option value="helvetica-regular">Helvetica Regular</option>
+                <option value="helvetica-bold">Helvetica Bold</option>
+              </select>
+            </div>
 
-          <fieldset class="animation">
-                                <legend>Animació</legend>
-                                <button type="button" id="playPause" class="btn-primary" aria-label="Reprodueix l’animació">Reprodueix</button>
-                                <div class="slider slider-row">
-                                  <label id="lbl-speed" for="rng-speed">Velocitat</label>
-                                  <input
-                                    type="range"
-                                    id="rng-speed"
-                                    min="0"
-                                    max="2"
-                                    step="0.1"
-                                    value="1"
-                                  />
-                                  <input
-                                    type="number"
-                                    id="num-speed"
-                                    min="0"
-                                    max="2"
-                                    step="0.1"
-                                    value="1"
-                                    aria-labelledby="lbl-speed"
-                                  />
-                                </div>
-                                <button type="button" id="recordVideo" class="btn-primary">Grava vídeo</button>
-                                <p id="recordTimer" class="record-timer" aria-hidden="true"></p>
-                                <p id="recordStatus" class="record-status" role="status"></p>
-                              </fieldset>
+            <div class="field">
+              <label id="lbl-text" for="text">Text</label>
+              <textarea id="text" name="text" rows="2">Ritme compartit. Flux individual.</textarea>
+            </div>
 
-          <details id="section-params" class="section" open>
-                                <summary><h2>Paràmetres</h2></summary>
-                    
-                                <fieldset class="params">
-                                  <legend>Paràmetres</legend>
-                    
-                                  <fieldset class="subgroup">
-                                    <legend>Línia</legend>
-                                    <div class="slider" data-key="fontSize" data-min="12" data-max="160" data-step="1"></div>
-                                    <div class="slider" data-key="amplitude" data-min="0" data-max="200" data-step="1"></div>
-                                    <div class="slider" data-key="frequency" data-min="0.001" data-max="0.05" data-step="0.001"></div>
-                                    <div class="slider" data-key="charTrack" data-min="0" data-max="60" data-step="1"></div>
-                                    <div class="slider" data-key="trackRand" data-min="0" data-max="1" data-step="0.01"></div>
-                                    <div class="slider" data-key="leading" data-min="20" data-max="200" data-step="1"></div>
-                                    <div class="slider" data-key="noiseAmt" data-min="0" data-max="100" data-step="1"></div>
-                                    <div class="field">
-                                      <label id="lbl-motion2d" for="motion2d">Moviment vertical</label>
-                                      <select id="motion2d" name="motion2d">
-                                        <option value="static">Estàtic</option>
-                                        <option value="rain" selected>Pluja</option>
-                                      </select>
-                                    </div>
-                                    <div class="slider" data-key="rainSpeed2d" data-min="0" data-max="3" data-step="0.1"></div>
-                                  </fieldset>
-                    
-                                  <fieldset class="subgroup">
-                                    <legend>Paraula</legend>
-                                    <div class="slider" data-key="wordTrack" data-min="0" data-max="200" data-step="1"></div>
-                                    <div class="slider" data-key="wordChaos" data-min="0" data-max="100" data-step="1"></div>
-                                    <div class="slider" data-key="wordRamp" data-min="0" data-max="1" data-step="0.1"></div>
-                                  </fieldset>
-                    
-                                  <fieldset class="subgroup">
-                                    <legend>Caràcter</legend>
-                                    <div class="slider" data-key="charChaos" data-min="0" data-max="100" data-step="1"></div>
-                                    <div class="slider" data-key="yJitter" data-min="0" data-max="60" data-step="1"></div>
-                                    <div class="slider" data-key="yJitterAffect" data-min="0" data-max="1" data-step="0.1"></div>
-                                    <div class="slider" data-key="dropProb" data-min="0" data-max="1" data-step="0.01"></div>
-                                  </fieldset>
-                    
-                                  <fieldset class="subgroup">
-                                    <legend>Composició</legend>
-                                    <div class="slider" data-key="wordsPerRow" data-min="1" data-max="20" data-step="1"></div>
-                                    <div class="field row checkbox">
-                                      <input type="checkbox" id="hardWrap" name="hardWrap" />
-                                      <label id="lbl-hardwrap" for="hardWrap">Tall fix</label>
-                                    </div>
-                                  </fieldset>
-                                </fieldset>
-                              </details>
+            <div class="slider" data-key="wordsPerRow" data-min="1" data-max="20" data-step="1"></div>
 
-          <details id="section-2d" class="section" open>
-                                <summary><h2 id="summary2dTitle">2D — Forma</h2></summary>
-                    
-                                <div class="field">
-                                  <label id="lbl-shape" for="shape">Forma</label>
-                                  <select id="shape" name="shape">
-                                    <option value="rectangle">Rectangle</option>
-                                    <option value="wave">Ona</option>
-                                    <option value="trapezoid">Trapezi</option>
-                                    <option value="diamond">Diamant</option>
-                                    <option value="custom">Personalitzada</option>
-                                  </select>
-                                </div>
-                    
-                                <fieldset class="custom-editor" id="customProfileEditor" hidden>
-                                  <legend>Perfil personalitzat</legend>
-                                  <canvas
-                                    id="profileCanvas"
-                                    class="draw-canvas"
-                                    width="280"
-                                    height="140"
-                                    role="img"
-                                    aria-label="Àrea de dibuix del perfil personalitzat"
-                                  ></canvas>
-                                  <div class="stamp-row">
-                                    <button type="button" class="btn-stamp" data-profile="s-curve">Corba S</button>
-                                    <button type="button" class="btn-stamp" data-profile="zigzag">Ziga-zaga</button>
-                                    <button type="button" class="btn-stamp" data-profile="steps">Graons</button>
-                                    <button type="button" class="btn-stamp" data-profile="pulse">Pols</button>
-                                    <button type="button" class="btn-stamp" data-profile="clear">Neteja</button>
-                                  </div>
-                                </fieldset>
-                    
-                              </details>
+            <div class="field checkbox">
+              <input type="checkbox" id="hardWrap" name="hardWrap" />
+              <label id="lbl-hardwrap" for="hardWrap">Tall fix</label>
+            </div>
 
-          <details id="section-3d" class="section" hidden>
-                                <summary><h2>3D — Forma i càmera</h2></summary>
-                    
-                                <fieldset class="form3d">
-                                  <legend>Forma</legend>
-                                  <div class="field">
-                                    <label id="lbl-form" for="form">Forma</label>
-                                    <select id="form" name="form">
-                                      <option value="plane">Pla</option>
-                                      <option value="cylinder">Cilindre</option>
-                                      <option value="helix">Hèlix</option>
-                                      <option value="sphere">Esfera</option>
-                                      <option value="cube">Cub</option>
-                                      <option value="cluster">Conjunt</option>
-                                      <option value="star-prism">Prisma estrella</option>
-                                      <option value="custom-prism">Prisma personalitzat</option>
-                                    </select>
-                                  </div>
-                                  <p id="form3d-status" role="status" class="sr-only"></p>
+            <div class="slider-row">
+              <label id="lbl-speed" for="rng-speed">Velocitat</label>
+              <input type="range"  id="rng-speed" min="0" max="2" step="0.1" value="1" aria-labelledby="lbl-speed" />
+              <input type="number" id="num-speed" min="0" max="2" step="0.1" value="1" aria-labelledby="lbl-speed" />
+            </div>
 
-                                  <fieldset class="custom-editor" id="customOutlineEditor" hidden>
-                                    <legend>Contorn personalitzat</legend>
-                                    <canvas
-                                      id="outlineCanvas"
-                                      class="draw-canvas"
-                                      width="200"
-                                      height="200"
-                                      role="img"
-                                      aria-label="Àrea de dibuix del contorn personalitzat"
-                                    ></canvas>
-                                    <div class="stamp-row">
-                                      <button type="button" class="btn-stamp" data-outline="blob">Taca</button>
-                                      <button type="button" class="btn-stamp" data-outline="gear">Engranatge</button>
-                                      <button type="button" class="btn-stamp" data-outline="arrow">Fletxa</button>
-                                      <button type="button" class="btn-stamp" data-outline="triangle">Triangle</button>
-                                      <button type="button" class="btn-stamp" data-outline="clear">Neteja</button>
-                                    </div>
-                                  </fieldset>
-                                  <div class="slider" data-key="formSize" data-min="100" data-max="800" data-step="1"></div>
-                                  <div class="slider" data-key="aspect" data-min="0.2" data-max="3" data-step="0.1"></div>
-                                  <div class="slider" data-key="facets" data-min="3" data-max="12" data-step="1"></div>
-                                  <div class="slider" data-key="turns" data-min="1" data-max="8" data-step="1"></div>
-                                  <div class="slider" data-key="count" data-min="1" data-max="9" data-step="1"></div>
-                                  <div class="slider" data-key="scatter" data-min="0" data-max="200" data-step="1"></div>
-                                </fieldset>
-                    
-                                <fieldset class="camera3d">
-                                  <legend>Càmera</legend>
-                                  <div class="field">
-                                    <label id="lbl-projection" for="projection">Projecció</label>
-                                    <select id="projection" name="projection">
-                                      <option value="isometric">Isomètrica</option>
-                                      <option value="perspective">Perspectiva</option>
-                                    </select>
-                                  </div>
-                                  <div class="slider" data-key="fov" data-min="30" data-max="120" data-step="1"></div>
-                                  <div class="slider" data-key="zoom" data-min="0.3" data-max="3" data-step="0.1"></div>
-                                  <div class="slider" data-key="rotXSpeed" data-min="-2" data-max="2" data-step="0.1"></div>
-                                  <div class="slider" data-key="rotYSpeed" data-min="-2" data-max="2" data-step="0.1"></div>
-                                  <div class="slider" data-key="rotZSpeed" data-min="-2" data-max="2" data-step="0.1"></div>
-                                  <div class="slider" data-key="angleX" data-min="-180" data-max="180" data-step="1"></div>
-                                  <div class="slider" data-key="angleY" data-min="-180" data-max="180" data-step="1"></div>
-                                  <div class="slider" data-key="depthFade" data-min="0" data-max="1" data-step="0.05"></div>
-                                </fieldset>
-                    
-                                <fieldset class="motion3d">
-                                  <legend>Moviment 3D</legend>
-                                  <div class="slider" data-key="pulse" data-min="0" data-max="1" data-step="0.05"></div>
-                                  <div class="slider" data-key="pulseSpeed" data-min="0" data-max="2" data-step="0.1"></div>
-                                  <div class="slider" data-key="rainProb" data-min="0" data-max="1" data-step="0.01"></div>
-                                  <div class="slider" data-key="rainSpeed" data-min="0" data-max="3" data-step="0.1"></div>
-                                </fieldset>
-                    
-                                <fieldset class="style3d">
-                                  <legend>Estil</legend>
-                                  <div class="field row checkbox">
-                                    <input type="checkbox" id="guides" name="guides" />
-                                    <label id="lbl-guides" for="guides">Guies</label>
-                                  </div>
-                                  <div class="field row checkbox">
-                                    <input type="checkbox" id="backfaceMirror" name="backfaceMirror" />
-                                    <label id="lbl-backfacemirror" for="backfaceMirror">Mirall posterior</label>
-                                  </div>
-                                  <div class="field row checkbox">
-                                    <input type="checkbox" id="surfaceText" name="surfaceText" />
-                                    <label id="lbl-surfacetext" for="surfaceText">Glifs sobre superfície</label>
-                                  </div>
-                                </fieldset>
-                              </details>
+            <div class="field">
+              <label id="lbl-motion2d" for="motion2d">Moviment vertical</label>
+              <select id="motion2d" name="motion2d">
+                <option value="static">Estàtic</option>
+                <option value="rain" selected>Pluja</option>
+              </select>
+            </div>
 
-          <fieldset class="colors">
-                                <legend>Colors</legend>
-                                <div class="field row">
-                                  <label id="lbl-textcolor" for="textColor">Color del text</label>
-                                  <input type="color" id="textColor" name="textColor" value="#111111" />
-                                </div>
-                                <div class="field row">
-                                  <label id="lbl-bgcolor" for="bgColor">Color de fons</label>
-                                  <input type="color" id="bgColor" name="bgColor" value="#f4f4f4" />
-                                </div>
-                              </fieldset>
+            <div class="slider" data-key="rainSpeed2d" data-min="0" data-max="3" data-step="0.1"></div>
 
-          <button type="button" id="saveSvg" class="btn-primary">Guarda SVG</button>
+            <div class="panel-sep" role="separator"></div>
+
+            <div class="slider" data-key="charTrack"  data-min="0"   data-max="60"  data-step="1"></div>
+            <div class="slider" data-key="leading"    data-min="20"  data-max="200" data-step="1"></div>
+            <div class="slider" data-key="wordTrack"  data-min="0"   data-max="200" data-step="1"></div>
+            <div class="slider" data-key="wordChaos"  data-min="0"   data-max="100" data-step="1"></div>
+            <div class="slider" data-key="wordRamp"   data-min="0"   data-max="1"   data-step="0.1"></div>
+
+            <div class="panel-sep" role="separator"></div>
+
+            <div class="slider" data-key="amplitude"    data-min="0"     data-max="200"  data-step="1"></div>
+            <div class="slider" data-key="frequency"    data-min="0.001" data-max="0.05" data-step="0.001"></div>
+            <div class="slider" data-key="noiseAmt"     data-min="0"     data-max="100"  data-step="1"></div>
+            <div class="slider" data-key="charChaos"    data-min="0"     data-max="100"  data-step="1"></div>
+            <div class="slider" data-key="yJitter"      data-min="0"     data-max="60"   data-step="1"></div>
+            <div class="slider" data-key="yJitterAffect" data-min="0"    data-max="1"    data-step="0.1"></div>
+            <div class="slider" data-key="dropProb"     data-min="0"     data-max="1"    data-step="0.01"></div>
+
+          </div><!-- /panel-atom -->
+
+          <!-- MODE ─────────────────────────────────────── -->
+          <div role="tabpanel" id="panel-mode" aria-labelledby="tab-mode" hidden>
+
+            <fieldset class="mode">
+              <legend>Mode</legend>
+              <div class="mode-row">
+                <input type="radio" id="mode2d" name="mode" value="2d" checked />
+                <label for="mode2d">2D</label>
+                <input type="radio" id="mode3d" name="mode" value="3d" />
+                <label for="mode3d">3D</label>
+              </div>
+            </fieldset>
+
+            <!-- 2D content -->
+            <div id="section-2d-content">
+              <div class="panel-sep" role="separator"></div>
+              <div class="field">
+                <label id="lbl-shape" for="shape">Forma</label>
+                <select id="shape" name="shape">
+                  <option value="rectangle">Rectangle</option>
+                  <option value="wave">Ona</option>
+                  <option value="trapezoid">Trapezi</option>
+                  <option value="diamond">Diamant</option>
+                  <option value="custom">Personalitzada</option>
+                </select>
+              </div>
+              <div id="svgUpload2d" class="field" hidden>
+                <label id="lbl-svgfile2d" for="svgFile2d">Carrega forma SVG</label>
+                <input type="file" id="svgFile2d" name="svgFile2d" accept=".svg" aria-labelledby="lbl-svgfile2d" />
+              </div>
+            </div>
+
+            <!-- 3D content -->
+            <div id="section-3d-content" hidden>
+              <div class="panel-sep" role="separator"></div>
+
+              <fieldset class="style3d">
+                <legend>Estil</legend>
+                <div class="field checkbox">
+                  <input type="checkbox" id="guides" name="guides" />
+                  <label id="lbl-guides" for="guides">Guies</label>
+                </div>
+                <div class="field checkbox">
+                  <input type="checkbox" id="backfaceMirror" name="backfaceMirror" />
+                  <label id="lbl-backfacemirror" for="backfaceMirror">Mirall posterior</label>
+                </div>
+                <div class="field checkbox">
+                  <input type="checkbox" id="surfaceText" name="surfaceText" />
+                  <label id="lbl-surfacetext" for="surfaceText">Glifs sobre superfície</label>
+                </div>
+              </fieldset>
+
+              <div class="panel-sep" role="separator"></div>
+
+              <fieldset class="form3d">
+                <legend>Forma</legend>
+                <div class="field">
+                  <label id="lbl-form" for="form">Forma</label>
+                  <select id="form" name="form">
+                    <option value="plane">Pla</option>
+                    <option value="cylinder">Cilindre</option>
+                    <option value="helix">Hèlix</option>
+                    <option value="sphere">Esfera</option>
+                    <option value="cube">Cub</option>
+                    <option value="cluster">Conjunt</option>
+                    <option value="star-prism">Prisma estrella</option>
+                    <option value="custom-prism">Prisma personalitzat</option>
+                  </select>
+                </div>
+                <p id="form3d-status" role="status" class="sr-only"></p>
+                <div id="svgUpload3d" class="field" hidden>
+                  <label id="lbl-svgfile3d" for="svgFile3d">Carrega contorn SVG</label>
+                  <input type="file" id="svgFile3d" name="svgFile3d" accept=".svg" aria-labelledby="lbl-svgfile3d" />
+                </div>
+                <div class="slider" data-key="formSize" data-min="100" data-max="800" data-step="1"></div>
+                <div class="slider" data-key="aspect"   data-min="0.2"  data-max="3"   data-step="0.1"></div>
+                <div class="slider" data-key="facets"   data-min="3"    data-max="12"  data-step="1"></div>
+                <div class="slider" data-key="turns"    data-min="1"    data-max="8"   data-step="1"></div>
+                <div class="slider" data-key="count"    data-min="1"    data-max="9"   data-step="1"></div>
+                <div class="slider" data-key="scatter"  data-min="0"    data-max="200" data-step="1"></div>
+              </fieldset>
+
+              <div class="panel-sep" role="separator"></div>
+
+              <fieldset class="camera3d">
+                <legend>Projecció</legend>
+                <div class="field">
+                  <label id="lbl-projection" for="projection">Projecció</label>
+                  <select id="projection" name="projection">
+                    <option value="isometric">Isomètrica</option>
+                    <option value="perspective">Perspectiva</option>
+                  </select>
+                </div>
+                <div class="slider" data-key="zoom"      data-min="0.3"  data-max="3"   data-step="0.1"></div>
+                <div class="slider" data-key="fov"       data-min="30"   data-max="120" data-step="1"></div>
+                <div class="slider" data-key="rotXSpeed" data-min="-2"   data-max="2"   data-step="0.1"></div>
+                <div class="slider" data-key="rotYSpeed" data-min="-2"   data-max="2"   data-step="0.1"></div>
+                <div class="slider" data-key="rotZSpeed" data-min="-2"   data-max="2"   data-step="0.1"></div>
+                <div class="slider" data-key="angleX"    data-min="-180" data-max="180" data-step="1"></div>
+                <div class="slider" data-key="angleY"    data-min="-180" data-max="180" data-step="1"></div>
+                <div class="slider" data-key="depthFade" data-min="0"    data-max="1"   data-step="0.05"></div>
+              </fieldset>
+
+              <div class="panel-sep" role="separator"></div>
+
+              <fieldset class="motion3d">
+                <legend>Pols</legend>
+                <div class="slider" data-key="pulse"      data-min="0" data-max="1"   data-step="0.05"></div>
+                <div class="slider" data-key="pulseSpeed" data-min="0" data-max="2"   data-step="0.1"></div>
+                <div class="slider" data-key="rainProb"   data-min="0" data-max="1"   data-step="0.01"></div>
+                <div class="slider" data-key="rainSpeed"  data-min="0" data-max="3"   data-step="0.1"></div>
+              </fieldset>
+            </div><!-- /section-3d-content -->
+
+          </div><!-- /panel-mode -->
+
+          <!-- FORMAT ───────────────────────────────────── -->
+          <div role="tabpanel" id="panel-format" aria-labelledby="tab-format" hidden>
+
+            <div class="field">
+              <label id="lbl-format-select" for="format-select">Format de sortida</label>
+              <select id="format-select" name="format-select">
+                <option value="1080x1920">9:16 — Stories / Reels</option>
+                <option value="1920x1080">16:9 — Pantalla / YouTube</option>
+                <option value="1080x1080">1:1 — Post quadrat</option>
+                <option value="1080x1350" selected>4:5 — Post vertical</option>
+                <option value="1350x1080">5:4 — Post apaïsat</option>
+                <option value="1485x2100">A4 vertical (impremta)</option>
+                <option value="2100x1485">A4 apaïsat (impremta)</option>
+                <option value="custom">Personalitzat...</option>
+              </select>
+            </div>
+
+            <div id="custom-size-row" class="custom-size" hidden>
+              <div class="field">
+                <label id="lbl-custom-unit" for="custom-unit">Unitat</label>
+                <select id="custom-unit" name="custom-unit">
+                  <option value="px">px</option>
+                  <option value="cm">cm</option>
+                </select>
+              </div>
+              <div id="custom-dpi-row" class="field" hidden>
+                <label id="lbl-custom-dpi" for="custom-dpi">DPI</label>
+                <select id="custom-dpi" name="custom-dpi">
+                  <option value="72">72 — Web</option>
+                  <option value="150">150</option>
+                  <option value="300" selected>300 — Impremta</option>
+                </select>
+              </div>
+              <div class="field size-field">
+                <label id="lbl-custom-width" for="custom-width">Amplada <span class="custom-unit-label">px</span></label>
+                <input type="number" id="custom-width" name="custom-width" min="100" step="1" value="1080" />
+              </div>
+              <div class="field size-field">
+                <label id="lbl-custom-height" for="custom-height">Alçada <span class="custom-unit-label">px</span></label>
+                <input type="number" id="custom-height" name="custom-height" min="100" step="1" value="1350" />
+              </div>
+              <button type="button" id="apply-custom-size" class="btn-primary">Aplica format</button>
+              <p id="formatStatus" class="format-status" role="status"></p>
+            </div>
+
+          </div><!-- /panel-format -->
+
+          <!-- COLORS ───────────────────────────────────── -->
+          <div role="tabpanel" id="panel-colors" aria-labelledby="tab-colors" hidden>
+
+            <div class="field row">
+              <label id="lbl-bgcolor" for="bgColor">Color de fons</label>
+              <input type="color" id="bgColor" name="bgColor" value="#f4f4f4" />
+            </div>
+            <div class="field row">
+              <label id="lbl-textcolor" for="textColor">Color del text</label>
+              <input type="color" id="textColor" name="textColor" value="#111111" />
+            </div>
+
+          </div><!-- /panel-colors -->
+
+          <!-- PRESETS ──────────────────────────────────── -->
+          <div role="tabpanel" id="panel-presets" aria-labelledby="tab-presets" hidden>
+            <p class="panel-placeholder">Pròximament disponible.</p>
+          </div><!-- /panel-presets -->
+
         </form>
-      </aside>
+      </div><!-- /controls-col -->
 
+      <!-- COL 3: Stage -->
       <main class="stage">
         <div
           id="artwork"
@@ -312,7 +306,8 @@
           aria-label="Previsualització de tipografia generativa"
         ></div>
       </main>
-    </div>
+
+    </div><!-- /app -->
 
     <script type="module" src="main.js"></script>
   </body>

@@ -6,8 +6,7 @@ const SLIDERS = {
   fontSize: { label: 'Cos', def: 16 },
   amplitude: { label: 'Amplitud', def: 0 },
   frequency: { label: 'Freqüència', def: 0.001 },
-  charTrack: { label: 'Espai entre lletres', def: 0 },
-  trackRand: { label: 'Variació d’espai', def: 0 },
+  charTrack: { label: ‘Kerning’, def: 0 },
   leading: { label: 'Interlínia', def: 72 },
   noiseAmt: { label: 'Soroll horitzontal', def: 0 },
   rainSpeed2d: { label: 'Velocitat de pluja', def: 1 },
@@ -384,62 +383,12 @@ function restoreCustomData() {
   } catch (e) {}
 }
 
-// --- Editor canvas painting (light bg, #111 stroke) ---
-function paintProfileCanvas() {
-  const cv = $('profileCanvas');
-  if (!cv) return;
-  const ctx = cv.getContext('2d');
-  const W = cv.width, H = cv.height;
-  ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, W, H);
-  // center line
-  ctx.strokeStyle = '#bbbbbb';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(W / 2, 0); ctx.lineTo(W / 2, H);
-  ctx.stroke();
-  // profile: vertical axis = y (row), horizontal = offset in [-1,1]
-  const prof = state.customProfile;
-  ctx.strokeStyle = '#111111';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  for (let i = 0; i < prof.length; i++) {
-    const y = (i / (prof.length - 1)) * H;
-    const x = (prof[i] * 0.5 + 0.5) * W;
-    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-  }
-  ctx.stroke();
-}
-
-function paintOutlineCanvas() {
-  const cv = $('outlineCanvas');
-  if (!cv) return;
-  const ctx = cv.getContext('2d');
-  const W = cv.width, H = cv.height;
-  ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, W, H);
-  const out = state.customOutline;
-  ctx.strokeStyle = '#111111';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  for (let i = 0; i + 1 < out.length; i += 2) {
-    // outline in [-1,1] centered -> canvas (90% to leave margin)
-    const x = W / 2 + out[i] * (W / 2) * 0.9;
-    const y = H / 2 + out[i + 1] * (H / 2) * 0.9;
-    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-  }
-  ctx.closePath();
-  ctx.stroke();
-}
-
 // --- Visibility (reused by select listeners and init) ---
 function updateEditorVisibility() {
-  const pe = $('customProfileEditor');
-  const oe = $('customOutlineEditor');
-  if (pe) pe.hidden = state.shape !== 'custom';
-  if (oe) oe.hidden = state.form !== 'custom-prism';
+  const su2d = $('svgUpload2d');
+  const su3d = $('svgUpload3d');
+  if (su2d) su2d.hidden = state.shape !== 'custom';
+  if (su3d) su3d.hidden = state.form !== 'custom-prism';
 
   const form = state.form;
   const showFacets = ['cylinder', 'helix', 'star-prism', 'custom-prism'].includes(form);
@@ -454,156 +403,68 @@ function updateEditorVisibility() {
   }
 }
 
-// --- Pointer drawing wiring ---
-function wireProfileEditor() {
-  const cv = $('profileCanvas');
-  if (!cv) return;
-  const W = cv.width, H = cv.height;
-  let drawing = false;
-  let lastIdx = -1;
+// --- SVG shape import ---
+async function loadSvgProfile(file) {
+  const text = await file.text();
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(text, 'image/svg+xml');
+  const pathEl = doc.querySelector('path');
+  if (!pathEl) { announce('Cap path al SVG'); return; }
 
-  // Map a pointer event to {row index, offset[-1,1]} in canvas space.
-  const sample = (e) => {
-    const rect = cv.getBoundingClientRect();
-    const px = (e.clientX - rect.left) / rect.width;   // 0..1 across width
-    const py = (e.clientY - rect.top) / rect.height;    // 0..1 down height
-    const idx = Math.max(0, Math.min(PROFILE_LEN - 1, Math.round(py * (PROFILE_LEN - 1))));
-    const off = Math.max(-1, Math.min(1, (px - 0.5) * 2));
-    return { idx, off };
-  };
-  // Fill profile rows between two indices, interpolating offsets.
-  const fillRows = (i0, o0, i1, o1) => {
-    const lo = Math.min(i0, i1), hi = Math.max(i0, i1);
-    for (let i = lo; i <= hi; i++) {
-      const f = hi === lo ? 0 : (i - i0) / (i1 - i0);
-      state.customProfile[i] = o0 + (o1 - o0) * f;
-    }
-  };
+  const tmpSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  tmpSvg.style.cssText = 'position:absolute;visibility:hidden;width:0;height:0';
+  document.body.appendChild(tmpSvg);
+  const pathClone = document.importNode(pathEl, true);
+  tmpSvg.appendChild(pathClone);
 
-  const onDown = (e) => {
-    drawing = true;
-    cv.setPointerCapture(e.pointerId);
-    const s = sample(e);
-    state.customProfile[s.idx] = s.off;
-    lastIdx = s.idx;
-    lastOff = s.off;
-    paintProfileCanvas();
-    scheduleRender();
-  };
-  let lastOff = 0;
-  const onMove = (e) => {
-    if (!drawing) return;
-    const s = sample(e);
-    fillRows(lastIdx, lastOff, s.idx, s.off);
-    lastIdx = s.idx; lastOff = s.off;
-    paintProfileCanvas();
-    scheduleRender();
-  };
-  const commit = () => {
-    if (!drawing) return;
-    drawing = false;
-    persistProfile();
-    scheduleRender();
-  };
-  const abort = () => { drawing = false; };
+  const len = pathClone.getTotalLength();
+  const xs = [];
+  for (let i = 0; i < PROFILE_LEN; i++) {
+    xs.push(pathClone.getPointAtLength((i / (PROFILE_LEN - 1)) * len).x);
+  }
+  document.body.removeChild(tmpSvg);
 
-  cv.addEventListener('pointerdown', onDown);
-  cv.addEventListener('pointermove', onMove);
-  cv.addEventListener('pointerup', commit);
-  cv.addEventListener('pointercancel', abort);
-  cv.addEventListener('lostpointercapture', abort);
-
-  // Stamp buttons.
-  $('customProfileEditor').querySelectorAll('[data-profile]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const which = btn.dataset.profile;
-      state.customProfile = (PROFILE_STAMPS[which] || PROFILE_STAMPS.clear)();
-      persistProfile();
-      paintProfileCanvas();
-      if (which === 'clear') announce('Dibuix netejat');
-      scheduleRender();
-    });
-  });
+  const minX = Math.min(...xs), range = (Math.max(...xs) - minX) || 1;
+  state.customProfile = xs.map((x) => ((x - minX) / range) * 2 - 1);
+  persistProfile();
+  state.shape = 'custom';
+  $('shape').value = 'custom';
+  updateEditorVisibility();
+  scheduleRender();
+  announce('Forma SVG carregada');
 }
 
-function wireOutlineEditor() {
-  const cv = $('outlineCanvas');
-  if (!cv) return;
-  const W = cv.width, H = cv.height;
-  let drawing = false;
-  let raw = []; // flat [x,z,...] in canvas-normalized [-1,1] (centered)
+async function loadSvgOutline(file) {
+  const text = await file.text();
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(text, 'image/svg+xml');
+  const pathEl = doc.querySelector('path');
+  if (!pathEl) { announce('Cap path al SVG'); return; }
 
-  const sample = (e) => {
-    const rect = cv.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width - 0.5) * 2;   // [-1,1]
-    const y = ((e.clientY - rect.top) / rect.height - 0.5) * 2;   // [-1,1]
-    return [Math.max(-1, Math.min(1, x)), Math.max(-1, Math.min(1, y))];
-  };
-  // Paint the in-progress raw stroke directly (open polyline).
-  const paintRaw = () => {
-    const ctx = cv.getContext('2d');
-    ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, W, H);
-    ctx.strokeStyle = '#111111';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    for (let i = 0; i + 1 < raw.length; i += 2) {
-      const px = W / 2 + raw[i] * (W / 2) * 0.9;
-      const py = H / 2 + raw[i + 1] * (H / 2) * 0.9;
-      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-    }
-    ctx.stroke();
-  };
+  const tmpSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  tmpSvg.style.cssText = 'position:absolute;visibility:hidden;width:0;height:0';
+  document.body.appendChild(tmpSvg);
+  const pathClone = document.importNode(pathEl, true);
+  tmpSvg.appendChild(pathClone);
 
-  const onDown = (e) => {
-    drawing = true;
-    raw = [];
-    cv.setPointerCapture(e.pointerId);
-    const p = sample(e);
-    raw.push(p[0], p[1]);
-    paintRaw();
-  };
-  const onMove = (e) => {
-    if (!drawing) return;
-    const p = sample(e);
-    raw.push(p[0], p[1]);
-    paintRaw();
-  };
-  const commit = () => {
-    if (!drawing) return;
-    drawing = false;
-    if (raw.length >= 6) {
-      // Auto-close handled by resample (treats as closed loop).
-      state.customOutline = resampleOutline(raw);
-      persistOutline();
-    }
-    paintOutlineCanvas();
-    scheduleRender();
-  };
-  const abort = () => { drawing = false; paintOutlineCanvas(); };
+  const len = pathClone.getTotalLength();
+  const flat = [];
+  for (let i = 0; i < OUTLINE_LEN; i++) {
+    const pt = pathClone.getPointAtLength((i / OUTLINE_LEN) * len);
+    flat.push(pt.x, pt.y);
+  }
+  document.body.removeChild(tmpSvg);
 
-  cv.addEventListener('pointerdown', onDown);
-  cv.addEventListener('pointermove', onMove);
-  cv.addEventListener('pointerup', commit);
-  cv.addEventListener('pointercancel', abort);
-  cv.addEventListener('lostpointercapture', abort);
-
-  // Stamp buttons.
-  $('customOutlineEditor').querySelectorAll('[data-outline]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const which = btn.dataset.outline;
-      const flat = (OUTLINE_STAMPS[which] || OUTLINE_STAMPS.clear)();
-      state.customOutline = resampleOutline(flat);
-      persistOutline();
-      paintOutlineCanvas();
-      if (which === 'clear') announce('Dibuix netejat');
-      scheduleRender();
-    });
-  });
+  state.customOutline = resampleOutline(flat);
+  persistOutline();
+  state.form = 'custom-prism';
+  $('form').value = 'custom-prism';
+  updateEditorVisibility();
+  scheduleRender();
+  announce('Contorn SVG carregat');
 }
 
-// Announce via the EXISTING #recordStatus role="status" region.
+// Announce via #recordStatus role="status".
 function announce(msg) {
   const el = $('recordStatus');
   if (el) el.textContent = msg;
@@ -611,20 +472,66 @@ function announce(msg) {
 
 // --- Mode switch ---
 function updateModeUI() {
-  const section3d = $('section-3d');
-  const title2d = $('summary2dTitle');
+  const c2d = $('section-2d-content');
+  const c3d = $('section-3d-content');
   if (state.mode === '2d') {
-    if (section3d) section3d.hidden = true;
-    if (title2d) title2d.textContent = '2D — Forma';
+    if (c2d) c2d.hidden = false;
+    if (c3d) c3d.hidden = true;
   } else {
-    if (section3d) section3d.hidden = false;
-    if (title2d) title2d.textContent = '2D — Forma aplicada al volum';
+    if (c2d) c2d.hidden = true;
+    if (c3d) c3d.hidden = false;
   }
-  // Sync radio checked state.
   const r2d = $('mode2d');
   const r3d = $('mode3d');
   if (r2d) r2d.checked = state.mode === '2d';
   if (r3d) r3d.checked = state.mode === '3d';
+}
+
+// --- Tab navigation (ARIA tabs pattern) ---
+function wireTabs() {
+  const tablist = document.querySelector('[role="tablist"]');
+  if (!tablist) return;
+  const STORAGE_KEY = 'shaper-active-tab';
+
+  function activateTab(tab) {
+    tablist.querySelectorAll('[role="tab"]').forEach((t) => {
+      t.setAttribute('aria-selected', 'false');
+      t.setAttribute('tabindex', '-1');
+      const panel = document.getElementById(t.getAttribute('aria-controls'));
+      if (panel) panel.hidden = true;
+    });
+    tab.setAttribute('aria-selected', 'true');
+    tab.setAttribute('tabindex', '0');
+    const panel = document.getElementById(tab.getAttribute('aria-controls'));
+    if (panel) panel.hidden = false;
+    try { sessionStorage.setItem(STORAGE_KEY, tab.id); } catch (e) {}
+  }
+
+  tablist.addEventListener('keydown', (e) => {
+    const tabs = [...tablist.querySelectorAll('[role="tab"]:not([aria-disabled="true"])')];
+    const idx = tabs.indexOf(document.activeElement);
+    let next = -1;
+    if (e.key === 'ArrowDown')  next = (idx + 1) % tabs.length;
+    else if (e.key === 'ArrowUp') next = (idx - 1 + tabs.length) % tabs.length;
+    else if (e.key === 'Home')  next = 0;
+    else if (e.key === 'End')   next = tabs.length - 1;
+    else return;
+    e.preventDefault();
+    tabs[next].focus();
+    activateTab(tabs[next]);
+  });
+
+  tablist.addEventListener('click', (e) => {
+    const tab = e.target.closest('[role="tab"]');
+    if (!tab || tab.getAttribute('aria-disabled') === 'true') return;
+    activateTab(tab);
+    tab.focus();
+  });
+
+  const saved = sessionStorage.getItem(STORAGE_KEY);
+  const savedTab = saved ? document.getElementById(saved) : null;
+  const first = tablist.querySelector('[role="tab"]:not([aria-disabled="true"])');
+  activateTab((savedTab && savedTab.getAttribute('aria-disabled') !== 'true') ? savedTab : first);
 }
 
 // --- Controls wiring ---
@@ -781,9 +688,20 @@ function wireControls() {
   });
 
   $('recordVideo').addEventListener('click', toggleRecord);
-
-
   $('saveSvg').addEventListener('click', saveSVG);
+  $('savePng').addEventListener('click', savePNG);
+
+  // SVG shape upload
+  $('svgFile2d').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) loadSvgProfile(file);
+    e.target.value = '';
+  });
+  $('svgFile3d').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) loadSvgOutline(file);
+    e.target.value = '';
+  });
 
   // --- Animation controls ---
   $('playPause').addEventListener('click', () => {
@@ -1010,52 +928,26 @@ function saveSVG() {
   URL.revokeObjectURL(url);
 }
 
-// --- Section open/close persistence (sessionStorage) ---
-const SECTION_KEYS = [
-  { id: 'section-2d', storageKey: 'shaper-section-2d', defaultOpen: true },
-  { id: 'section-3d', storageKey: 'shaper-section-3d', defaultOpen: false },
-];
-
-function restoreSections() {
-  for (const { id, storageKey, defaultOpen } of SECTION_KEYS) {
-    const el = $(id);
-    if (!el) continue;
-    const stored = sessionStorage.getItem(storageKey);
-    // stored is 'true', 'false', or null (first visit)
-    const shouldBeOpen = stored !== null ? stored === 'true' : defaultOpen;
-    if (shouldBeOpen) {
-      el.setAttribute('open', '');
-    } else {
-      el.removeAttribute('open');
-    }
-  }
-}
-
-function wireSectionPersistence() {
-  for (const { id, storageKey } of SECTION_KEYS) {
-    const el = $(id);
-    if (!el) continue;
-    el.addEventListener('toggle', () => {
-      sessionStorage.setItem(storageKey, el.open ? 'true' : 'false');
-    });
-  }
+function savePNG() {
+  if (!displayCanvas) return;
+  const url = displayCanvas.toDataURL('image/png');
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `shaper-${state.seed}.png`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 }
 
 // --- Init ---
 function init() {
-  // Restore section open states before building sliders (DOM already final).
-  restoreSections();
-  // Restore custom drawings before building UI so canvases paint correct state.
   restoreCustomData();
   buildSliders();
+  wireTabs();
   wireControls();
-  wireSectionPersistence();
-  wireProfileEditor();
-  wireOutlineEditor();
-  // Sync font select to state default
+  // Sync select / checkbox UI to state defaults
   $('font').value = state.font;
   $('motion2d').value = state.motion2d;
-  // Sync 3D select / checkbox UI to state defaults
   $('form').value = state.form;
   $('projection').value = state.projection;
   $('guides').checked = state.guides;
@@ -1063,12 +955,7 @@ function init() {
   $('surfaceText').checked = state.surfaceText;
   updateFovEnabled();
   updateModeUI();
-  // Paint editor canvases from restored/default data; set visibility to match
-  // current shape/form.
-  paintProfileCanvas();
-  paintOutlineCanvas();
   updateEditorVisibility();
-  // sync the speed slider UI to state
   $('rng-speed').value = state.speed;
   $('num-speed').value = state.speed;
   updatePlayPauseUI();

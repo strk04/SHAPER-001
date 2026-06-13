@@ -1,6 +1,6 @@
 # STATUS — SHAPER 001
 
-_Actualitzat: 2026-06-13_
+_Actualitzat: 2026-06-13 (tarda)_
 
 ## Estat general
 
@@ -18,8 +18,8 @@ Vanilla JS zero-build (index.html, main.js, engine.js, styles.css). Sense bundle
 
 ## Darrera sessió
 
-2026-06-13 — CSS restyled a Q S 003 (disseny idèntic a Pixel Perfect): Datatype font, sidebar blanc, stage negre, 0 border-radius, sliders 1px. Deploy inicial a Vercel.
+2026-06-13 — Sliders 3D condicionals per forma: `facets`/`turns`/`count`/`scatter` s'amagen si la forma activa no els necessita. Live region `role="status"` per a11y. Deploy a https://q-pp-001.vercel.app/shaper/ (PP repo).
 
 ## Pendent
 
-Cap bloqueig.
+- Revisar token `--rule: #9d9d9d` a Q S 003 (contrast insuficient WCAG 1.4.11 — només 2.71:1).

@@ -260,6 +260,8 @@ legend {
   gap: var(--space-4);
 }
 
+.params > legend { display: none; }
+
 /* Separator between subgroups */
 .params > .subgroup + .subgroup {
   padding-top: var(--space-4);

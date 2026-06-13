@@ -199,6 +199,7 @@ export function layout(params, width, height) {
   // Time/speed default to 0/1 when absent (static render stays identical).
   const time = typeof t === 'number' ? t : 0;
   const spd = typeof speed === 'number' ? speed : 1;
+  const trackRandAmt = typeof trackRand === 'number' ? trackRand : 0;
 
   const rand = mulberry32(seed);
   const marginLeft = 0;
@@ -255,7 +256,7 @@ export function layout(params, width, height) {
         const jitterOn = rand() < yJitterAffect;
         const yOff = jitterOn ? (rand() - 0.5) * 2 * yJitter : 0;
         const xChaos = (rand() - 0.5) * charChaos;
-        const trackJ = rand() * trackRand * fontSize;
+        const trackJ = rand() * trackRandAmt * fontSize;
         const drop = rand() < dropProb;
 
         if (!drop) {

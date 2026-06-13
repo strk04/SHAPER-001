@@ -440,6 +440,18 @@ function updateEditorVisibility() {
   const oe = $('customOutlineEditor');
   if (pe) pe.hidden = state.shape !== 'custom';
   if (oe) oe.hidden = state.form !== 'custom-prism';
+
+  const form = state.form;
+  const showFacets = ['cylinder', 'helix', 'star-prism', 'custom-prism'].includes(form);
+  for (const [key, show] of [
+    ['facets',  showFacets],
+    ['turns',   form === 'helix'],
+    ['count',   form === 'cluster'],
+    ['scatter', form === 'cluster'],
+  ]) {
+    const el = document.querySelector(`.slider[data-key="${key}"]`);
+    if (el) el.hidden = !show;
+  }
 }
 
 // --- Pointer drawing wiring ---
@@ -745,7 +757,9 @@ function wireControls() {
   // --- 3D selects + checkboxes ---
   $('form').addEventListener('change', (e) => {
     state.form = e.target.value;
-    updateEditorVisibility(); // focus stays on the select
+    updateEditorVisibility();
+    const st = $('form3d-status');
+    if (st) st.textContent = `Paràmetres actualitzats per a ${e.target.options[e.target.selectedIndex].text}`;
     scheduleRender();
   });
   $('projection').addEventListener('change', (e) => {

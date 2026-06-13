@@ -1,6 +1,6 @@
 # STATUS — SHAPER 001
 
-_Actualitzat: 2026-06-13 (tarda)_
+_Actualitzat: 2026-06-13 (vespre)_
 
 ## Estat general
 
@@ -9,6 +9,7 @@ Estable. Desplegat a producció.
 ## URLs
 
 - **Live:** https://q-shaper-001.vercel.app
+- **PP:** https://q-pp-001.vercel.app/shaper/
 - **Repo:** https://github.com/strk04/SHAPER-001
 - **Deploy:** Vercel — git push main → auto-deploy
 
@@ -18,7 +19,7 @@ Vanilla JS zero-build (index.html, main.js, engine.js, styles.css). Sense bundle
 
 ## Darrera sessió
 
-2026-06-13 — Sliders 3D condicionals per forma: `facets`/`turns`/`count`/`scatter` s'amagen si la forma activa no els necessita. Live region `role="status"` per a11y. Deploy a https://q-pp-001.vercel.app/shaper/ (PP repo).
+2026-06-13 — Layout 3 columnes: nav index (ARIA tablist) + panel controls + stage. Seccions: Àtom / Mode / Format / Colors / Presets. Export footer sempre visible. SVG import reemplaça canvas draw editors. Kerning (charTrack fusionat, trackRand eliminat de la UI). PNG export afegit.
 
 ## Pendent
 

@@ -1,5 +1,27 @@
 # Progress — SHAPER 001
 
+## 2026-06-13 (vespre) — Layout 3 columnes
+
+### Fet
+- Reestructura completa: sidebar → 3 columnes (nav + controls + stage).
+- Col 1: ARIA tablist vertical (Àtom / Mode / Format / Colors / Presets + footer Export).
+- Col 2: tabpanels — cada secció en el seu panell scrollable.
+- Col 3: stage (sense canvis).
+- Àtom panel: `Cos` (fontSize) primer, `Velocitat` (speed) just after Tall fix, separadors visuals.
+- Mode panel: toggle 2D/3D + contingut condicional 2D/3D dins el panell.
+- `charTrack` relabeled `Kerning`; `trackRand` eliminat de la UI (default 0, state manté).
+- Canvas draw editors eliminats → SVG file import (perfil 2D + contorn 3D via SVGGeometryElement).
+- `savePNG` afegit al costat de `saveSVG` al footer d'exportació.
+- Teclat: ArrowDown/Up, Home/End, roving tabindex (spec accessibility-lead).
+- Deploy: SHAPER 001 + PP repo.
+
+### Decisions
+- `wireTabs()` implementa l'ARIA tabs pattern (no `<nav>` + button, sinó `role="tablist"`) per coherència semàntica amb la spec W3C.
+- SVG import usa `SVGGeometryElement.getTotalLength/getPointAtLength` en lloc d'un parser manual — aprofita el motor SVG del navegador.
+- `trackRand` eliminat de la UI (simplificació Kerning), però el state i el motor el mantenen — si es vol recuperar la variació, és addició trivial.
+
+---
+
 ## 2026-06-13 — Sliders 3D condicionals per forma
 
 ### Fet

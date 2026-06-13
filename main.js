@@ -44,7 +44,7 @@ const SLIDERS = {
 const $ = (id) => document.getElementById(id);
 
 const state = {
-  text: 'Shared rhythm. Individual flow.',
+  text: 'Ritme compartit. Flux individual.',
   font: 'courier-regular',
   shape: 'rectangle',
   textColor: '#111111',
@@ -945,6 +945,7 @@ function init() {
   bindNavigation();
   wireControls();
   // Sync select / checkbox UI to state defaults
+  $('text').value = state.text;
   $('font').value = state.font;
   $('motion2d').value = state.motion2d;
   $('form').value = state.form;

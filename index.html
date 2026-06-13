@@ -37,12 +37,28 @@
           <span class="app-menu-mark" aria-hidden="true">[ ]</span>
           <span>Presets</span>
         </button>
-        <button class="app-menu-item" type="button" data-panel-target="panel-export" aria-pressed="false">
-          <span class="app-menu-mark" aria-hidden="true">[ ]</span>
-          <span>Export</span>
-        </button>
       </div>
     </section>
+
+    <div class="export-footer" role="group" aria-label="Controls d'exportació">
+      <div class="preview-control">
+        <span id="renderInfo">Canvas 1080 × 1350</span>
+        <button type="button" id="playPause" aria-label="Reprodueix l'animació">Reprodueix</button>
+      </div>
+      <button type="button" id="savePng">Export PNG</button>
+      <button type="button" id="saveSvg">Export SVG</button>
+      <label class="control-row" for="videoQuality">
+        <span>Qualitat MP4</span>
+        <select id="videoQuality" name="videoQuality">
+          <option value="low">4 Mbps</option>
+          <option value="medium" selected>8 Mbps</option>
+          <option value="high">16 Mbps</option>
+        </select>
+      </label>
+      <button type="button" id="recordVideo">Record MP4</button>
+      <p id="recordTimer" class="hint" aria-hidden="true"></p>
+      <p id="recordStatus" class="hint" role="status"></p>
+    </div>
   </nav>
 
   <aside class="section-sidebar" aria-label="Controls de SHAPER">
@@ -59,7 +75,7 @@
       <h2 class="section-heading">SHAPER 001</h2>
       <form id="controls" autocomplete="off">
 
-        <section class="panel" id="panel-atom">
+        <section class="panel is-active" id="panel-atom">
           <h3 class="panel-title">Àtom</h3>
 
           <label class="control-stack slider" data-key="fontSize" data-min="12" data-max="160" data-step="1"></label>
@@ -123,7 +139,7 @@
           <label class="control-stack slider" data-key="dropProb" data-min="0" data-max="1" data-step="0.01"></label>
         </section>
 
-        <section class="panel" id="panel-mode">
+        <section class="panel" id="panel-mode" hidden>
           <h3 class="panel-title">Mode</h3>
 
           <fieldset class="gtx-fieldset">
@@ -222,7 +238,7 @@
           </div>
         </section>
 
-        <section class="panel" id="panel-format">
+        <section class="panel" id="panel-format" hidden>
           <h3 class="panel-title">Format</h3>
           <label class="control-row" for="format-select">
             <span>Preset</span>
@@ -267,7 +283,7 @@
           <p id="formatStatus" class="hint" role="status"></p>
         </section>
 
-        <section class="panel" id="panel-colors">
+        <section class="panel" id="panel-colors" hidden>
           <h3 class="panel-title">Colors</h3>
           <label class="control-row" for="bgColor">
             <span>Color de fons</span>
@@ -279,30 +295,9 @@
           </label>
         </section>
 
-        <section class="panel" id="panel-presets">
+        <section class="panel" id="panel-presets" hidden>
           <h3 class="panel-title">Presets</h3>
           <p class="hint">Pròximament disponible.</p>
-        </section>
-
-        <section class="panel" id="panel-export">
-          <h3 class="panel-title">Export</h3>
-          <div class="preview-control">
-            <span id="renderInfo">Canvas 1080 × 1350</span>
-            <button type="button" id="playPause" aria-label="Reprodueix l'animació">Reprodueix</button>
-          </div>
-          <button type="button" id="savePng">Export PNG</button>
-          <button type="button" id="saveSvg">Export SVG</button>
-          <label class="control-row" for="videoQuality">
-            <span>Qualitat MP4</span>
-            <select id="videoQuality" name="videoQuality">
-              <option value="low">4 Mbps</option>
-              <option value="medium" selected>8 Mbps</option>
-              <option value="high">16 Mbps</option>
-            </select>
-          </label>
-          <button type="button" id="recordVideo">Record MP4</button>
-          <p id="recordTimer" class="hint" aria-hidden="true"></p>
-          <p id="recordStatus" class="hint" role="status"></p>
         </section>
 
       </form>

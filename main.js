@@ -6,7 +6,7 @@ const SLIDERS = {
   fontSize: { label: 'Cos', def: 16 },
   amplitude: { label: 'Amplitud', def: 0 },
   frequency: { label: 'Freqüència', def: 0.001 },
-  charTrack: { label: ‘Kerning’, def: 0 },
+  charTrack: { label: 'Kerning', def: 0 },
   leading: { label: 'Interlínia', def: 72 },
   noiseAmt: { label: 'Soroll horitzontal', def: 0 },
   rainSpeed2d: { label: 'Velocitat de pluja', def: 1 },
@@ -74,23 +74,46 @@ const state = {
 // --- Build slider rows ---
 const sliderRefs = {}; // key -> { range, number }
 
+function formatSliderValue(key, value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return String(value);
+  if (['dropProb', 'yJitterAffect', 'depthFade', 'pulse', 'rainProb', 'wordRamp'].includes(key)) {
+    return n.toFixed(2).replace(/\.?0+$/, '');
+  }
+  if (['frequency'].includes(key)) return n.toFixed(3).replace(/\.?0+$/, '');
+  if (Math.abs(n - Math.round(n)) < 0.0001) return String(Math.round(n));
+  return n.toFixed(1).replace(/\.?0+$/, '');
+}
+
+function syncOutput(key) {
+  const ref = sliderRefs[key];
+  if (!ref) return;
+  ref.output.textContent = formatSliderValue(key, state[key]);
+}
+
 function buildSliders() {
   document.querySelectorAll('.slider').forEach((host) => {
     const key = host.dataset.key;
     const meta = SLIDERS[key];
-    if (!meta) return; // skip non-parameter sliders (e.g. the Speed row, wired separately)
+    if (!meta) return;
     const min = host.dataset.min;
     const max = host.dataset.max;
     const step = host.dataset.step;
+    const rangeId = 'rng-' + key;
+    const outputId = 'out-' + key;
 
-    host.classList.add('slider-row');
-    const labelId = `lbl-${key}`;
-    const rangeId = `rng-${key}`;
+    host.setAttribute('for', rangeId);
 
-    const label = document.createElement('label');
-    label.id = labelId;
-    label.setAttribute('for', rangeId);
+    const line = document.createElement('span');
+    line.className = 'control-line';
+
+    const label = document.createElement('span');
     label.textContent = meta.label;
+
+    const output = document.createElement('output');
+    output.id = outputId;
+    output.setAttribute('for', rangeId);
+    output.textContent = formatSliderValue(key, state[key]);
 
     const range = document.createElement('input');
     range.type = 'range';
@@ -99,40 +122,16 @@ function buildSliders() {
     range.max = max;
     range.step = step;
     range.value = state[key];
+    range.setAttribute('aria-valuetext', output.textContent);
 
-    const number = document.createElement('input');
-    number.type = 'number';
-    number.min = min;
-    number.max = max;
-    number.step = step;
-    number.value = state[key];
-    number.setAttribute('aria-labelledby', labelId);
+    line.append(label, output);
+    host.append(line, range);
+    sliderRefs[key] = { range, output, min: +min, max: +max };
 
-    host.append(label, range, number);
-    sliderRefs[key] = { range, number, min: +min, max: +max };
-
-    // Range: sync on input (live)
     range.addEventListener('input', () => {
       state[key] = +range.value;
-      number.value = range.value;
-      scheduleRender();
-    });
-
-    // Number: sync live on input, clamp on change
-    number.addEventListener('input', () => {
-      const v = number.value;
-      if (v === '' || isNaN(+v)) return;
-      state[key] = +v;
-      range.value = v;
-      scheduleRender();
-    });
-    number.addEventListener('change', () => {
-      let v = +number.value;
-      if (isNaN(v)) v = meta.def;
-      v = Math.min(sliderRefs[key].max, Math.max(sliderRefs[key].min, v));
-      number.value = v;
-      range.value = v;
-      state[key] = v;
+      syncOutput(key);
+      range.setAttribute('aria-valuetext', output.textContent);
       scheduleRender();
     });
   });
@@ -142,7 +141,8 @@ function syncSliderUI(key) {
   const ref = sliderRefs[key];
   if (!ref) return;
   ref.range.value = state[key];
-  ref.number.value = state[key];
+  syncOutput(key);
+  ref.range.setAttribute('aria-valuetext', ref.output.textContent);
 }
 
 // --- Render (rAF debounced) ---
@@ -195,7 +195,9 @@ function applyCanvasSize(width, height) {
   }
   state.canvasW = w;
   state.canvasH = h;
-  if (status) status.textContent = `Canvas: ${w} × ${h} px`;
+  if (status) status.textContent = 'Canvas ' + w + ' × ' + h + ' px';
+  const renderInfo = $('renderInfo');
+  if (renderInfo) renderInfo.textContent = 'Canvas ' + w + ' × ' + h;
   resizeCanvas();
   render();
   return true;
@@ -267,7 +269,7 @@ function updateArtworkLabel() {
   const base = 'Previsualització de tipografia generativa';
   artwork.setAttribute(
     'aria-label',
-    playing ? `${base}, animating` : `${base}, animation paused`,
+    playing ? base + ', animació en marxa' : base + ', animació en pausa',
   );
 }
 
@@ -488,50 +490,50 @@ function updateModeUI() {
 }
 
 // --- Tab navigation (ARIA tabs pattern) ---
-function wireTabs() {
-  const tablist = document.querySelector('[role="tablist"]');
-  if (!tablist) return;
-  const STORAGE_KEY = 'shaper-active-tab';
+function bindNavigation() {
+  const targets = document.querySelectorAll('[data-panel-target]');
+  const sidebar = document.querySelector('.section-sidebar');
 
-  function activateTab(tab) {
-    tablist.querySelectorAll('[role="tab"]').forEach((t) => {
-      t.setAttribute('aria-selected', 'false');
-      t.setAttribute('tabindex', '-1');
-      const panel = document.getElementById(t.getAttribute('aria-controls'));
-      if (panel) panel.hidden = true;
+  targets.forEach((button) => {
+    button.addEventListener('click', () => {
+      const panel = document.getElementById(button.dataset.panelTarget);
+      if (!panel) return;
+
+      targets.forEach((target) => {
+        const isActive = target === button;
+        target.setAttribute('aria-pressed', String(isActive));
+        target.querySelector('.app-menu-mark').textContent = '[' + (isActive ? '*' : ' ') + ']';
+      });
+
+      if (sidebar) {
+        sidebar.scrollTop = Math.max(0, panel.offsetTop - 24);
+      } else {
+        panel.scrollIntoView({ block: 'start' });
+      }
     });
-    tab.setAttribute('aria-selected', 'true');
-    tab.setAttribute('tabindex', '0');
-    const panel = document.getElementById(tab.getAttribute('aria-controls'));
-    if (panel) panel.hidden = false;
-    try { sessionStorage.setItem(STORAGE_KEY, tab.id); } catch (e) {}
-  }
-
-  tablist.addEventListener('keydown', (e) => {
-    const tabs = [...tablist.querySelectorAll('[role="tab"]:not([aria-disabled="true"])')];
-    const idx = tabs.indexOf(document.activeElement);
-    let next = -1;
-    if (e.key === 'ArrowDown')  next = (idx + 1) % tabs.length;
-    else if (e.key === 'ArrowUp') next = (idx - 1 + tabs.length) % tabs.length;
-    else if (e.key === 'Home')  next = 0;
-    else if (e.key === 'End')   next = tabs.length - 1;
-    else return;
-    e.preventDefault();
-    tabs[next].focus();
-    activateTab(tabs[next]);
   });
 
-  tablist.addEventListener('click', (e) => {
-    const tab = e.target.closest('[role="tab"]');
-    if (!tab || tab.getAttribute('aria-disabled') === 'true') return;
-    activateTab(tab);
-    tab.focus();
-  });
+  const navToggle = document.querySelector('#navToggle');
+  const appMenu = document.querySelector('#appMenu');
+  if (!navToggle || !appMenu) return;
 
-  const saved = sessionStorage.getItem(STORAGE_KEY);
-  const savedTab = saved ? document.getElementById(saved) : null;
-  const first = tablist.querySelector('[role="tab"]:not([aria-disabled="true"])');
-  activateTab((savedTab && savedTab.getAttribute('aria-disabled') !== 'true') ? savedTab : first);
+  navToggle.addEventListener('click', () => {
+    const isCollapsed = document.body.hasAttribute('data-nav-collapsed');
+    if (isCollapsed) {
+      appMenu.removeAttribute('inert');
+      delete document.body.dataset.navCollapsed;
+      navToggle.setAttribute('aria-expanded', 'true');
+      navToggle.setAttribute('aria-label', 'Amaga la navegació');
+      navToggle.querySelector('span').textContent = '[← nav]';
+    } else {
+      if (appMenu.contains(document.activeElement)) navToggle.focus();
+      appMenu.setAttribute('inert', '');
+      document.body.dataset.navCollapsed = '';
+      navToggle.setAttribute('aria-expanded', 'false');
+      navToggle.setAttribute('aria-label', 'Mostra la navegació');
+      navToggle.querySelector('span').textContent = '[→ nav]';
+    }
+  });
 }
 
 // --- Controls wiring ---
@@ -709,32 +711,20 @@ function wireControls() {
     else play();
   });
 
-  // Speed slider pair (same pattern as the other sliders).
-  // Speed 0 is visually static but must NOT flip Play/Pause state.
   const speedRange = $('rng-speed');
-  const speedNumber = $('num-speed');
+  const speedOutput = $('out-speed');
+  const syncSpeedOutput = () => {
+    speedOutput.textContent = formatSliderValue('speed', state.speed);
+    speedRange.setAttribute('aria-valuetext', speedOutput.textContent);
+  };
 
   speedRange.addEventListener('input', () => {
     state.speed = +speedRange.value;
-    speedNumber.value = speedRange.value;
+    syncSpeedOutput();
     if (!playing) scheduleRender();
   });
-  speedNumber.addEventListener('input', () => {
-    const v = speedNumber.value;
-    if (v === '' || isNaN(+v)) return;
-    state.speed = +v;
-    speedRange.value = v;
-    if (!playing) scheduleRender();
-  });
-  speedNumber.addEventListener('change', () => {
-    let v = +speedNumber.value;
-    if (isNaN(v)) v = 1;
-    v = Math.min(2, Math.max(0, v));
-    speedNumber.value = v;
-    speedRange.value = v;
-    state.speed = v;
-    if (!playing) scheduleRender();
-  });
+
+  syncSpeedOutput();
 
   // --- Drag-to-orbit on the artwork div ---
   // Wrap a value into −180..180 (modulo wrap-around).
@@ -789,7 +779,6 @@ function updateFovEnabled() {
   if (!ref) return;
   const disabled = state.projection !== 'perspective';
   ref.range.disabled = disabled;
-  ref.number.disabled = disabled;
 }
 
 // Randomize all sliders within sensible sub-ranges (avoid degenerate output)
@@ -943,7 +932,7 @@ function savePNG() {
 function init() {
   restoreCustomData();
   buildSliders();
-  wireTabs();
+  bindNavigation();
   wireControls();
   // Sync select / checkbox UI to state defaults
   $('font').value = state.font;
@@ -957,7 +946,7 @@ function init() {
   updateModeUI();
   updateEditorVisibility();
   $('rng-speed').value = state.speed;
-  $('num-speed').value = state.speed;
+  $('out-speed').textContent = formatSliderValue('speed', state.speed);
   updatePlayPauseUI();
   updateArtworkLabel();
   render();

@@ -1,314 +1,320 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ca">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>SHAPER 001 — Tipografia generativa</title>
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <div class="app">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SHAPER 001 — Tipografia generativa</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Datatype&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-active-section="shaper">
+  <a href="#artwork" class="skip-link">Salta a la previsualització</a>
 
-      <!-- COL 1: Nav index + Export footer -->
-      <div class="nav-col">
-        <div class="nav-header">
-          <h1>SHAPER 001</h1>
-        </div>
-
-        <div role="tablist" aria-orientation="vertical" aria-label="Seccions">
-          <button role="tab" id="tab-atom"    aria-selected="true"  tabindex="0"  aria-controls="panel-atom">Àtom</button>
-          <button role="tab" id="tab-mode"    aria-selected="false" tabindex="-1" aria-controls="panel-mode">Mode</button>
-          <button role="tab" id="tab-format"  aria-selected="false" tabindex="-1" aria-controls="panel-format">Format</button>
-          <button role="tab" id="tab-colors"  aria-selected="false" tabindex="-1" aria-controls="panel-colors">Colors</button>
-          <button role="tab" id="tab-presets" aria-selected="false" tabindex="-1" aria-controls="panel-presets" aria-disabled="true">Presets</button>
-        </div>
-
-        <div class="export-footer" role="group" aria-label="Controls d'exportació">
-          <button type="button" id="playPause" aria-label="Reprodueix l'animació">Reprodueix</button>
-          <div class="field">
-            <label id="lbl-videoqty" for="videoQuality">Qualitat vídeo</label>
-            <select id="videoQuality" name="videoQuality" aria-labelledby="lbl-videoqty">
-              <option value="low">Baixa</option>
-              <option value="medium" selected>Mitjana</option>
-              <option value="high">Alta</option>
-            </select>
-          </div>
-          <button type="button" id="recordVideo">Grava vídeo</button>
-          <p id="recordTimer" class="record-timer" aria-hidden="true"></p>
-          <p id="recordStatus" class="record-status" role="status"></p>
-          <div class="export-row">
-            <button type="button" id="savePng">IMG</button>
-            <button type="button" id="saveSvg">SVG</button>
-          </div>
-        </div>
+  <nav id="appMenu" class="app-menu" aria-label="Seccions de SHAPER">
+    <h1 class="app-title">Q SHAPER 001</h1>
+    <section class="app-menu-group" aria-label="Shaper">
+      <h2 class="app-menu-title">/shaper</h2>
+      <div class="app-menu-list">
+        <button class="app-menu-item" type="button" data-panel-target="panel-atom" aria-pressed="true">
+          <span class="app-menu-mark" aria-hidden="true">[*]</span>
+          <span>Àtom</span>
+        </button>
+        <button class="app-menu-item" type="button" data-panel-target="panel-mode" aria-pressed="false">
+          <span class="app-menu-mark" aria-hidden="true">[ ]</span>
+          <span>Mode</span>
+        </button>
+        <button class="app-menu-item" type="button" data-panel-target="panel-format" aria-pressed="false">
+          <span class="app-menu-mark" aria-hidden="true">[ ]</span>
+          <span>Format</span>
+        </button>
+        <button class="app-menu-item" type="button" data-panel-target="panel-colors" aria-pressed="false">
+          <span class="app-menu-mark" aria-hidden="true">[ ]</span>
+          <span>Colors</span>
+        </button>
+        <button class="app-menu-item" type="button" data-panel-target="panel-presets" aria-pressed="false">
+          <span class="app-menu-mark" aria-hidden="true">[ ]</span>
+          <span>Presets</span>
+        </button>
+        <button class="app-menu-item" type="button" data-panel-target="panel-export" aria-pressed="false">
+          <span class="app-menu-mark" aria-hidden="true">[ ]</span>
+          <span>Export</span>
+        </button>
       </div>
+    </section>
+  </nav>
 
-      <!-- COL 2: Section panels -->
-      <div class="controls-col">
-        <form id="controls" autocomplete="off">
+  <aside class="section-sidebar" aria-label="Controls de SHAPER">
+    <button
+      id="navToggle"
+      class="nav-toggle"
+      type="button"
+      aria-expanded="true"
+      aria-controls="appMenu"
+      aria-label="Amaga la navegació"
+    ><span aria-hidden="true">[← nav]</span></button>
 
-          <!-- ÀTOM ─────────────────────────────────────── -->
-          <div role="tabpanel" id="panel-atom" aria-labelledby="tab-atom">
+    <div class="section-view" data-section="shaper">
+      <h2 class="section-heading">SHAPER 001</h2>
+      <form id="controls" autocomplete="off">
 
-            <div class="slider" data-key="fontSize" data-min="12" data-max="160" data-step="1"></div>
+        <section class="panel" id="panel-atom">
+          <h3 class="panel-title">Àtom</h3>
 
-            <div class="field">
-              <label id="lbl-font" for="font">Tipografia</label>
-              <select id="font" name="font">
-                <option value="times-regular">Times New Roman Regular</option>
-                <option value="times-bold">Times New Roman Bold</option>
-                <option value="courier-regular" selected>Courier Regular</option>
-                <option value="courier-bold">Courier Bold</option>
-                <option value="helvetica-regular">Helvetica Regular</option>
-                <option value="helvetica-bold">Helvetica Bold</option>
+          <label class="control-stack slider" data-key="fontSize" data-min="12" data-max="160" data-step="1"></label>
+
+          <label class="control-row" for="font">
+            <span>Tipografia</span>
+            <select id="font" name="font">
+              <option value="times-regular">Times New Roman Regular</option>
+              <option value="times-bold">Times New Roman Bold</option>
+              <option value="courier-regular" selected>Courier Regular</option>
+              <option value="courier-bold">Courier Bold</option>
+              <option value="helvetica-regular">Helvetica Regular</option>
+              <option value="helvetica-bold">Helvetica Bold</option>
+            </select>
+          </label>
+
+          <label class="control-stack" for="text">
+            <span>Text</span>
+            <textarea id="text" class="gtx-textarea" name="text" rows="5">Ritme compartit. Flux individual.</textarea>
+          </label>
+
+          <label class="control-stack slider" data-key="wordsPerRow" data-min="1" data-max="20" data-step="1"></label>
+
+          <label class="control-row" for="hardWrap">
+            <span>Tall fix</span>
+            <input type="checkbox" id="hardWrap" name="hardWrap">
+          </label>
+
+          <label class="control-stack" for="rng-speed">
+            <span class="control-line">
+              <span>Velocitat</span>
+              <output id="out-speed">1</output>
+            </span>
+            <input type="range" id="rng-speed" min="0" max="2" step="0.1" value="1">
+          </label>
+
+          <label class="control-row" for="motion2d">
+            <span>Moviment vertical</span>
+            <select id="motion2d" name="motion2d">
+              <option value="static">Estàtic</option>
+              <option value="rain" selected>Pluja</option>
+            </select>
+          </label>
+
+          <label class="control-stack slider" data-key="rainSpeed2d" data-min="0" data-max="3" data-step="0.1"></label>
+
+          <h3 class="panel-title">Composició</h3>
+          <label class="control-stack slider" data-key="charTrack" data-min="0" data-max="60" data-step="1"></label>
+          <label class="control-stack slider" data-key="leading" data-min="20" data-max="200" data-step="1"></label>
+          <label class="control-stack slider" data-key="wordTrack" data-min="0" data-max="200" data-step="1"></label>
+          <label class="control-stack slider" data-key="wordChaos" data-min="0" data-max="100" data-step="1"></label>
+          <label class="control-stack slider" data-key="wordRamp" data-min="0" data-max="1" data-step="0.1"></label>
+
+          <h3 class="panel-title">Distorsió</h3>
+          <label class="control-stack slider" data-key="amplitude" data-min="0" data-max="200" data-step="1"></label>
+          <label class="control-stack slider" data-key="frequency" data-min="0.001" data-max="0.05" data-step="0.001"></label>
+          <label class="control-stack slider" data-key="noiseAmt" data-min="0" data-max="100" data-step="1"></label>
+          <label class="control-stack slider" data-key="charChaos" data-min="0" data-max="100" data-step="1"></label>
+          <label class="control-stack slider" data-key="yJitter" data-min="0" data-max="60" data-step="1"></label>
+          <label class="control-stack slider" data-key="yJitterAffect" data-min="0" data-max="1" data-step="0.1"></label>
+          <label class="control-stack slider" data-key="dropProb" data-min="0" data-max="1" data-step="0.01"></label>
+        </section>
+
+        <section class="panel" id="panel-mode">
+          <h3 class="panel-title">Mode</h3>
+
+          <fieldset class="gtx-fieldset">
+            <legend class="sr-only">Mode</legend>
+            <label class="control-row" for="mode2d">
+              <span>2D</span>
+              <input type="radio" id="mode2d" name="mode" value="2d" checked>
+            </label>
+            <label class="control-row" for="mode3d">
+              <span>3D</span>
+              <input type="radio" id="mode3d" name="mode" value="3d">
+            </label>
+          </fieldset>
+
+          <div id="section-2d-content">
+            <h3 class="panel-title">Forma 2D</h3>
+            <label class="control-row" for="shape">
+              <span>Forma</span>
+              <select id="shape" name="shape">
+                <option value="rectangle">Rectangle</option>
+                <option value="wave">Ona</option>
+                <option value="trapezoid">Trapezi</option>
+                <option value="diamond">Diamant</option>
+                <option value="custom">Personalitzada</option>
               </select>
+            </label>
+            <div id="svgUpload2d" class="upload-row" hidden>
+              <input class="tone-file-input" type="file" id="svgFile2d" name="svgFile2d" accept=".svg,image/svg+xml" aria-label="Carrega forma SVG">
+              <label class="tone-upload-button" for="svgFile2d">Carrega SVG</label>
             </div>
+          </div>
 
-            <div class="field">
-              <label id="lbl-text" for="text">Text</label>
-              <textarea id="text" name="text" rows="2">Ritme compartit. Flux individual.</textarea>
-            </div>
+          <div id="section-3d-content" hidden>
+            <h3 class="panel-title">Estil 3D</h3>
+            <label class="control-row" for="guides">
+              <span>Guies</span>
+              <input type="checkbox" id="guides" name="guides">
+            </label>
+            <label class="control-row" for="backfaceMirror">
+              <span>Mirall posterior</span>
+              <input type="checkbox" id="backfaceMirror" name="backfaceMirror">
+            </label>
+            <label class="control-row" for="surfaceText">
+              <span>Glifs sobre superfície</span>
+              <input type="checkbox" id="surfaceText" name="surfaceText">
+            </label>
 
-            <div class="slider" data-key="wordsPerRow" data-min="1" data-max="20" data-step="1"></div>
-
-            <div class="field checkbox">
-              <input type="checkbox" id="hardWrap" name="hardWrap" />
-              <label id="lbl-hardwrap" for="hardWrap">Tall fix</label>
-            </div>
-
-            <div class="slider-row">
-              <label id="lbl-speed" for="rng-speed">Velocitat</label>
-              <input type="range"  id="rng-speed" min="0" max="2" step="0.1" value="1" aria-labelledby="lbl-speed" />
-              <input type="number" id="num-speed" min="0" max="2" step="0.1" value="1" aria-labelledby="lbl-speed" />
-            </div>
-
-            <div class="field">
-              <label id="lbl-motion2d" for="motion2d">Moviment vertical</label>
-              <select id="motion2d" name="motion2d">
-                <option value="static">Estàtic</option>
-                <option value="rain" selected>Pluja</option>
+            <h3 class="panel-title">Forma 3D</h3>
+            <label class="control-row" for="form">
+              <span>Forma</span>
+              <select id="form" name="form">
+                <option value="plane">Pla</option>
+                <option value="cylinder">Cilindre</option>
+                <option value="helix">Hèlix</option>
+                <option value="sphere">Esfera</option>
+                <option value="cube">Cub</option>
+                <option value="cluster">Conjunt</option>
+                <option value="star-prism">Prisma estrella</option>
+                <option value="custom-prism">Prisma personalitzat</option>
               </select>
+            </label>
+            <p id="form3d-status" role="status" class="sr-only"></p>
+            <div id="svgUpload3d" class="upload-row" hidden>
+              <input class="tone-file-input" type="file" id="svgFile3d" name="svgFile3d" accept=".svg,image/svg+xml" aria-label="Carrega contorn SVG">
+              <label class="tone-upload-button" for="svgFile3d">Carrega contorn</label>
             </div>
+            <label class="control-stack slider" data-key="formSize" data-min="100" data-max="800" data-step="1"></label>
+            <label class="control-stack slider" data-key="aspect" data-min="0.2" data-max="3" data-step="0.1"></label>
+            <label class="control-stack slider" data-key="facets" data-min="3" data-max="12" data-step="1"></label>
+            <label class="control-stack slider" data-key="turns" data-min="1" data-max="8" data-step="1"></label>
+            <label class="control-stack slider" data-key="count" data-min="1" data-max="9" data-step="1"></label>
+            <label class="control-stack slider" data-key="scatter" data-min="0" data-max="200" data-step="1"></label>
 
-            <div class="slider" data-key="rainSpeed2d" data-min="0" data-max="3" data-step="0.1"></div>
-
-            <div class="panel-sep" role="separator"></div>
-
-            <div class="slider" data-key="charTrack"  data-min="0"   data-max="60"  data-step="1"></div>
-            <div class="slider" data-key="leading"    data-min="20"  data-max="200" data-step="1"></div>
-            <div class="slider" data-key="wordTrack"  data-min="0"   data-max="200" data-step="1"></div>
-            <div class="slider" data-key="wordChaos"  data-min="0"   data-max="100" data-step="1"></div>
-            <div class="slider" data-key="wordRamp"   data-min="0"   data-max="1"   data-step="0.1"></div>
-
-            <div class="panel-sep" role="separator"></div>
-
-            <div class="slider" data-key="amplitude"    data-min="0"     data-max="200"  data-step="1"></div>
-            <div class="slider" data-key="frequency"    data-min="0.001" data-max="0.05" data-step="0.001"></div>
-            <div class="slider" data-key="noiseAmt"     data-min="0"     data-max="100"  data-step="1"></div>
-            <div class="slider" data-key="charChaos"    data-min="0"     data-max="100"  data-step="1"></div>
-            <div class="slider" data-key="yJitter"      data-min="0"     data-max="60"   data-step="1"></div>
-            <div class="slider" data-key="yJitterAffect" data-min="0"    data-max="1"    data-step="0.1"></div>
-            <div class="slider" data-key="dropProb"     data-min="0"     data-max="1"    data-step="0.01"></div>
-
-          </div><!-- /panel-atom -->
-
-          <!-- MODE ─────────────────────────────────────── -->
-          <div role="tabpanel" id="panel-mode" aria-labelledby="tab-mode" hidden>
-
-            <fieldset class="mode">
-              <legend>Mode</legend>
-              <div class="mode-row">
-                <input type="radio" id="mode2d" name="mode" value="2d" checked />
-                <label for="mode2d">2D</label>
-                <input type="radio" id="mode3d" name="mode" value="3d" />
-                <label for="mode3d">3D</label>
-              </div>
-            </fieldset>
-
-            <!-- 2D content -->
-            <div id="section-2d-content">
-              <div class="panel-sep" role="separator"></div>
-              <div class="field">
-                <label id="lbl-shape" for="shape">Forma</label>
-                <select id="shape" name="shape">
-                  <option value="rectangle">Rectangle</option>
-                  <option value="wave">Ona</option>
-                  <option value="trapezoid">Trapezi</option>
-                  <option value="diamond">Diamant</option>
-                  <option value="custom">Personalitzada</option>
-                </select>
-              </div>
-              <div id="svgUpload2d" class="field" hidden>
-                <label id="lbl-svgfile2d" for="svgFile2d">Carrega forma SVG</label>
-                <input type="file" id="svgFile2d" name="svgFile2d" accept=".svg" aria-labelledby="lbl-svgfile2d" />
-              </div>
-            </div>
-
-            <!-- 3D content -->
-            <div id="section-3d-content" hidden>
-              <div class="panel-sep" role="separator"></div>
-
-              <fieldset class="style3d">
-                <legend>Estil</legend>
-                <div class="field checkbox">
-                  <input type="checkbox" id="guides" name="guides" />
-                  <label id="lbl-guides" for="guides">Guies</label>
-                </div>
-                <div class="field checkbox">
-                  <input type="checkbox" id="backfaceMirror" name="backfaceMirror" />
-                  <label id="lbl-backfacemirror" for="backfaceMirror">Mirall posterior</label>
-                </div>
-                <div class="field checkbox">
-                  <input type="checkbox" id="surfaceText" name="surfaceText" />
-                  <label id="lbl-surfacetext" for="surfaceText">Glifs sobre superfície</label>
-                </div>
-              </fieldset>
-
-              <div class="panel-sep" role="separator"></div>
-
-              <fieldset class="form3d">
-                <legend>Forma</legend>
-                <div class="field">
-                  <label id="lbl-form" for="form">Forma</label>
-                  <select id="form" name="form">
-                    <option value="plane">Pla</option>
-                    <option value="cylinder">Cilindre</option>
-                    <option value="helix">Hèlix</option>
-                    <option value="sphere">Esfera</option>
-                    <option value="cube">Cub</option>
-                    <option value="cluster">Conjunt</option>
-                    <option value="star-prism">Prisma estrella</option>
-                    <option value="custom-prism">Prisma personalitzat</option>
-                  </select>
-                </div>
-                <p id="form3d-status" role="status" class="sr-only"></p>
-                <div id="svgUpload3d" class="field" hidden>
-                  <label id="lbl-svgfile3d" for="svgFile3d">Carrega contorn SVG</label>
-                  <input type="file" id="svgFile3d" name="svgFile3d" accept=".svg" aria-labelledby="lbl-svgfile3d" />
-                </div>
-                <div class="slider" data-key="formSize" data-min="100" data-max="800" data-step="1"></div>
-                <div class="slider" data-key="aspect"   data-min="0.2"  data-max="3"   data-step="0.1"></div>
-                <div class="slider" data-key="facets"   data-min="3"    data-max="12"  data-step="1"></div>
-                <div class="slider" data-key="turns"    data-min="1"    data-max="8"   data-step="1"></div>
-                <div class="slider" data-key="count"    data-min="1"    data-max="9"   data-step="1"></div>
-                <div class="slider" data-key="scatter"  data-min="0"    data-max="200" data-step="1"></div>
-              </fieldset>
-
-              <div class="panel-sep" role="separator"></div>
-
-              <fieldset class="camera3d">
-                <legend>Projecció</legend>
-                <div class="field">
-                  <label id="lbl-projection" for="projection">Projecció</label>
-                  <select id="projection" name="projection">
-                    <option value="isometric">Isomètrica</option>
-                    <option value="perspective">Perspectiva</option>
-                  </select>
-                </div>
-                <div class="slider" data-key="zoom"      data-min="0.3"  data-max="3"   data-step="0.1"></div>
-                <div class="slider" data-key="fov"       data-min="30"   data-max="120" data-step="1"></div>
-                <div class="slider" data-key="rotXSpeed" data-min="-2"   data-max="2"   data-step="0.1"></div>
-                <div class="slider" data-key="rotYSpeed" data-min="-2"   data-max="2"   data-step="0.1"></div>
-                <div class="slider" data-key="rotZSpeed" data-min="-2"   data-max="2"   data-step="0.1"></div>
-                <div class="slider" data-key="angleX"    data-min="-180" data-max="180" data-step="1"></div>
-                <div class="slider" data-key="angleY"    data-min="-180" data-max="180" data-step="1"></div>
-                <div class="slider" data-key="depthFade" data-min="0"    data-max="1"   data-step="0.05"></div>
-              </fieldset>
-
-              <div class="panel-sep" role="separator"></div>
-
-              <fieldset class="motion3d">
-                <legend>Pols</legend>
-                <div class="slider" data-key="pulse"      data-min="0" data-max="1"   data-step="0.05"></div>
-                <div class="slider" data-key="pulseSpeed" data-min="0" data-max="2"   data-step="0.1"></div>
-                <div class="slider" data-key="rainProb"   data-min="0" data-max="1"   data-step="0.01"></div>
-                <div class="slider" data-key="rainSpeed"  data-min="0" data-max="3"   data-step="0.1"></div>
-              </fieldset>
-            </div><!-- /section-3d-content -->
-
-          </div><!-- /panel-mode -->
-
-          <!-- FORMAT ───────────────────────────────────── -->
-          <div role="tabpanel" id="panel-format" aria-labelledby="tab-format" hidden>
-
-            <div class="field">
-              <label id="lbl-format-select" for="format-select">Format de sortida</label>
-              <select id="format-select" name="format-select">
-                <option value="1080x1920">9:16 — Stories / Reels</option>
-                <option value="1920x1080">16:9 — Pantalla / YouTube</option>
-                <option value="1080x1080">1:1 — Post quadrat</option>
-                <option value="1080x1350" selected>4:5 — Post vertical</option>
-                <option value="1350x1080">5:4 — Post apaïsat</option>
-                <option value="1485x2100">A4 vertical (impremta)</option>
-                <option value="2100x1485">A4 apaïsat (impremta)</option>
-                <option value="custom">Personalitzat...</option>
+            <h3 class="panel-title">Càmera</h3>
+            <label class="control-row" for="projection">
+              <span>Projecció</span>
+              <select id="projection" name="projection">
+                <option value="isometric">Isomètrica</option>
+                <option value="perspective">Perspectiva</option>
               </select>
-            </div>
+            </label>
+            <label class="control-stack slider" data-key="zoom" data-min="0.3" data-max="3" data-step="0.1"></label>
+            <label class="control-stack slider" data-key="fov" data-min="30" data-max="120" data-step="1"></label>
+            <label class="control-stack slider" data-key="rotXSpeed" data-min="-2" data-max="2" data-step="0.1"></label>
+            <label class="control-stack slider" data-key="rotYSpeed" data-min="-2" data-max="2" data-step="0.1"></label>
+            <label class="control-stack slider" data-key="rotZSpeed" data-min="-2" data-max="2" data-step="0.1"></label>
+            <label class="control-stack slider" data-key="angleX" data-min="-180" data-max="180" data-step="1"></label>
+            <label class="control-stack slider" data-key="angleY" data-min="-180" data-max="180" data-step="1"></label>
+            <label class="control-stack slider" data-key="depthFade" data-min="0" data-max="1" data-step="0.05"></label>
 
-            <div id="custom-size-row" class="custom-size" hidden>
-              <div class="field">
-                <label id="lbl-custom-unit" for="custom-unit">Unitat</label>
-                <select id="custom-unit" name="custom-unit">
-                  <option value="px">px</option>
-                  <option value="cm">cm</option>
-                </select>
-              </div>
-              <div id="custom-dpi-row" class="field" hidden>
-                <label id="lbl-custom-dpi" for="custom-dpi">DPI</label>
-                <select id="custom-dpi" name="custom-dpi">
-                  <option value="72">72 — Web</option>
-                  <option value="150">150</option>
-                  <option value="300" selected>300 — Impremta</option>
-                </select>
-              </div>
-              <div class="field size-field">
-                <label id="lbl-custom-width" for="custom-width">Amplada <span class="custom-unit-label">px</span></label>
-                <input type="number" id="custom-width" name="custom-width" min="100" step="1" value="1080" />
-              </div>
-              <div class="field size-field">
-                <label id="lbl-custom-height" for="custom-height">Alçada <span class="custom-unit-label">px</span></label>
-                <input type="number" id="custom-height" name="custom-height" min="100" step="1" value="1350" />
-              </div>
-              <button type="button" id="apply-custom-size" class="btn-primary">Aplica format</button>
-              <p id="formatStatus" class="format-status" role="status"></p>
-            </div>
+            <h3 class="panel-title">Moviment 3D</h3>
+            <label class="control-stack slider" data-key="pulse" data-min="0" data-max="1" data-step="0.05"></label>
+            <label class="control-stack slider" data-key="pulseSpeed" data-min="0" data-max="2" data-step="0.1"></label>
+            <label class="control-stack slider" data-key="rainProb" data-min="0" data-max="1" data-step="0.01"></label>
+            <label class="control-stack slider" data-key="rainSpeed" data-min="0" data-max="3" data-step="0.1"></label>
+          </div>
+        </section>
 
-          </div><!-- /panel-format -->
+        <section class="panel" id="panel-format">
+          <h3 class="panel-title">Format</h3>
+          <label class="control-row" for="format-select">
+            <span>Preset</span>
+            <select id="format-select" name="format-select">
+              <option value="1080x1920">9:16 — Stories / Reels</option>
+              <option value="1920x1080">16:9 — Pantalla / YouTube</option>
+              <option value="1080x1080">1:1 — Post quadrat</option>
+              <option value="1080x1350" selected>4:5 — Post vertical</option>
+              <option value="1350x1080">5:4 — Post apaïsat</option>
+              <option value="1485x2100">A4 vertical</option>
+              <option value="2100x1485">A4 apaïsat</option>
+              <option value="custom">Personalitzat</option>
+            </select>
+          </label>
 
-          <!-- COLORS ───────────────────────────────────── -->
-          <div role="tabpanel" id="panel-colors" aria-labelledby="tab-colors" hidden>
+          <div id="custom-size-row" class="custom-size" hidden>
+            <label class="control-row" for="custom-unit">
+              <span>Unitat</span>
+              <select id="custom-unit" name="custom-unit">
+                <option value="px">px</option>
+                <option value="cm">cm</option>
+              </select>
+            </label>
+            <label id="custom-dpi-row" class="control-row" for="custom-dpi" hidden>
+              <span>DPI</span>
+              <select id="custom-dpi" name="custom-dpi">
+                <option value="72">72 — Web</option>
+                <option value="150">150</option>
+                <option value="300" selected>300 — Impremta</option>
+              </select>
+            </label>
+            <label class="control-row" for="custom-width">
+              <span>Amplada <span class="custom-unit-label">px</span></span>
+              <input type="number" id="custom-width" class="num-input" name="custom-width" min="100" step="1" value="1080">
+            </label>
+            <label class="control-row" for="custom-height">
+              <span>Alçada <span class="custom-unit-label">px</span></span>
+              <input type="number" id="custom-height" class="num-input" name="custom-height" min="100" step="1" value="1350">
+            </label>
+            <button type="button" id="apply-custom-size">Aplica format</button>
+          </div>
+          <p id="formatStatus" class="hint" role="status"></p>
+        </section>
 
-            <div class="field row">
-              <label id="lbl-bgcolor" for="bgColor">Color de fons</label>
-              <input type="color" id="bgColor" name="bgColor" value="#f4f4f4" />
-            </div>
-            <div class="field row">
-              <label id="lbl-textcolor" for="textColor">Color del text</label>
-              <input type="color" id="textColor" name="textColor" value="#111111" />
-            </div>
+        <section class="panel" id="panel-colors">
+          <h3 class="panel-title">Colors</h3>
+          <label class="control-row" for="bgColor">
+            <span>Color de fons</span>
+            <input type="color" id="bgColor" name="bgColor" value="#f4f4f4">
+          </label>
+          <label class="control-row" for="textColor">
+            <span>Color del text</span>
+            <input type="color" id="textColor" name="textColor" value="#111111">
+          </label>
+        </section>
 
-          </div><!-- /panel-colors -->
+        <section class="panel" id="panel-presets">
+          <h3 class="panel-title">Presets</h3>
+          <p class="hint">Pròximament disponible.</p>
+        </section>
 
-          <!-- PRESETS ──────────────────────────────────── -->
-          <div role="tabpanel" id="panel-presets" aria-labelledby="tab-presets" hidden>
-            <p class="panel-placeholder">Pròximament disponible.</p>
-          </div><!-- /panel-presets -->
+        <section class="panel" id="panel-export">
+          <h3 class="panel-title">Export</h3>
+          <div class="preview-control">
+            <span id="renderInfo">Canvas 1080 × 1350</span>
+            <button type="button" id="playPause" aria-label="Reprodueix l'animació">Reprodueix</button>
+          </div>
+          <button type="button" id="savePng">Export PNG</button>
+          <button type="button" id="saveSvg">Export SVG</button>
+          <label class="control-row" for="videoQuality">
+            <span>Qualitat MP4</span>
+            <select id="videoQuality" name="videoQuality">
+              <option value="low">4 Mbps</option>
+              <option value="medium" selected>8 Mbps</option>
+              <option value="high">16 Mbps</option>
+            </select>
+          </label>
+          <button type="button" id="recordVideo">Record MP4</button>
+          <p id="recordTimer" class="hint" aria-hidden="true"></p>
+          <p id="recordStatus" class="hint" role="status"></p>
+        </section>
 
-        </form>
-      </div><!-- /controls-col -->
+      </form>
+    </div>
+  </aside>
 
-      <!-- COL 3: Stage -->
-      <main class="stage">
-        <div
-          id="artwork"
-          class="artwork"
-          role="img"
-          aria-label="Previsualització de tipografia generativa"
-        ></div>
-      </main>
+  <main class="stage">
+    <div class="canvas-shell">
+      <div id="artwork" class="artwork" role="img" aria-label="Previsualització de tipografia generativa" tabindex="-1"></div>
+    </div>
+  </main>
 
-    </div><!-- /app -->
-
-    <script type="module" src="main.js"></script>
-  </body>
+  <script type="module" src="main.js"></script>
+</body>
 </html>

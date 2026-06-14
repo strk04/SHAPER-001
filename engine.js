@@ -756,9 +756,6 @@ function build3D(params, width, height) {
 
   // Delta in layout pixels used for surface tangent sampling.
   const TANGENT_D = 2;
-  // Cap on per-glyph scale: above this, glyphs stop growing so big-zoom
-  // frames stay cheap to rasterize (keeps animation smooth).
-  const MAX_GLYPH_SCALE = 4;
   const formKey = P.form === 'cluster' ? 'cube' : P.form;
   const surfaceFlowU = time * spd * 0.12;
 
@@ -859,18 +856,14 @@ function build3D(params, width, height) {
         const ty = prSu.Y - pr.Y;
         const len = Math.hypot(tx, ty);
         if (len >= 1e-4) {
-          // Direction from the surface tangent; magnitude = glyph scale.
-          // Scale grows with zoom/formSize (len/TANGENT_D) but is capped at
-          // MAX_GLYPH_SCALE so large-zoom rasterization stays smooth.
-          const perspK = P.projection === 'perspective' ? pr.scale : 1;
-          const glyphScale = Math.min(MAX_GLYPH_SCALE, (len / TANGENT_D) * perspK);
-          const ca = (tx / len) * glyphScale;
-          const sa = (ty / len) * glyphScale;
+          const ca = tx / len;
+          const sa = ty / len;
+          const scale = P.projection === 'perspective' ? pr.scale : 1;
           matrixTransform = {
-            a: ca,
-            b: sa,
-            c: -sa,
-            d: ca,
+            a: ca * scale,
+            b: sa * scale,
+            c: -sa * scale,
+            d: ca * scale,
             e: pr.X,
             f: pr.Y,
           };

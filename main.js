@@ -41,6 +41,17 @@ const SLIDERS = {
   rainSpeed: { label: 'Velocitat de pluja', def: 0 },
 };
 
+const FORM_3D_CONTROLS = {
+  plane: ['formSize', 'aspect'],
+  cylinder: ['formSize', 'aspect'],
+  helix: ['formSize', 'aspect', 'turns'],
+  sphere: ['formSize'],
+  cube: ['formSize'],
+  cluster: ['formSize', 'count', 'scatter'],
+  'star-prism': ['formSize', 'aspect', 'facets'],
+  'custom-prism': ['formSize', 'aspect'],
+};
+
 const $ = (id) => document.getElementById(id);
 
 const state = {
@@ -393,15 +404,10 @@ function updateEditorVisibility() {
   if (su3d) su3d.hidden = state.form !== 'custom-prism';
 
   const form = state.form;
-  const showFacets = ['cylinder', 'helix', 'star-prism', 'custom-prism'].includes(form);
-  for (const [key, show] of [
-    ['facets',  showFacets],
-    ['turns',   form === 'helix'],
-    ['count',   form === 'cluster'],
-    ['scatter', form === 'cluster'],
-  ]) {
+  const visibleFormControls = new Set(FORM_3D_CONTROLS[form] || FORM_3D_CONTROLS.plane);
+  for (const key of ['formSize', 'aspect', 'facets', 'turns', 'count', 'scatter']) {
     const el = document.querySelector(`.slider[data-key="${key}"]`);
-    if (el) el.hidden = !show;
+    if (el) el.hidden = !visibleFormControls.has(key);
   }
 }
 

@@ -1025,12 +1025,171 @@ async function stopRecord() {
   }
 }
 
+// --- Presets ---
+const PRESETS_KEY = 'shaper-presets-v1';
+
+function esc(s) {
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function loadPresets() {
+  try { return JSON.parse(localStorage.getItem(PRESETS_KEY)) ?? []; } catch { return []; }
+}
+function savePresets(list) {
+  try { localStorage.setItem(PRESETS_KEY, JSON.stringify(list)); } catch { /* quota */ }
+}
+
+function capturePreset() {
+  const snap = { v: 1 };
+  Object.keys(SLIDERS).forEach((k) => { snap[k] = state[k]; });
+  ['text', 'font', 'shape', 'textColor', 'bgColor', 'hardWrap',
+   'motion2d', 'mode', 'form', 'projection', 'guides',
+   'backfaceMirror', 'surfaceText', 'speed', 'canvasW', 'canvasH'].forEach((k) => {
+    snap[k] = state[k];
+  });
+  return snap;
+}
+
+function applyPreset(p) {
+  if (!p || p.v !== 1) return;
+  Object.keys(SLIDERS).forEach((k) => {
+    if (p[k] != null) { state[k] = p[k]; syncSliderUI(k); }
+  });
+  if (p.text    != null) { state.text    = p.text;    $('text').value    = p.text; }
+  if (p.font    != null) { state.font    = p.font;    $('font').value    = p.font; }
+  if (p.shape   != null) { state.shape   = p.shape;   $('shape').value   = p.shape; }
+  if (p.textColor != null) { state.textColor = p.textColor; $('textColor').value = p.textColor; }
+  if (p.bgColor   != null) { state.bgColor   = p.bgColor;   $('bgColor').value   = p.bgColor; }
+  if (p.hardWrap  != null) { state.hardWrap  = p.hardWrap;  $('hardWrap').checked  = p.hardWrap; }
+  if (p.motion2d  != null) { state.motion2d  = p.motion2d;  $('motion2d').value    = p.motion2d; }
+  if (p.speed     != null) {
+    state.speed = p.speed;
+    const rng = $('rng-speed'); const out = $('out-speed');
+    if (rng) rng.value = p.speed;
+    if (out) out.textContent = formatSliderValue('speed', p.speed);
+  }
+  if (p.mode != null) {
+    state.mode = p.mode;
+    const mEl = $(p.mode === '2d' ? 'mode2d' : 'mode3d');
+    if (mEl) mEl.checked = true;
+    updateModeUI();
+    updateEditorVisibility();
+  }
+  if (p.form       != null) { state.form       = p.form;       $('form').value       = p.form;       updateEditorVisibility(); }
+  if (p.projection != null) { state.projection = p.projection; $('projection').value = p.projection; updateFovEnabled(); }
+  if (p.guides          != null) { state.guides          = p.guides;          $('guides').checked          = p.guides; }
+  if (p.backfaceMirror  != null) { state.backfaceMirror  = p.backfaceMirror;  $('backfaceMirror').checked  = p.backfaceMirror; }
+  if (p.surfaceText     != null) { state.surfaceText      = p.surfaceText;     $('surfaceText').checked     = p.surfaceText; }
+  if (p.canvasW && p.canvasH) applyCanvasSize(p.canvasW, p.canvasH);
+  scheduleRender();
+}
+
+function renderPresetList() {
+  const list = $('presetList');
+  if (!list) return;
+  const presets = loadPresets();
+  if (!presets.length) {
+    list.innerHTML = `<li style="color:var(--ink-4);font-size:var(--text-xs);padding:var(--space-1) 0">Cap preset desat.</li>`;
+    return;
+  }
+  list.innerHTML = presets.map((p, i) => `
+    <li class="preset-item">
+      <span class="preset-name">${esc(p.name)}</span>
+      <button class="preset-btn preset-load" data-idx="${i}" type="button" aria-label="Carrega el preset ${esc(p.name)}">Load</button>
+      <button class="preset-btn preset-delete" data-idx="${i}" type="button" aria-label="Elimina el preset ${esc(p.name)}">✕</button>
+    </li>`).join('');
+}
+
+function wirePresets() {
+  $('savePreset')?.addEventListener('click', () => {
+    const nameEl = $('presetName');
+    const name = (nameEl?.value ?? '').trim() || `Preset ${new Date().toLocaleTimeString()}`;
+    const presets = loadPresets();
+    presets.unshift({ name, data: capturePreset() });
+    if (presets.length > 20) presets.length = 20;
+    savePresets(presets);
+    if (nameEl) nameEl.value = '';
+    renderPresetList();
+    setExportStatus(`Desat: "${name}"`);
+  });
+
+  $('presetList')?.addEventListener('click', (e) => {
+    const loadBtn = e.target.closest('.preset-load');
+    const delBtn  = e.target.closest('.preset-delete');
+    if (loadBtn) {
+      const idx = parseInt(loadBtn.dataset.idx);
+      const presets = loadPresets();
+      if (presets[idx]) { applyPreset(presets[idx].data); setExportStatus(`Carregat: "${presets[idx].name}"`); }
+    }
+    if (delBtn) {
+      if (delBtn.dataset.confirming === '1') {
+        clearTimeout(Number(delBtn.dataset.timer));
+        const idx = parseInt(delBtn.dataset.idx);
+        const presets = loadPresets();
+        const name = presets[idx]?.name ?? '';
+        presets.splice(idx, 1);
+        savePresets(presets);
+        renderPresetList();
+        setExportStatus(`Eliminat: "${name}"`);
+      } else {
+        const name = delBtn.getAttribute('aria-label').replace('Elimina el preset ', '');
+        delBtn.dataset.confirming = '1';
+        delBtn.textContent = 'Sure?';
+        delBtn.setAttribute('aria-label', `Confirma: elimina el preset ${name}`);
+        const timer = setTimeout(() => {
+          delBtn.dataset.confirming = '';
+          delBtn.textContent = '✕';
+          delBtn.setAttribute('aria-label', `Elimina el preset ${name}`);
+        }, 3000);
+        delBtn.dataset.timer = String(timer);
+      }
+    }
+  });
+
+  $('exportPresets')?.addEventListener('click', () => {
+    const presets = loadPresets();
+    if (!presets.length) { setExportStatus('Cap preset a exportar.'); return; }
+    const blob = new Blob([JSON.stringify(presets, null, 2)], { type: 'application/json' });
+    const a = Object.assign(document.createElement('a'), {
+      href: URL.createObjectURL(blob),
+      download: `shaper-presets-${Date.now()}.json`,
+    });
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    setExportStatus(`Exportats ${presets.length} preset${presets.length !== 1 ? 's' : ''}.`);
+  });
+
+  $('importPresetsBtn')?.addEventListener('click', () => { $('importPresets')?.click(); });
+
+  $('importPresets')?.addEventListener('change', (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const imported = JSON.parse(ev.target.result);
+        if (!Array.isArray(imported)) throw new Error('format invàlid');
+        const merged = [...imported, ...loadPresets()].slice(0, 20);
+        savePresets(merged);
+        renderPresetList();
+        setExportStatus(`Importats ${imported.length} preset${imported.length !== 1 ? 's' : ''}.`);
+      } catch { setExportStatus('Importació fallida — fitxer no vàlid.'); }
+      e.target.value = '';
+    };
+    reader.readAsText(file);
+  });
+}
+
 // --- Init ---
 function init() {
   restoreCustomData();
   buildSliders();
   bindNavigation();
   wireControls();
+  wirePresets();
+  renderPresetList();
   // Sync select / checkbox UI to state defaults
   $('text').value = state.text;
   $('font').value = state.font;

@@ -597,3 +597,47 @@ output { color: var(--ink); }
     margin-left: 0;
   }
 }
+
+/* ── Presets ───────────────────────────────────────────────── */
+#presetList { list-style: none; margin: 0; padding: 0; }
+
+.preset-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) 0;
+  border-bottom: 1px solid var(--paper-3);
+  font-size: var(--text-xs);
+}
+
+.preset-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink);
+}
+
+.preset-btn {
+  flex-shrink: 0;
+  padding: 0 var(--space-2);
+  min-height: 0;
+  background: none;
+  border: 1px solid var(--paper-3);
+  color: var(--ink-3);
+  font: inherit;
+  font-size: var(--text-xs);
+  cursor: pointer;
+  line-height: 1.6;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.preset-btn:hover:not(:disabled) {
+  color: var(--ink);
+  border-color: var(--ink-3);
+  background: var(--paper-2);
+}
+
+.preset-delete { color: var(--ink-4); }

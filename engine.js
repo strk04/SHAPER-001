@@ -893,9 +893,12 @@ function build3D(params, width, height) {
   const rand3 = mulberry32((seed >>> 0) + 1);
 
   // Seed-derived initial rotation angles.
-  const baseRX = rand3() * 2 * Math.PI;
-  const baseRY = rand3() * 2 * Math.PI;
-  const baseRZ = rand3() * 2 * Math.PI;
+  // Flat-surface forms start at zero so they're never viewed edge-on by default.
+  const _r1 = rand3(), _r2 = rand3(), _r3 = rand3(); // always consume 3 rolls
+  const FLAT_FORMS = formKey === 'plane' || formKey === 'wave-plane' || formKey === 'saddle';
+  const baseRX = FLAT_FORMS ? 0 : _r1 * 2 * Math.PI;
+  const baseRY = FLAT_FORMS ? 0 : _r2 * 2 * Math.PI;
+  const baseRZ = FLAT_FORMS ? 0 : _r3 * 2 * Math.PI;
 
   // Cluster instance offsets (consumed before per-glyph rolls so they stay
   // deterministic regardless of glyph count).

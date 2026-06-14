@@ -688,6 +688,14 @@ function wireControls() {
   $('form').addEventListener('change', (e) => {
     state.form = e.target.value;
     updateEditorVisibility();
+    // Flat surfaces (plane, wave-plane, saddle) viewed edge-on with arbitrary
+    // inherited angles. Reset to face-on when switching to these forms.
+    if (state.form === 'plane' || state.form === 'wave-plane' || state.form === 'saddle') {
+      state.angleX = 0;
+      state.angleY = 0;
+      syncSliderUI('angleX');
+      syncSliderUI('angleY');
+    }
     const st = $('form3d-status');
     if (st) st.textContent = `Paràmetres actualitzats per a ${e.target.options[e.target.selectedIndex].text}`;
     scheduleRender();

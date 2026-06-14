@@ -4,14 +4,13 @@ _Actualitzat: 2026-06-14_
 
 ## Estat general
 
-Estable. Desplegat a producció. SHAPER continua sent un projecte separat, però també viu integrat dins Pixel Perfect a `/shaper/`.
+Estable. Desplegat a producció dins Pixel Perfect. La URL canònica és `/shaper/` de PP001. El Vercel standalone `q-shaper-001` ha estat desactivat.
 
 ## URLs
 
-- **Live:** https://q-shaper-001.vercel.app
-- **PP:** https://q-pp-001.vercel.app/shaper/
+- **Live:** https://q-pp-001.vercel.app/shaper/
 - **Repo:** https://github.com/strk04/SHAPER-001
-- **Deploy:** Vercel — git push main → auto-deploy
+- **Deploy:** editar a `17 SHAPER 001/` → copiar a `02 Pixel Perfect/shaper/` → push PP001
 
 ## Stack
 

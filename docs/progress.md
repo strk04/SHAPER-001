@@ -48,7 +48,7 @@
 - Botons → uppercase, transparent per defecte; `.btn-primary` negre; `#playPause` transparent.
 - Collapsible `<details>` → indicador +/− sense `list-style: disclosure-*`.
 - Git repo inicialitzat i push a GitHub: https://github.com/strk04/SHAPER-001
-- Deploy a Vercel: https://q-shaper-001.vercel.app
+- Deploy via PP001: https://q-pp-001.vercel.app/shaper/ (standalone q-shaper-001.vercel.app desactivat)
 
 ### Decisions
 - Slider track usa `--ink-3` (no `--rule`) per WCAG 1.4.11 — flagejat per revisar el token `--rule: #9d9d9d` a Q S 003 en una sessió futura.

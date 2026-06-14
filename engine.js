@@ -895,7 +895,7 @@ function build3D(params, width, height) {
   // Seed-derived initial rotation angles.
   // Flat-surface forms start at zero so they're never viewed edge-on by default.
   const _r1 = rand3(), _r2 = rand3(), _r3 = rand3(); // always consume 3 rolls
-  const FLAT_FORMS = formKey === 'plane' || formKey === 'wave-plane' || formKey === 'saddle';
+  const FLAT_FORMS = P.form === 'plane' || P.form === 'wave-plane' || P.form === 'saddle';
   const baseRX = FLAT_FORMS ? 0 : _r1 * 2 * Math.PI;
   const baseRY = FLAT_FORMS ? 0 : _r2 * 2 * Math.PI;
   const baseRZ = FLAT_FORMS ? 0 : _r3 * 2 * Math.PI;

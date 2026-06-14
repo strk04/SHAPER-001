@@ -10,6 +10,8 @@ const SLIDERS = {
   leading: { label: 'Interlínia', def: 72 },
   noiseAmt: { label: 'Soroll horitzontal', def: 0 },
   rainSpeed2d: { label: 'Velocitat de moviment', def: 1 },
+  speed2d: { label: 'Velocitat', def: 1 },
+  speed3d: { label: 'Velocitat', def: 1 },
   wordTrack: { label: 'Espai entre paraules', def: 0 },
   wordChaos: { label: 'Variació de paraules', def: 0 },
   wordRamp: { label: 'Progressió de paraules', def: 0 },
@@ -81,7 +83,6 @@ const state = {
   backfaceMirror: false,
   surfaceText: true,
   t: 0, // animation time (seconds)
-  speed: 1, // animation speed multiplier (0..2)
   canvasW: 1080,
   canvasH: 1350,
   // Custom drawing data (input data, never randomness). Plain arrays so they
@@ -249,7 +250,8 @@ function frame(ts) {
   if (!playing) return;
   if (lastTs) {
     const dt = (ts - lastTs) / 1000;
-    state.t += dt * state.speed;
+    const speed = state.mode === '2d' ? state.speed2d : state.speed3d;
+    state.t += dt * speed;
     if (recState.isRecording) {
       const fps = getRecordFps();
       recState._accumTime += dt;
@@ -751,21 +753,6 @@ function wireControls() {
     else play();
   });
 
-  const speedRange = $('rng-speed');
-  const speedOutput = $('out-speed');
-  const syncSpeedOutput = () => {
-    speedOutput.textContent = formatSliderValue('speed', state.speed);
-    speedRange.setAttribute('aria-valuetext', speedOutput.textContent);
-  };
-
-  speedRange.addEventListener('input', () => {
-    state.speed = +speedRange.value;
-    syncSpeedOutput();
-    if (!playing) scheduleRender();
-  });
-
-  syncSpeedOutput();
-
   // --- Drag-to-orbit on the artwork div ---
   // Wrap a value into −180..180 (modulo wrap-around).
   function wrapAngle(v) {
@@ -1056,7 +1043,7 @@ function capturePreset() {
   Object.keys(SLIDERS).forEach((k) => { snap[k] = state[k]; });
   ['text', 'font', 'shape', 'textColor', 'bgColor', 'hardWrap',
    'motion2d', 'mode', 'form', 'projection', 'guides',
-   'backfaceMirror', 'surfaceText', 'speed', 'canvasW', 'canvasH'].forEach((k) => {
+   'backfaceMirror', 'surfaceText', 'canvasW', 'canvasH'].forEach((k) => {
     snap[k] = state[k];
   });
   return snap;
@@ -1074,11 +1061,12 @@ function applyPreset(p) {
   if (p.bgColor   != null) { state.bgColor   = p.bgColor;   $('bgColor').value   = p.bgColor; }
   if (p.hardWrap  != null) { state.hardWrap  = p.hardWrap;  $('hardWrap').checked  = p.hardWrap; }
   if (p.motion2d  != null) { state.motion2d  = p.motion2d;  $('motion2d').value    = p.motion2d; }
-  if (p.speed     != null) {
-    state.speed = p.speed;
-    const rng = $('rng-speed'); const out = $('out-speed');
-    if (rng) rng.value = p.speed;
-    if (out) out.textContent = formatSliderValue('speed', p.speed);
+  if (p.speed2d != null) { state.speed2d = p.speed2d; syncSliderUI('speed2d'); }
+  if (p.speed3d != null) { state.speed3d = p.speed3d; syncSliderUI('speed3d'); }
+  // backward compat: presets saved before the split had a single 'speed'
+  if (p.speed != null && p.speed2d == null) {
+    state.speed2d = p.speed; state.speed3d = p.speed;
+    syncSliderUI('speed2d'); syncSliderUI('speed3d');
   }
   if (p.mode != null) {
     state.mode = p.mode;
@@ -1212,8 +1200,6 @@ function init() {
   updateFovEnabled();
   updateModeUI();
   updateEditorVisibility();
-  $('rng-speed').value = state.speed;
-  $('out-speed').textContent = formatSliderValue('speed', state.speed);
   updatePlayPauseUI();
   updateArtworkLabel();
   render();

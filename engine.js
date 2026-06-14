@@ -88,6 +88,7 @@ function measureWord(word, fontSize, fontKey) {
 export const PHASE_RATE = 1.0;
 // Max frequency slider value (matches data-max in index.html) for normalization.
 const FREQ_MAX = 0.05;
+const FORM_SIZE_BASE = 400;
 
 // Effective time-driven phase (radians) for the wave, flash-capped.
 function wavePhase(t, time, speed, frequency) {
@@ -213,6 +214,10 @@ export function layout(params, width, height) {
     motion2d === 'rain'
       ? ((time * spd * (typeof rainSpeed2d === 'number' ? rainSpeed2d : 1) * leading) % leading)
       : 0;
+  const flowOffset2d =
+    motion2d === 'flow'
+      ? ((time * spd * (typeof rainSpeed2d === 'number' ? rainSpeed2d : 1) * Math.max(1, fontSize * 2)) % width)
+      : 0;
 
   const lines = [];
   let wordIndex = 0; // walks the repeated word stream
@@ -230,7 +235,8 @@ export function layout(params, width, height) {
     const noise = noiseOsc * noiseAmt;
     let x0 =
       shapeOffset(shape, baseY, height, marginLeft, amplitude, frequency, time, spd, linePhase, profile) +
-      noise;
+      noise +
+      flowOffset2d;
 
     // how many words on this line
     let wordsThisLine = wordsPerRow;
@@ -509,7 +515,7 @@ function surfaceMap(form, u, v, P, inst) {
 
 // Isometric basis (orthographic). Returns screen-space X,Y plus raw depth.
 function projectIso(p, P, width, height) {
-  const k = (0.45 * Math.min(width, height) * P.zoom) / Math.max(1, P.formSize);
+  const k = (0.45 * Math.min(width, height) * P.zoom) / FORM_SIZE_BASE;
   // Classic 2:1-ish iso: rotate the already-rotated point onto the iso plane.
   const X = (p.x - p.z) * Math.cos(Math.PI / 6);
   const Y = (p.x + p.z) * Math.sin(Math.PI / 6) - p.y;
@@ -523,7 +529,7 @@ function projectIso(p, P, width, height) {
 
 // Perspective projection. focal derived from fov; camera at +Z distance.
 function projectPersp(p, P, width, height) {
-  const dist = 2.5 * P.formSize;
+  const dist = 2.5 * FORM_SIZE_BASE;
   const fovRad = (P.fov * Math.PI) / 180;
   const focal = (Math.min(width, height) * 0.5) / Math.tan(fovRad / 2);
   const cz = dist + p.z; // distance from camera along view axis

@@ -9,7 +9,7 @@ const SLIDERS = {
   charTrack: { label: 'Kerning', def: 0 },
   leading: { label: 'Interlínia', def: 72 },
   noiseAmt: { label: 'Soroll horitzontal', def: 0 },
-  rainSpeed2d: { label: 'Velocitat de pluja', def: 1 },
+  rainSpeed2d: { label: 'Velocitat de moviment', def: 1 },
   wordTrack: { label: 'Espai entre paraules', def: 0 },
   wordChaos: { label: 'Variació de paraules', def: 0 },
   wordRamp: { label: 'Progressió de paraules', def: 0 },
@@ -62,7 +62,7 @@ const state = {
   bgColor: '#f4f4f4',
   seed: 1,
   hardWrap: false,
-  motion2d: 'static',
+  motion2d: 'flow',
   mode: '2d', // '2d' | '3d'
   // --- 3D selects + checkboxes (sliders come from SLIDERS defaults below) ---
   form: 'plane',
@@ -866,9 +866,11 @@ function startRecord() {
   if (!('MediaRecorder' in window) || !MediaRecorder.isTypeSupported(mime)) {
     mime = 'video/webm';
   }
+  const qualityMap = { low: 4_000_000, medium: 8_000_000, high: 16_000_000 };
+  const bitsPerSecond = qualityMap[$('videoQuality').value] ?? 8_000_000;
   const stream = displayCanvas.captureStream(30);
   try {
-    recorder = new MediaRecorder(stream, { mimeType: mime });
+    recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: bitsPerSecond });
   } catch (err) {
     $('recordStatus').textContent = 'Aquest navegador no permet gravar';
     return;

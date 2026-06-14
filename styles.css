@@ -489,18 +489,24 @@ output { color: var(--ink); }
   white-space: nowrap;
 }
 
-#savePng,
 #saveSvg,
-#recordVideo {
-  width: 100%;
+#recordVideo,
+#savePng72,
+#savePng150,
+#savePng300 {
   background: var(--accent);
   color: var(--paper);
   border-color: var(--accent);
 }
 
-#savePng:hover:not(:disabled),
+#saveSvg,
+#recordVideo { width: 100%; }
+
 #saveSvg:hover:not(:disabled),
-#recordVideo:hover:not(:disabled) {
+#recordVideo:hover:not(:disabled),
+#savePng72:hover:not(:disabled),
+#savePng150:hover:not(:disabled),
+#savePng300:hover:not(:disabled) {
   background: var(--accent-hover);
   border-color: var(--accent-hover);
 }

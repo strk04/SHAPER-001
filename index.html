@@ -37,28 +37,20 @@
           <span class="app-menu-mark" aria-hidden="true">[ ]</span>
           <span>Presets</span>
         </button>
+        <button class="app-menu-item" type="button" data-panel-target="panel-export" aria-pressed="false">
+          <span class="app-menu-mark" aria-hidden="true">[ ]</span>
+          <span>Export</span>
+        </button>
       </div>
     </section>
 
-    <div class="export-footer" role="group" aria-label="Controls d'exportació">
+    <div class="export-footer" role="group" aria-label="Controls de reproducció">
       <div class="preview-control">
         <span id="renderInfo">Canvas 1080 × 1350</span>
         <button type="button" id="playPause" aria-label="Reprodueix l'animació">Reprodueix</button>
       </div>
-      <button type="button" id="savePng">Export PNG</button>
-      <button type="button" id="saveSvg">Export SVG</button>
-      <label class="control-row" for="videoQuality">
-        <span>Qualitat MP4</span>
-        <select id="videoQuality" name="videoQuality">
-          <option value="low">4 Mbps</option>
-          <option value="medium" selected>8 Mbps</option>
-          <option value="high">16 Mbps</option>
-        </select>
-      </label>
-      <button type="button" id="recordVideo">Record MP4</button>
-      <p id="recordTimer" class="hint" aria-hidden="true"></p>
-      <p id="recordStatus" class="hint" role="status"></p>
     </div>
+    <p id="srAnnounce" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
   </nav>
 
   <aside class="section-sidebar" aria-label="Controls de SHAPER">
@@ -299,6 +291,43 @@
         <section class="panel" id="panel-presets" hidden>
           <h3 class="panel-title">Presets</h3>
           <p class="hint">Pròximament disponible.</p>
+        </section>
+
+        <section class="panel" id="panel-export" hidden>
+          <h3 class="panel-title">Export</h3>
+
+          <fieldset class="gtx-fieldset">
+            <legend>Vídeo</legend>
+            <label class="control-row" for="recordFps">
+              <span>FPS</span>
+              <select id="recordFps">
+                <option value="30" selected>30 fps</option>
+                <option value="60">60 fps</option>
+              </select>
+            </label>
+            <label class="control-row" for="recordDuration">
+              <span>Durada</span>
+              <select id="recordDuration">
+                <option value="manual" selected>Manual</option>
+                <option value="5">5 s</option>
+                <option value="10">10 s</option>
+                <option value="15">15 s</option>
+                <option value="30">30 s</option>
+              </select>
+            </label>
+            <p id="loopNote" class="hint" hidden>La gravació s'atura automàticament.</p>
+            <button id="recordVideo" type="button" aria-pressed="false">Grava MP4</button>
+          </fieldset>
+
+          <button id="saveSvg" type="button">Export SVG</button>
+
+          <div role="group" aria-label="Export PNG" style="display:flex;gap:var(--space-1)">
+            <button id="savePng72"  type="button" style="flex:1" aria-label="Export PNG 72 dpi">72 dpi</button>
+            <button id="savePng150" type="button" style="flex:1" aria-label="Export PNG 150 dpi">150 dpi</button>
+            <button id="savePng300" type="button" style="flex:1" aria-label="Export PNG 300 dpi">300 dpi</button>
+          </div>
+
+          <p id="exportStatus" role="status" aria-live="polite" aria-atomic="true"></p>
         </section>
 
       </form>

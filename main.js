@@ -238,8 +238,17 @@ let lastTs = 0;
 function frame(ts) {
   if (!playing) return;
   if (lastTs) {
-    const dt = (ts - lastTs) / 1000; // seconds since last frame
+    const dt = (ts - lastTs) / 1000;
     state.t += dt * state.speed;
+    if (recState.isRecording) {
+      const fps = getRecordFps();
+      recState._accumTime += dt;
+      const interval = 1 / fps;
+      while (recState._accumTime >= interval) {
+        captureFrame();
+        recState._accumTime -= interval;
+      }
+    }
   }
   lastTs = ts;
   render();
@@ -472,9 +481,8 @@ async function loadSvgOutline(file) {
   announce('Contorn SVG carregat');
 }
 
-// Announce via #recordStatus role="status".
 function announce(msg) {
-  const el = $('recordStatus');
+  const el = $('srAnnounce');
   if (el) el.textContent = msg;
 }
 
@@ -707,7 +715,13 @@ function wireControls() {
 
   $('recordVideo').addEventListener('click', toggleRecord);
   $('saveSvg').addEventListener('click', saveSVG);
-  $('savePng').addEventListener('click', savePNG);
+  $('savePng72').addEventListener('click', () => savePNG(72));
+  $('savePng150').addEventListener('click', () => savePNG(150));
+  $('savePng300').addEventListener('click', () => savePNG(300));
+  $('recordDuration').addEventListener('change', (e) => {
+    const loopNote = $('loopNote');
+    if (loopNote) loopNote.hidden = e.target.value === 'manual';
+  });
 
   // SVG shape upload
   $('svgFile2d').addEventListener('change', (e) => {
@@ -844,80 +858,10 @@ function randomizeValues() {
   scheduleRender();
 }
 
-// --- Video recording ---
-// Captures the live display canvas directly — near-zero overhead, no SVG
-// rasterization pipeline. Whatever is painted (incl. while playing) is grabbed.
-let recording = false;
-let recorder = null;
-let recChunks = [];
-let recStart = 0;
-let recTimerInt = null;
-
-function toggleRecord() {
-  if (recording) stopRecord();
-  else startRecord();
-}
-
-function startRecord() {
-  if (recording) return;
-  ensureCanvas();
-
-  let mime = 'video/webm;codecs=vp9';
-  if (!('MediaRecorder' in window) || !MediaRecorder.isTypeSupported(mime)) {
-    mime = 'video/webm';
-  }
-  const qualityMap = { low: 4_000_000, medium: 8_000_000, high: 16_000_000 };
-  const bitsPerSecond = qualityMap[$('videoQuality').value] ?? 8_000_000;
-  const stream = displayCanvas.captureStream(30);
-  try {
-    recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: bitsPerSecond });
-  } catch (err) {
-    $('recordStatus').textContent = 'Aquest navegador no permet gravar';
-    return;
-  }
-  recChunks = [];
-  recorder.ondataavailable = (e) => {
-    if (e.data && e.data.size) recChunks.push(e.data);
-  };
-  recorder.onstop = () => {
-    const blob = new Blob(recChunks, { type: 'video/webm' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `shaper-${state.seed}.webm`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-    $('recordStatus').textContent = 'Gravació aturada, vídeo descarregat';
-  };
-
-  recording = true;
-  recorder.start();
-  recStart = performance.now();
-
-  const btn = $('recordVideo');
-  btn.textContent = 'Atura gravació';
-  btn.classList.add('recording');
-  $('recordStatus').textContent = 'Gravació iniciada';
-
-  const timer = $('recordTimer');
-  recTimerInt = setInterval(() => {
-    const s = Math.floor((performance.now() - recStart) / 1000);
-    timer.textContent = `Gravació: ${s} s`;
-  }, 250);
-}
-
-function stopRecord() {
-  if (!recording) return;
-  recording = false;
-  if (recTimerInt) clearInterval(recTimerInt);
-  recTimerInt = null;
-  $('recordTimer').textContent = '';
-  const btn = $('recordVideo');
-  btn.textContent = 'Grava vídeo';
-  btn.classList.remove('recording');
-  if (recorder && recorder.state !== 'inactive') recorder.stop();
+// --- Export ---
+function setExportStatus(msg) {
+  const el = $('exportStatus');
+  if (el) el.textContent = msg;
 }
 
 function saveSVG() {
@@ -926,24 +870,159 @@ function saveSVG() {
   const svg = buildSVG(state, width, height);
   const blob = new Blob([svg], { type: 'image/svg+xml' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `shaper-${state.seed}.svg`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
+  const a = Object.assign(document.createElement('a'), { href: url, download: `shaper-${state.seed}.svg` });
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  setExportStatus('SVG exportat.');
 }
 
-function savePNG() {
-  if (!displayCanvas) return;
-  const url = displayCanvas.toDataURL('image/png');
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `shaper-${state.seed}.png`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+function savePNG(dpi) {
+  const scale = dpi / 72;
+  const w = Math.round(state.canvasW * scale);
+  const h = Math.round(state.canvasH * scale);
+  const oc = document.createElement('canvas');
+  oc.width = w; oc.height = h;
+  const octx = oc.getContext('2d');
+  const scene = buildScene(state, w, h);
+  drawScene(octx, scene, w, h, 1);
+  setExportStatus('Exportant PNG…');
+  oc.toBlob((blob) => {
+    if (!blob) { setExportStatus('Error PNG.'); return; }
+    const url = URL.createObjectURL(blob);
+    const a = Object.assign(document.createElement('a'), {
+      href: url,
+      download: `shaper-${dpi}dpi-${state.seed}.png`,
+    });
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setExportStatus('PNG exportat.');
+  }, 'image/png');
+}
+
+// --- Video recording (WebCodecs → MP4) ---
+const recState = {
+  isRecording: false,
+  videoEncoder: null,
+  muxer: null,
+  frameN: 0,
+  loopTotal: 0,
+  _accumTime: 0,
+};
+
+function getRecordFps() {
+  return parseInt($('recordFps')?.value ?? '30');
+}
+
+function captureFrame() {
+  if (!recState.isRecording || !recState.videoEncoder || !displayCanvas) return;
+  const fps = getRecordFps();
+  const ts = Math.round(recState.frameN * (1_000_000 / fps));
+  const videoFrame = new VideoFrame(displayCanvas, { timestamp: ts });
+  recState.videoEncoder.encode(videoFrame, { keyFrame: recState.frameN % (fps * 2) === 0 });
+  videoFrame.close();
+  recState.frameN++;
+
+  if (recState.frameN % fps === 0) {
+    const elapsed = Math.round(recState.frameN / fps);
+    if (recState.loopTotal > 0) {
+      const remaining = Math.ceil((recState.loopTotal - recState.frameN) / fps);
+      setExportStatus(`Gravant… ${remaining}s restants`);
+    } else {
+      setExportStatus(`Gravant… ${elapsed}s`);
+    }
+  }
+
+  if (recState.loopTotal > 0 && recState.frameN >= recState.loopTotal) stopRecord();
+}
+
+function toggleRecord() {
+  if (recState.isRecording) stopRecord();
+  else startRecord();
+}
+
+async function startRecord() {
+  if (recState.isRecording) return;
+  if (typeof VideoEncoder === 'undefined') {
+    setExportStatus('La gravació MP4 requereix Chrome o Edge.');
+    return;
+  }
+  try {
+    const { Muxer, ArrayBufferTarget } = await import('./mp4-muxer.mjs');
+    const w = state.canvasW;
+    const h = state.canvasH;
+    const fps = getRecordFps();
+    const durVal = $('recordDuration')?.value ?? 'manual';
+    const dur = parseInt(durVal);
+
+    recState.muxer = new Muxer({
+      target: new ArrayBufferTarget(),
+      video: { codec: 'avc', width: w, height: h },
+      fastStart: 'in-memory',
+    });
+    recState.videoEncoder = new VideoEncoder({
+      output: (chunk, meta) => recState.muxer.addVideoChunk(chunk, meta),
+      error: (e) => setExportStatus(`Error encoder: ${e.message}`),
+    });
+    recState.videoEncoder.configure({
+      codec: 'avc1.640033', width: w, height: h,
+      bitrate: 8_000_000, framerate: fps,
+      latencyMode: 'quality', hardwareAcceleration: 'prefer-hardware',
+    });
+
+    recState.frameN = 0;
+    recState._accumTime = 0;
+    recState.loopTotal = isNaN(dur) ? 0 : dur * fps;
+    recState.isRecording = true;
+
+    const btn = $('recordVideo');
+    if (btn) {
+      btn.setAttribute('aria-pressed', 'true');
+      btn.textContent = 'Atura gravació';
+      btn.classList.add('is-recording');
+    }
+    if ($('recordFps')) $('recordFps').disabled = true;
+    if ($('recordDuration')) $('recordDuration').disabled = true;
+    setExportStatus('Gravant…');
+    if (!playing) play();
+  } catch (e) {
+    recState.isRecording = false;
+    recState.videoEncoder = null;
+    recState.muxer = null;
+    setExportStatus(`Error de gravació: ${e.message}`);
+  }
+}
+
+async function stopRecord() {
+  if (!recState.videoEncoder) return;
+  try {
+    await recState.videoEncoder.flush();
+    recState.muxer.finalize();
+    const { buffer } = recState.muxer.target;
+    const url = URL.createObjectURL(new Blob([buffer], { type: 'video/mp4' }));
+    const a = Object.assign(document.createElement('a'), {
+      href: url,
+      download: `shaper-${state.seed}.mp4`,
+    });
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setExportStatus('MP4 desat.');
+  } catch (e) {
+    setExportStatus(`Error export: ${e.message}`);
+  } finally {
+    recState.isRecording = false;
+    recState.loopTotal = 0;
+    recState.videoEncoder = null;
+    recState.muxer = null;
+    recState.frameN = 0;
+    const btn = $('recordVideo');
+    if (btn) {
+      btn.setAttribute('aria-pressed', 'false');
+      btn.textContent = 'Grava MP4';
+      btn.classList.remove('is-recording');
+    }
+    if ($('recordFps')) $('recordFps').disabled = false;
+    if ($('recordDuration')) $('recordDuration').disabled = false;
+  }
 }
 
 // --- Init ---

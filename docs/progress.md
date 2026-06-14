@@ -1,5 +1,26 @@
 # Progress — SHAPER 001
 
+## 2026-06-15 — Moviment 2D × 10 + fixes 3D
+
+### Fet
+- Auto-play a l'inici respectant `prefers-reduced-motion`.
+- `vNorm` toggle: normalització de cobertura-v per cada forma (torus, con, esfera, disc, Möbius).
+- Selector `wrapMode` amb 4 modes: Anells (default), Columnes, Espiral, Panell.
+- Format fusionat dins Export; canvas es redimensiona en col·lapsar nav.
+- Flux horitzontal 2D convertit a loop seamless per tiling.
+- 10 nous modes `motion2d`: wave-h, bounce, pendulum, cascade, scatter, vortex, expand, typewriter, noise-walk, stagger.
+- Fix `buildScene`: Pla i Ondulat forçats a 2D path incondicionalment → revertit a condició original.
+- Fix `typewriter`: blank canvas a T=0 → ara mostra tots els chars si T=0.
+- Fix `stagger`: period dinàmic (s'alterava amb fontSize/leading) → ara fixed a 3s, delay basat en y/height.
+- Eliminada forma "Conjunt"; "Prisma personalitzat" → "Custom" al final.
+
+### Pendent
+- Commit pendent (múltiples canvis: wrapMode, vNorm, motion2d×10, fixes).
+- Validació visual al navegador de tots els 10 modes nous.
+- Decidir si Pla / Ondulat han de tenir un angle inicial raonable per defecte quan es seleccionen.
+
+---
+
 ## 2026-06-13 (vespre) — Layout 3 columnes
 
 ### Fet

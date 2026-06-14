@@ -394,16 +394,17 @@ export function layout(params, width, height) {
       }
       case 'typewriter': {
         // Sequential char reveal, loops continuously.
+        // At T=0 (paused/static), show all chars so canvas is never blank.
         const allChars = [];
         for (const line of lines) {
           for (const c of line.chars) allChars.push({ line, c });
         }
         const total = allChars.length;
-        if (total > 0) {
+        if (total > 0 && T > 0) {
           const charsPerSec = Math.max(2, fontSize * 0.4);
           const cycle = total / charsPerSec;
           const phase = ((T % cycle) + cycle) % cycle;
-          const visN = Math.floor(phase * charsPerSec);
+          const visN = Math.max(1, Math.floor(phase * charsPerSec));
           for (const line of lines) line.chars = [];
           for (let k = 0; k < Math.min(visN, total); k++) {
             allChars[k].line.chars.push(allChars[k].c);
@@ -427,12 +428,15 @@ export function layout(params, width, height) {
       }
       case 'stagger': {
         // Rows slide in from the left with staggered timing, then slide out.
+        // Fixed period (3s) so resizing fontSize/leading doesn't reset the cycle.
         const nLines = Math.max(1, lines.length);
-        const period = Math.max(2, nLines * 0.25 + 1.5);
+        const period = 3;
         const tCycle = ((T % period) + period) % period;
         const inDur = 0.35, holdDur = period * 0.45, outDur = 0.35;
         lines.forEach((line, li) => {
-          const delay = (li / nLines) * (period * 0.35);
+          // Stagger by normalised vertical position so visible rows lead, buffer rows lag.
+          const yFrac = height > 0 ? Math.min(1, line.y / height) : li / nLines;
+          const delay = yFrac * (period * 0.35);
           const tRow = tCycle - delay;
           let xOff;
           if (tRow <= 0) {

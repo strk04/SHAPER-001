@@ -1,6 +1,6 @@
 # STATUS — SHAPER 001
 
-_Actualitzat: 2026-06-14_
+_Actualitzat: 2026-06-15_
 
 ## Estat general
 
@@ -18,9 +18,22 @@ Vanilla JS zero-build (index.html, main.js, engine.js, styles.css). Sense bundle
 
 ## Darrera sessió
 
-2026-06-14 — Auditoria visual i funcional a fons per acostar SHAPER a Pixel Perfect.
+2026-06-15 — Moviment 2D ampliat + correccions de formes 3D.
 
 Fet:
+
+- Auto-play a l'inici (respecta `prefers-reduced-motion`).
+- Toggle vNorm: normalització de cobertura-v per forma (torus, con, esfera, disc, Möbius).
+- 4 modes d'aplicació d'àtom: Anells, Columnes, Espiral, Panell (selector `wrapMode`).
+- Format fusiont amb Export panel; canvas redimensiona en col·lapsar la navegació.
+- Flux horitzontal 2D: loop seamless per tiling (mai canvas en blanc).
+- 10 nous moviments 2D: Ona H, Rebot, Pèndol, Cascada, Dispersió, Vòrtex, Expansió, Màquina, Deriva, Escalonat.
+- Fix Pla / Ondulat: el path 3D forçat incondicionalment a 2D va ser revertit; ara funcionen com a formes 3D.
+- Fix typewriter: canvas en blanc a T=0 resolt (mostra tots si T=0).
+- Fix stagger: el period ara és fix (3s) independent de fontSize/leading.
+- Eliminada forma "Conjunt"; "Prisma personalitzat" → "Custom" (al final de la llista).
+
+Provat:
 
 - UI alineada amb la shell de Pixel Perfect: 3 columnes, espais, paddings, tipografia, selects, sliders, textareas i export footer.
 - Columna 2 corregida: només carrega el panell concret seleccionat a columna 1.

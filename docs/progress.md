@@ -17,7 +17,15 @@
 ### Pendent
 - Commit pendent (múltiples canvis: wrapMode, vNorm, motion2d×10, fixes).
 - Validació visual al navegador de tots els 10 modes nous.
-- Decidir si Pla / Ondulat han de tenir un angle inicial raonable per defecte quan es seleccionen.
+
+---
+
+## 2026-06-15 (continuació) — Formes planes fixes
+
+### Fet
+- Fix `plane` surfaceMap: eix equivocat (pla XY → pla XZ, `ny=1`).
+- Fix `surfaceFlowU` per formes planes: ara és `0` per evitar que els glifs surtin del canvas conforme passa el temps.
+- Afectades: Pla, Ondulat, Sella.
 
 ---
 

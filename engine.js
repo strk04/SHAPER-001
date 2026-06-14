@@ -785,11 +785,11 @@ function surfaceMap(form, u, v, P, inst) {
     case 'cluster': // handled per-instance with cube mapping
     case 'plane':
     default: {
-      // plane: (u,v) span the layout extents; passthrough at z=0.
+      // plane: flat surface in XZ (matches guide). u→x, v→z, y=0.
       x = (u - 0.5) * S;
-      y = (v - 0.5) * (S * P.aspect);
-      z = 0;
-      nx = 0; ny = 0; nz = 1;
+      z = (v - 0.5) * (S * P.aspect);
+      y = 0;
+      nx = 0; ny = 1; nz = 0;
       break;
     }
   }
@@ -939,6 +939,11 @@ function build3D(params, width, height) {
   const formKey = P.form === 'cluster' ? 'cube' : P.form;
   const surfaceFlowU = time * spd * 0.12;
 
+  // Flat forms don't wrap in u: an unbounded surfaceFlowU would move glyphs
+  // off the surface (x=(u-0.5)*S grows without limit). Zero it for these.
+  const IS_FLAT = P.form === 'plane' || P.form === 'wave-plane' || P.form === 'saddle';
+  const flowU = IS_FLAT ? 0 : surfaceFlowU;
+
   // Arc-length LUTs: one per unique v (line), built lazily.
   const arcLUTs = new Map();
   const getArcLUT = (v) => {
@@ -960,17 +965,17 @@ function build3D(params, width, height) {
     const vN = P.vNorm ? normalizeV(formKey, yNorm) : yNorm;
     switch (wrapMode) {
       case 'columns':
-        return { u: yNorm + surfaceFlowU, v: xPix / width };
+        return { u: yNorm + flowU, v: xPix / width };
       case 'spiral': {
         const lut = getArcLUT(vN);
-        return { u: lut(xPix) + surfaceFlowU + yNorm * Math.max(1, P.turns), v: vN };
+        return { u: lut(xPix) + flowU + yNorm * Math.max(1, P.turns), v: vN };
       }
       case 'panel':
-        return { u: 0.25 + (xPix / width) * 0.5 + surfaceFlowU, v: 0.25 + yNorm * 0.5 };
+        return { u: 0.25 + (xPix / width) * 0.5 + flowU, v: 0.25 + yNorm * 0.5 };
       case 'rings':
       default: {
         const lut = getArcLUT(vN);
-        return { u: lut(xPix) + surfaceFlowU, v: vN };
+        return { u: lut(xPix) + flowU, v: vN };
       }
     }
   };

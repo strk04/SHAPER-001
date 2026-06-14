@@ -498,6 +498,111 @@ function surfaceMap(form, u, v, P, inst) {
       nx = onx / nlen; ny = 0; nz = onz / nlen;
       break;
     }
+    case 'torus': {
+      const R = r, rt = r * Math.max(0.1, Math.min(P.aspect, 1.5)) * 0.4;
+      const a = u * 2 * Math.PI, b = v * 2 * Math.PI;
+      x = (R + rt * Math.cos(b)) * Math.cos(a);
+      z = (R + rt * Math.cos(b)) * Math.sin(a);
+      y = rt * Math.sin(b);
+      nx = Math.cos(b) * Math.cos(a); ny = Math.sin(b); nz = Math.cos(b) * Math.sin(a);
+      break;
+    }
+    case 'cone': {
+      const ang = u * 2 * Math.PI;
+      const rv = r * (1 - v);
+      x = rv * Math.cos(ang); z = rv * Math.sin(ang); y = (v - 0.5) * h;
+      const slope = r / (h || 1);
+      const slen = Math.hypot(1, slope);
+      nx = Math.cos(ang) / slen; ny = slope / slen; nz = Math.sin(ang) / slen;
+      break;
+    }
+    case 'disc': {
+      const ang = u * 2 * Math.PI;
+      const rv = r * (P.aspect * 0.25 + v * (1 - P.aspect * 0.25));
+      x = rv * Math.cos(ang); z = rv * Math.sin(ang); y = 0;
+      nx = 0; ny = 1; nz = 0;
+      break;
+    }
+    case 'wave-plane': {
+      x = (u - 0.5) * S;
+      z = (v - 0.5) * S * P.aspect;
+      y = Math.sin(u * 2 * Math.PI * Math.max(1, P.turns)) * r * 0.45;
+      nx = 0; ny = 1; nz = 0;
+      break;
+    }
+    case 'mobius': {
+      const t = u * 2 * Math.PI;
+      const w = (v - 0.5) * r * Math.max(0.2, P.aspect) * 0.6;
+      x = (r + w * Math.cos(t / 2)) * Math.cos(t);
+      z = (r + w * Math.cos(t / 2)) * Math.sin(t);
+      y = w * Math.sin(t / 2);
+      nx = Math.cos(t); ny = 0; nz = Math.sin(t);
+      break;
+    }
+    case 'torus-knot': {
+      const pk = Math.max(1, Math.round(P.facets));
+      const qk = Math.max(1, Math.round(P.turns));
+      const t = u * 2 * Math.PI;
+      const Rk = r * 0.62, rtk = r * 0.28;
+      x = (Rk + rtk * Math.cos(qk * t)) * Math.cos(pk * t);
+      z = (Rk + rtk * Math.cos(qk * t)) * Math.sin(pk * t);
+      y = rtk * Math.sin(qk * t) * 1.8;
+      const klen = Math.hypot(x, y, z) || 1;
+      nx = x / klen; ny = y / klen; nz = z / klen;
+      break;
+    }
+    case 'box': {
+      const uw = ((u % 1) + 1) % 1;
+      const face = Math.floor(uw * 6);
+      const fu = uw * 6 - face;
+      const fy = (v - 0.5) * S;
+      const a = (fu - 0.5) * S;
+      if      (face === 0) { x = a;    z = -r;   y = fy;   nx = 0; ny = 0; nz = -1; }
+      else if (face === 1) { x = r;    z = a;    y = fy;   nx = 1; ny = 0; nz = 0;  }
+      else if (face === 2) { x = -a;   z = r;    y = fy;   nx = 0; ny = 0; nz = 1;  }
+      else if (face === 3) { x = -r;   z = -a;   y = fy;   nx = -1; ny = 0; nz = 0; }
+      else if (face === 4) { x = a;    z = (v - 0.5) * S; y = r;  nx = 0; ny = 1; nz = 0; }
+      else                 { x = a;    z = (0.5 - v) * S; y = -r; nx = 0; ny = -1; nz = 0; }
+      break;
+    }
+    case 'saddle': {
+      const ux = u - 0.5, vz = v - 0.5;
+      x = ux * S; z = vz * S * P.aspect;
+      y = (ux * ux - vz * vz) * r * 1.2;
+      nx = 0; ny = 1; nz = 0;
+      break;
+    }
+    case 'capsule': {
+      const ang = u * 2 * Math.PI;
+      const bodyHalf = h * 0.28;
+      const fullH = bodyHalf * 2 + r * 2;
+      const yv = (v - 0.5) * fullH;
+      if (Math.abs(yv) <= bodyHalf) {
+        x = r * Math.cos(ang); z = r * Math.sin(ang); y = yv;
+        nx = Math.cos(ang); ny = 0; nz = Math.sin(ang);
+      } else {
+        const top = yv > 0;
+        const t = (Math.abs(yv) - bodyHalf) / r;
+        const tc = Math.min(t, 1);
+        const rc = r * Math.cos(tc * Math.PI / 2);
+        const ry = r * Math.sin(tc * Math.PI / 2);
+        x = rc * Math.cos(ang); z = rc * Math.sin(ang);
+        y = (top ? 1 : -1) * (bodyHalf + ry);
+        nx = Math.cos(ang) * Math.cos(tc * Math.PI / 2);
+        ny = (top ? 1 : -1) * Math.sin(tc * Math.PI / 2);
+        nz = Math.sin(ang) * Math.cos(tc * Math.PI / 2);
+      }
+      break;
+    }
+    case 'double-helix': {
+      const strand = (v * 10 | 0) % 2;
+      const ang = u * 2 * Math.PI * Math.max(1, P.turns) + strand * Math.PI;
+      x = r * 0.55 * Math.cos(ang);
+      z = r * 0.55 * Math.sin(ang);
+      y = (v - 0.5) * h;
+      nx = Math.cos(ang); ny = 0; nz = Math.sin(ang);
+      break;
+    }
     case 'cluster': // handled per-instance with cube mapping
     case 'plane':
     default: {

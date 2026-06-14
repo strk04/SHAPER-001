@@ -42,14 +42,24 @@ const SLIDERS = {
 };
 
 const FORM_3D_CONTROLS = {
-  plane: ['formSize', 'aspect'],
-  cylinder: ['formSize', 'aspect'],
-  helix: ['formSize', 'aspect', 'turns'],
-  sphere: ['formSize'],
-  cube: ['formSize'],
-  cluster: ['formSize', 'count', 'scatter'],
-  'star-prism': ['formSize', 'aspect', 'facets'],
-  'custom-prism': ['formSize', 'aspect'],
+  plane:         ['formSize', 'aspect'],
+  cylinder:      ['formSize', 'aspect'],
+  helix:         ['formSize', 'aspect', 'turns'],
+  sphere:        ['formSize'],
+  cube:          ['formSize'],
+  cluster:       ['formSize', 'count', 'scatter'],
+  'star-prism':  ['formSize', 'aspect', 'facets'],
+  'custom-prism':['formSize', 'aspect'],
+  torus:         ['formSize', 'aspect'],
+  cone:          ['formSize', 'aspect'],
+  disc:          ['formSize', 'aspect'],
+  'wave-plane':  ['formSize', 'aspect', 'turns'],
+  mobius:        ['formSize', 'aspect'],
+  'torus-knot':  ['formSize', 'facets', 'turns'],
+  box:           ['formSize'],
+  saddle:        ['formSize', 'aspect'],
+  capsule:       ['formSize', 'aspect'],
+  'double-helix':['formSize', 'aspect', 'turns'],
 };
 
 const $ = (id) => document.getElementById(id);

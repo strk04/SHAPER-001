@@ -498,23 +498,6 @@ function announce(msg) {
   if (el) el.textContent = msg;
 }
 
-// --- Mode switch ---
-function updateModeUI() {
-  const c2d = $('section-2d-content');
-  const c3d = $('section-3d-content');
-  if (state.mode === '2d') {
-    if (c2d) c2d.hidden = false;
-    if (c3d) c3d.hidden = true;
-  } else {
-    if (c2d) c2d.hidden = true;
-    if (c3d) c3d.hidden = false;
-  }
-  const r2d = $('mode2d');
-  const r3d = $('mode3d');
-  if (r2d) r2d.checked = state.mode === '2d';
-  if (r3d) r3d.checked = state.mode === '3d';
-}
-
 // --- Tab navigation (ARIA tabs pattern) ---
 function activatePanel(panelId) {
   const panels = document.querySelectorAll('.section-sidebar .panel');
@@ -531,6 +514,16 @@ function activatePanel(panelId) {
     target.setAttribute('aria-pressed', String(isActive));
     target.querySelector('.app-menu-mark').textContent = '[' + (isActive ? '*' : ' ') + ']';
   });
+
+  if (panelId === 'panel-2d' && state.mode !== '2d') {
+    state.mode = '2d';
+    announce('Mode 2D activat');
+    scheduleRender();
+  } else if (panelId === 'panel-3d' && state.mode !== '3d') {
+    state.mode = '3d';
+    announce('Mode 3D activat');
+    scheduleRender();
+  }
 
   const sidebar = document.querySelector('.section-sidebar');
   if (sidebar) sidebar.scrollTop = 0;
@@ -660,17 +653,6 @@ function wireControls() {
   $('font').addEventListener('change', (e) => {
     state.font = e.target.value;
     scheduleRender();
-  });
-
-  // Mode radios
-  document.querySelectorAll('input[name="mode"]').forEach((radio) => {
-    radio.addEventListener('change', () => {
-      if (radio.checked) {
-        state.mode = radio.value;
-        updateModeUI();
-        scheduleRender();
-      }
-    });
   });
 
   $('shape').addEventListener('change', (e) => {
@@ -1070,9 +1052,7 @@ function applyPreset(p) {
   }
   if (p.mode != null) {
     state.mode = p.mode;
-    const mEl = $(p.mode === '2d' ? 'mode2d' : 'mode3d');
-    if (mEl) mEl.checked = true;
-    updateModeUI();
+    activatePanel(p.mode === '2d' ? 'panel-2d' : 'panel-3d');
     updateEditorVisibility();
   }
   if (p.form       != null) { state.form       = p.form;       $('form').value       = p.form;       updateEditorVisibility(); }
@@ -1198,7 +1178,6 @@ function init() {
   $('backfaceMirror').checked = state.backfaceMirror;
   $('surfaceText').checked = state.surfaceText;
   updateFovEnabled();
-  updateModeUI();
   updateEditorVisibility();
   updatePlayPauseUI();
   updateArtworkLabel();

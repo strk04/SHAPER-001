@@ -563,6 +563,7 @@ function bindNavigation() {
       navToggle.setAttribute('aria-label', 'Mostra la navegació');
       navToggle.querySelector('span').textContent = '[→ nav]';
     }
+    setTimeout(() => { resizeCanvas(); scheduleRender(); }, 240);
   });
 }
 

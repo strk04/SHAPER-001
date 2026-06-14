@@ -29,10 +29,6 @@
           <span class="app-menu-mark" aria-hidden="true">[ ]</span>
           <span>3D</span>
         </button>
-        <button class="app-menu-item" type="button" data-panel-target="panel-format" aria-pressed="false">
-          <span class="app-menu-mark" aria-hidden="true">[ ]</span>
-          <span>Format</span>
-        </button>
         <button class="app-menu-item" type="button" data-panel-target="panel-colors" aria-pressed="false">
           <span class="app-menu-mark" aria-hidden="true">[ ]</span>
           <span>Colors</span>
@@ -226,7 +222,34 @@
           <label class="control-stack slider" data-key="rainSpeed" data-min="0" data-max="3" data-step="0.1"></label>
         </section>
 
-        <section class="panel" id="panel-format" hidden>
+        <section class="panel" id="panel-colors" hidden>
+          <h3 class="panel-title">Colors</h3>
+          <label class="control-row" for="bgColor">
+            <span>Color de fons</span>
+            <input type="color" id="bgColor" name="bgColor" value="#f4f4f4">
+          </label>
+          <label class="control-row" for="textColor">
+            <span>Color del text</span>
+            <input type="color" id="textColor" name="textColor" value="#111111">
+          </label>
+        </section>
+
+        <section class="panel" id="panel-presets" hidden>
+          <h3 class="panel-title">Presets</h3>
+          <div class="control-row">
+            <label class="sr-only" for="presetName">Nom del preset</label>
+            <input type="text" id="presetName" placeholder="Nom del preset" autocomplete="off" style="flex:1;min-width:0">
+            <button id="savePreset" type="button">Desa</button>
+          </div>
+          <ul id="presetList" role="list" aria-label="Presets desats"></ul>
+          <div style="display:flex;gap:var(--space-1);margin-top:var(--space-2)">
+            <button id="exportPresets" type="button" style="flex:1">Export JSON</button>
+            <button id="importPresetsBtn" type="button" style="flex:1" aria-label="Importa presets des de JSON">Import JSON</button>
+            <input type="file" id="importPresets" accept=".json" style="display:none">
+          </div>
+        </section>
+
+        <section class="panel" id="panel-export" hidden>
           <h3 class="panel-title">Format</h3>
           <label class="control-row" for="format-select">
             <span>Preset</span>
@@ -269,36 +292,7 @@
             <button type="button" id="apply-custom-size">Aplica format</button>
           </div>
           <p id="formatStatus" class="hint" role="status"></p>
-        </section>
 
-        <section class="panel" id="panel-colors" hidden>
-          <h3 class="panel-title">Colors</h3>
-          <label class="control-row" for="bgColor">
-            <span>Color de fons</span>
-            <input type="color" id="bgColor" name="bgColor" value="#f4f4f4">
-          </label>
-          <label class="control-row" for="textColor">
-            <span>Color del text</span>
-            <input type="color" id="textColor" name="textColor" value="#111111">
-          </label>
-        </section>
-
-        <section class="panel" id="panel-presets" hidden>
-          <h3 class="panel-title">Presets</h3>
-          <div class="control-row">
-            <label class="sr-only" for="presetName">Nom del preset</label>
-            <input type="text" id="presetName" placeholder="Nom del preset" autocomplete="off" style="flex:1;min-width:0">
-            <button id="savePreset" type="button">Desa</button>
-          </div>
-          <ul id="presetList" role="list" aria-label="Presets desats"></ul>
-          <div style="display:flex;gap:var(--space-1);margin-top:var(--space-2)">
-            <button id="exportPresets" type="button" style="flex:1">Export JSON</button>
-            <button id="importPresetsBtn" type="button" style="flex:1" aria-label="Importa presets des de JSON">Import JSON</button>
-            <input type="file" id="importPresets" accept=".json" style="display:none">
-          </div>
-        </section>
-
-        <section class="panel" id="panel-export" hidden>
           <h3 class="panel-title">Export</h3>
 
           <fieldset class="gtx-fieldset">

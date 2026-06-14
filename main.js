@@ -1196,7 +1196,7 @@ function init() {
   // is still allowed (button never disabled/hidden). If the user enables
   // reduce mid-session, pause immediately.
   const rmq = window.matchMedia('(prefers-reduced-motion: reduce)');
-  // (Already paused on load — nothing to do for the initial reduced state.)
+  if (!rmq.matches) play();
   const onReducedChange = (e) => {
     if (e.matches) pause();
   };

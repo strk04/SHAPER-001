@@ -82,6 +82,7 @@ const state = {
   guides: true,
   backfaceMirror: false,
   surfaceText: true,
+  vNorm: false,
   t: 0, // animation time (seconds)
   canvasW: 1350,
   canvasH: 1080,
@@ -706,6 +707,10 @@ function wireControls() {
     state.surfaceText = e.target.checked;
     scheduleRender();
   });
+  $('vNorm').addEventListener('change', (e) => {
+    state.vNorm = e.target.checked;
+    scheduleRender();
+  });
 
   $('recordVideo').addEventListener('click', toggleRecord);
   $('saveSvg').addEventListener('click', saveSVG);
@@ -1025,7 +1030,7 @@ function capturePreset() {
   Object.keys(SLIDERS).forEach((k) => { snap[k] = state[k]; });
   ['text', 'font', 'shape', 'textColor', 'bgColor', 'hardWrap',
    'motion2d', 'mode', 'form', 'projection', 'guides',
-   'backfaceMirror', 'surfaceText', 'canvasW', 'canvasH'].forEach((k) => {
+   'backfaceMirror', 'surfaceText', 'vNorm', 'canvasW', 'canvasH'].forEach((k) => {
     snap[k] = state[k];
   });
   return snap;
@@ -1177,6 +1182,7 @@ function init() {
   $('guides').checked = state.guides;
   $('backfaceMirror').checked = state.backfaceMirror;
   $('surfaceText').checked = state.surfaceText;
+  $('vNorm').checked = state.vNorm;
   // Sync format-select and renderInfo to default canvas size
   const formatSel = $('format-select');
   if (formatSel) {

@@ -332,6 +332,7 @@ function read3DParams(params) {
     customOutline: (params.form || 'plane') === 'custom-prism'
       ? readOutlinePoints(params.customOutline)
       : null,
+    vNorm: !!params.vNorm,
   };
 }
 
@@ -648,6 +649,27 @@ function projectPersp(p, P, width, height) {
   };
 }
 
+// Per-form v normalization (Option B: coverage-normalized mapping).
+// Maps uniform v∈[0,1] to a surface-aware v that covers only the
+// most "useful" portion of each form's v parameter.
+function normalizeV(form, v) {
+  switch (form) {
+    case 'torus':
+    case 'torus-knot':
+      return v * 0.5;                                          // outer half of tube
+    case 'cone':
+      return 1 - Math.sqrt(Math.max(0, 1 - v));               // equal-area radial
+    case 'sphere':
+      return Math.asin(Math.max(-1, Math.min(1, 2 * v - 1))) / Math.PI + 0.5; // equal-area lat
+    case 'disc':
+      return v * 0.85 + 0.08;                                 // avoid center + edge
+    case 'mobius':
+      return v * 0.65 + 0.175;                                // avoid strip edges
+    default:
+      return v;
+  }
+}
+
 // Arc-length LUT: maps pixel-space x to the u parameter that gives
 // arc-length-proportional spacing on a given surface row (v fixed).
 // Samples the surface N times along u=[0..uRange], builds cumulative arc,
@@ -763,7 +785,8 @@ function build3D(params, width, height) {
   const glyphs = [];
   for (const line of lines) {
     for (const c of line.chars) {
-      const v = c.y / height;
+      const vRaw = c.y / height;
+      const v = P.vNorm ? normalizeV(formKey, vRaw) : vRaw;
       const arcLUT = getArcLUT(v);
       const u = arcLUT(c.x) + surfaceFlowU;
       // Per-glyph: distribute across cluster instances by a seeded roll.

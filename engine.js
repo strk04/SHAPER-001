@@ -333,6 +333,7 @@ function read3DParams(params) {
       ? readOutlinePoints(params.customOutline)
       : null,
     vNorm: !!params.vNorm,
+    wrapMode: params.wrapMode || 'rings',
   };
 }
 
@@ -771,6 +772,32 @@ function build3D(params, width, height) {
     return arcLUTs.get(key);
   };
 
+  // Atom-to-surface mapping mode. Maps layout pixel (xPix along the reading
+  // line, yNorm = which line in [0,1]) to surface params (u,v).
+  //   rings   — text wraps the circumference, one ring per line (default)
+  //   columns — text runs along the axis, one vertical column per line
+  //   spiral  — rings sheared into a continuous helix
+  //   panel   — flat patch clamped to the front of the surface, no wrap
+  const wrapMode = P.wrapMode || 'rings';
+  const mapUV = (xPix, yNorm) => {
+    const vN = P.vNorm ? normalizeV(formKey, yNorm) : yNorm;
+    switch (wrapMode) {
+      case 'columns':
+        return { u: yNorm + surfaceFlowU, v: xPix / width };
+      case 'spiral': {
+        const lut = getArcLUT(vN);
+        return { u: lut(xPix) + surfaceFlowU + yNorm * Math.max(1, P.turns), v: vN };
+      }
+      case 'panel':
+        return { u: 0.25 + (xPix / width) * 0.5 + surfaceFlowU, v: 0.25 + yNorm * 0.5 };
+      case 'rings':
+      default: {
+        const lut = getArcLUT(vN);
+        return { u: lut(xPix) + surfaceFlowU, v: vN };
+      }
+    }
+  };
+
   // Helper: apply the full transform chain to a (u,v) point given a fixed
   // instance offset and a fixed rain fall offset (dy). Returns projected point.
   const transformPoint = (u, v, inst, rainDY) => {
@@ -788,10 +815,10 @@ function build3D(params, width, height) {
   const glyphs = [];
   for (const line of lines) {
     for (const c of line.chars) {
-      const vRaw = c.y / height;
-      const v = P.vNorm ? normalizeV(formKey, vRaw) : vRaw;
-      const arcLUT = getArcLUT(v);
-      const u = arcLUT(c.x) + surfaceFlowU;
+      const yNorm = c.y / height;
+      const m0 = mapUV(c.x, yNorm);
+      const u = m0.u;
+      const v = m0.v;
       // Per-glyph: distribute across cluster instances by a seeded roll.
       // PRNG WARNING: consume rolls in FIXED order — inst pick first, then rain.
       const inst = instances[Math.floor(rand3() * instCount) % instCount];
@@ -826,8 +853,8 @@ function build3D(params, width, height) {
       // Surface tangent matrix (only computed when surfaceText is on).
       let matrixTransform = null;
       if (P.surfaceText) {
-        const uU = arcLUT(c.x + TANGENT_D) + surfaceFlowU;
-        const prSu = transformPoint(uU, v, inst, rainDY);
+        const mT = mapUV(c.x + TANGENT_D, yNorm);
+        const prSu = transformPoint(mT.u, mT.v, inst, rainDY);
         const tx = prSu.X - pr.X;
         const ty = prSu.Y - pr.Y;
         const len = Math.hypot(tx, ty);

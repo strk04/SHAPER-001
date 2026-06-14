@@ -589,6 +589,7 @@ function build3D(params, width, height) {
   // Delta in layout pixels used for surface tangent sampling.
   const TANGENT_D = 2;
   const formKey = P.form === 'cluster' ? 'cube' : P.form;
+  const surfaceFlowU = time * spd * 0.12;
 
   // Helper: apply the full transform chain to a (u,v) point given a fixed
   // instance offset and a fixed rain fall offset (dy). Returns projected point.
@@ -607,7 +608,7 @@ function build3D(params, width, height) {
   const glyphs = [];
   for (const line of lines) {
     for (const c of line.chars) {
-      const u = c.x / width;
+      const u = c.x / width + surfaceFlowU;
       const v = c.y / height;
       // Per-glyph: distribute across cluster instances by a seeded roll.
       // PRNG WARNING: consume rolls in FIXED order — inst pick first, then rain.
@@ -643,7 +644,7 @@ function build3D(params, width, height) {
       // Surface tangent matrix (only computed when surfaceText is on).
       let matrixTransform = null;
       if (P.surfaceText) {
-        const uU = (c.x + TANGENT_D) / width;
+        const uU = (c.x + TANGENT_D) / width + surfaceFlowU;
         const vV = (c.y + TANGENT_D) / height;
         const prSu = transformPoint(uU, v, inst, rainDY);
         const prSv = transformPoint(u, vV, inst, rainDY);

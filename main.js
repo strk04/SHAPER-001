@@ -58,7 +58,7 @@ const state = {
   projection: 'isometric',
   guides: false,
   backfaceMirror: false,
-  surfaceText: false,
+  surfaceText: true,
   t: 0, // animation time (seconds)
   speed: 1, // animation speed multiplier (0..2)
   canvasW: 1080,

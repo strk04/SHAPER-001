@@ -782,6 +782,168 @@ function surfaceMap(form, u, v, P, inst) {
       nx = Math.cos(ang); ny = 0; nz = Math.sin(ang);
       break;
     }
+    case 'paraboloid': {
+      // Bowl opening upward. u = azimuthal, v = radial (0=apex, 1=rim).
+      const ang = u * 2 * Math.PI;
+      const rv = v;
+      x = r * rv * Math.cos(ang);
+      z = r * rv * Math.sin(ang);
+      y = rv * rv * h * 0.55 - h * 0.25;
+      // Outward normal: outward radial + downward tilt (tangent of parabola).
+      const slope = 2 * rv * h * 0.55 / r;
+      const slen = Math.hypot(1, slope);
+      nx = Math.cos(ang) / slen; nz = Math.sin(ang) / slen; ny = -slope / slen;
+      break;
+    }
+    case 'hyperboloid': {
+      // Cooling-tower shape: cosh profile, tightest at v=0.5.
+      const k = Math.max(0.5, P.aspect) * 2.2;
+      const ang = u * 2 * Math.PI;
+      const ch = Math.cosh((v - 0.5) * k);
+      x = r * 0.45 * ch * Math.cos(ang);
+      z = r * 0.45 * ch * Math.sin(ang);
+      y = (v - 0.5) * h;
+      nx = Math.cos(ang); ny = 0; nz = Math.sin(ang);
+      break;
+    }
+    case 'ellipsoid': {
+      // 3-axis ellipsoid: aspect controls y-radius independently.
+      const lon = u * 2 * Math.PI;
+      const lat = (v - 0.5) * Math.PI;
+      const cl = Math.cos(lat);
+      x = r * Math.cos(lon) * cl;
+      y = r * P.aspect * Math.sin(lat);
+      z = r * Math.sin(lon) * cl;
+      // Normal: gradient of (x/r)²+(y/(r*aspect))²+(z/r)²=1.
+      const ry2 = r * P.aspect;
+      const nlen = Math.hypot(x / (r * r), y / (ry2 * ry2), z / (r * r)) || 1;
+      nx = (x / (r * r)) / nlen;
+      ny = (y / (ry2 * ry2)) / nlen;
+      nz = (z / (r * r)) / nlen;
+      break;
+    }
+    case 'spring': {
+      // Coil spring: helix of radius HR with tube of radius TR.
+      const turns = Math.max(1, P.turns);
+      const HR = r * 0.65;
+      const TR = r * Math.max(0.08, P.aspect * 0.12);
+      const theta = v * 2 * Math.PI * turns;
+      const omega = 2 * Math.PI * turns;
+      // Tangent of helix centerline (unnormalized).
+      const Tx = -HR * Math.sin(theta) * omega;
+      const Ty = h;
+      const Tz = HR * Math.cos(theta) * omega;
+      const Tlen = Math.hypot(Tx, Ty, Tz) || 1;
+      const tx2 = Tx / Tlen, ty2 = Ty / Tlen, tz2 = Tz / Tlen;
+      // Outward radial from helix axis (approx principal normal flipped).
+      const Rx = Math.cos(theta), Ry = 0, Rz = Math.sin(theta);
+      // Binormal: T × R (perpendicular in tube cross-section).
+      const bx = ty2 * Rz - tz2 * Ry;
+      const by = tz2 * Rx - tx2 * Rz;
+      const bz = tx2 * Ry - ty2 * Rx;
+      const blen = Math.hypot(bx, by, bz) || 1;
+      const phi = u * 2 * Math.PI;
+      const cp = Math.cos(phi), sp = Math.sin(phi);
+      nx = cp * Rx + sp * bx / blen;
+      ny = cp * Ry + sp * by / blen;
+      nz = cp * Rz + sp * bz / blen;
+      x = HR * Math.cos(theta) + TR * nx;
+      y = (v - 0.5) * h + TR * ny;
+      z = HR * Math.sin(theta) + TR * nz;
+      break;
+    }
+    case 'monkey-saddle': {
+      // z = x³ − 3xy² (3 peaks, 3 valleys vs regular saddle's 2+2).
+      const ux2 = u - 0.5, vz2 = v - 0.5;
+      x = ux2 * S;
+      z = vz2 * S * P.aspect;
+      y = (ux2 * ux2 * ux2 - 3 * ux2 * vz2 * vz2) * r * 1.6;
+      // Normal: ∂y/∂x = (3ux²−3vz²)*scale, ∂y/∂z = −6ux*vz*scale
+      const dydx = (3 * ux2 * ux2 - 3 * vz2 * vz2) * r * 1.6 / S;
+      const dydz = -6 * ux2 * vz2 * r * 1.6 / (S * P.aspect);
+      const nlen2 = Math.hypot(dydx, 1, dydz) || 1;
+      nx = -dydx / nlen2; ny = 1 / nlen2; nz = -dydz / nlen2;
+      break;
+    }
+    case 'shell': {
+      // Logarithmic spiral shell (nautilus). v = travel, u = tube angle.
+      const turns = Math.max(1, P.turns);
+      const sweep = v * 2 * Math.PI * turns;
+      const growth = Math.exp(v * 2.0); // radius grows ~e² from v=0..1
+      const Rc = r * 0.25 * growth;
+      const TR2 = Rc * 0.45;
+      const cx2 = Rc * Math.cos(sweep);
+      const cz2 = Rc * Math.sin(sweep);
+      const cy2 = (0.5 - v) * h * 0.5;
+      // Outward radial from spiral center.
+      const Rx2 = Math.cos(sweep), Rz2 = Math.sin(sweep);
+      const phi2 = u * 2 * Math.PI;
+      nx = Math.cos(phi2) * Rx2;
+      nz = Math.cos(phi2) * Rz2;
+      ny = Math.sin(phi2);
+      x = cx2 + TR2 * nx;
+      y = cy2 + TR2 * ny;
+      z = cz2 + TR2 * nz;
+      break;
+    }
+    case 'catenoid': {
+      // Minimal surface between two rings. cosh profile.
+      const k2 = Math.max(0.5, 3 / P.aspect);
+      const vv = (v - 0.5) * k2;
+      const ch2 = Math.cosh(vv);
+      const rW = r / Math.cosh(k2 * 0.5); // normalise waist to ≈r
+      const ang2 = u * 2 * Math.PI;
+      x = rW * ch2 * Math.cos(ang2);
+      z = rW * ch2 * Math.sin(ang2);
+      y = (v - 0.5) * h;
+      nx = Math.cos(ang2); ny = 0; nz = Math.sin(ang2);
+      break;
+    }
+    case 'superquadric': {
+      // Generalised sphere: facets controls squareness (2=sphere, 8≈cube).
+      const exp = 2 / Math.max(0.25, Math.min(8, P.facets));
+      const sgn = (val) => (val >= 0 ? 1 : -1);
+      const sp = (val, e) => sgn(val) * Math.abs(val) ** e;
+      const lon2 = u * 2 * Math.PI;
+      const lat2 = (v - 0.5) * Math.PI;
+      x = r * sp(Math.cos(lon2), exp) * sp(Math.cos(lat2), exp);
+      y = r * P.aspect * sp(Math.sin(lat2), exp);
+      z = r * sp(Math.sin(lon2), exp) * sp(Math.cos(lat2), exp);
+      // Approximate outward normal.
+      const nlen3 = Math.hypot(x, y / (P.aspect * P.aspect), z) || 1;
+      nx = x / nlen3; ny = y / (P.aspect * P.aspect * nlen3); nz = z / nlen3;
+      break;
+    }
+    case 'dini': {
+      // Dini's surface: pseudosphere with twist (constant negative curvature).
+      const a = r * 0.42;
+      const twist = Math.max(0.05, P.aspect) * 3;
+      const turns2 = Math.max(1, P.turns);
+      const phi3 = v * Math.PI * 0.82 + 0.09; // latitude (avoid poles)
+      const theta2 = u * 2 * Math.PI * turns2 + twist * v;
+      x = a * Math.sin(phi3) * Math.cos(theta2);
+      z = a * Math.sin(phi3) * Math.sin(theta2);
+      y = a * (Math.cos(phi3) + Math.log(Math.tan(phi3 / 2)));
+      // Normal: outward on pseudosphere.
+      const nlen4 = Math.hypot(x, 0, z) || 1;
+      nx = x / nlen4; ny = 0; nz = z / nlen4;
+      break;
+    }
+    case 'trifolium': {
+      // Trifolium (3-petal rose) extruded as a prism.
+      const theta3 = u * 2 * Math.PI;
+      const rho = r * 0.6 * Math.max(0, 1 + Math.cos(3 * theta3)) * 0.5;
+      x = rho * Math.cos(theta3);
+      z = rho * Math.sin(theta3);
+      y = (v - 0.5) * h;
+      // Normal: perpendicular to curve in XZ.
+      const drho = -r * 0.6 * 0.5 * 3 * Math.sin(3 * theta3);
+      const dxdt = drho * Math.cos(theta3) - rho * Math.sin(theta3);
+      const dzdt = drho * Math.sin(theta3) + rho * Math.cos(theta3);
+      const nlen5 = Math.hypot(dzdt, 0, -dxdt) || 1;
+      nx = dzdt / nlen5; ny = 0; nz = -dxdt / nlen5;
+      break;
+    }
     case 'cluster': // handled per-instance with cube mapping
     case 'plane':
     default: {
@@ -850,34 +1012,60 @@ function normalizeV(form, v) {
 
 // Arc-length LUT: maps pixel-space x to the u parameter that gives
 // arc-length-proportional spacing on a given surface row (v fixed).
-// Samples the surface N times along u=[0..uRange], builds cumulative arc,
-// then interpolates. Result: consistent kerning regardless of surface curvature.
+// Also returns the pre-computed 3D surface tangent at each sample so the
+// caller can rotate it and skip a second surfaceMap call per glyph.
+// Returns: (px) => { u, tangent: {dx,dy,dz} (unit 3D tangent along u) }
 function buildArcLUT(formKey, v, P, inst, width, N = 200) {
   const uRange = 2.5;
   const step = uRange / N;
-  let prev = surfaceMap(formKey, 0, v, P, inst);
+  const pts = [];
+  for (let i = 0; i <= N; i++) pts.push(surfaceMap(formKey, i * step, v, P, inst));
+
   const cum = [0];
-  const us = [0];
+  const us = [];
+  for (let i = 0; i <= N; i++) us.push(i * step);
   for (let i = 1; i <= N; i++) {
-    const u = i * step;
-    const pt = surfaceMap(formKey, u, v, P, inst);
-    cum.push(cum[i - 1] + Math.hypot(pt.x - prev.x, pt.y - prev.y, pt.z - prev.z));
-    us.push(u);
-    prev = pt;
+    cum.push(cum[i - 1] + Math.hypot(
+      pts[i].x - pts[i - 1].x,
+      pts[i].y - pts[i - 1].y,
+      pts[i].z - pts[i - 1].z,
+    ));
   }
+
+  // Central-difference tangents (forward diff at endpoints).
+  const tangents = [];
+  for (let i = 0; i <= N; i++) {
+    const a = pts[Math.max(0, i - 1)], b = pts[Math.min(N, i + 1)];
+    const dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z;
+    const len = Math.hypot(dx, dy, dz) || 1;
+    tangents.push({ dx: dx / len, dy: dy / len, dz: dz / len });
+  }
+
   const wrapN = Math.round(N / uRange); // samples that cover u=0..1
   const arc01 = cum[wrapN] || (cum[N] / uRange);
   return (px) => {
     const target = (px / width) * arc01;
-    if (target <= 0) return target / (arc01 || 1);
-    if (target >= cum[N]) return us[N] + (target - cum[N]) / (arc01 || 1);
-    let lo = 0, hi = N;
-    while (lo < hi - 1) {
-      const mid = (lo + hi) >> 1;
-      if (cum[mid] <= target) lo = mid; else hi = mid;
+    let lo = 0;
+    if (target <= 0) {
+      lo = 0;
+    } else if (target >= cum[N]) {
+      lo = N - 1;
+    } else {
+      let hi = N;
+      while (lo < hi - 1) {
+        const mid = (lo + hi) >> 1;
+        if (cum[mid] <= target) lo = mid; else hi = mid;
+      }
     }
     const seg = cum[lo + 1] - cum[lo] || 1e-10;
-    return us[lo] + (us[lo + 1] - us[lo]) * ((target - cum[lo]) / seg);
+    const t = Math.max(0, Math.min(1, (target - cum[lo]) / seg));
+    const u = us[lo] + (us[lo + 1] - us[lo]) * t;
+    const ta = tangents[lo], tb = tangents[Math.min(lo + 1, N)];
+    const tdx = ta.dx + (tb.dx - ta.dx) * t;
+    const tdy = ta.dy + (tb.dy - ta.dy) * t;
+    const tdz = ta.dz + (tb.dz - ta.dz) * t;
+    const tlen = Math.hypot(tdx, tdy, tdz) || 1;
+    return { u, tangent: { dx: tdx / tlen, dy: tdy / tlen, dz: tdz / tlen } };
   };
 }
 
@@ -965,17 +1153,17 @@ function build3D(params, width, height) {
     const vN = P.vNorm ? normalizeV(formKey, yNorm) : yNorm;
     switch (wrapMode) {
       case 'columns':
-        return { u: yNorm + flowU, v: xPix / width };
+        return { u: yNorm + flowU, v: xPix / width, tangent: null };
       case 'spiral': {
-        const lut = getArcLUT(vN);
-        return { u: lut(xPix) + flowU + yNorm * Math.max(1, P.turns), v: vN };
+        const { u, tangent } = getArcLUT(vN)(xPix);
+        return { u: u + flowU + yNorm * Math.max(1, P.turns), v: vN, tangent };
       }
       case 'panel':
-        return { u: 0.25 + (xPix / width) * 0.5 + flowU, v: 0.25 + yNorm * 0.5 };
+        return { u: 0.25 + (xPix / width) * 0.5 + flowU, v: 0.25 + yNorm * 0.5, tangent: null };
       case 'rings':
       default: {
-        const lut = getArcLUT(vN);
-        return { u: lut(xPix) + flowU, v: vN };
+        const { u, tangent } = getArcLUT(vN)(xPix);
+        return { u: u + flowU, v: vN, tangent };
       }
     }
   };
@@ -1035,10 +1223,26 @@ function build3D(params, width, height) {
       // Surface tangent matrix (only computed when surfaceText is on).
       let matrixTransform = null;
       if (P.surfaceText) {
-        const mT = mapUV(c.x + TANGENT_D, yNorm);
-        const prSu = transformPoint(mT.u, mT.v, inst, rainDY);
-        const tx = prSu.X - pr.X;
-        const ty = prSu.Y - pr.Y;
+        let tx, ty;
+        if (m0.tangent) {
+          // Fast path: rotate the pre-computed 3D LUT tangent — no extra surfaceMap call.
+          const rt = rotateDir(m0.tangent, ax, ay, az);
+          if (P.projection === 'perspective') {
+            tx = rt.x * pr.scale;
+            ty = -rt.y * pr.scale;
+          } else {
+            // Isometric: apply the linear (non-translational) part of projectIso.
+            const k = (0.45 * Math.min(width, height) * P.zoom) / FORM_SIZE_BASE;
+            tx = (rt.x - rt.z) * Math.cos(Math.PI / 6) * k;
+            ty = ((rt.x + rt.z) * Math.sin(Math.PI / 6) - rt.y) * k;
+          }
+        } else {
+          // Fallback (panel / columns): compute tangent by sampling the surface.
+          const mT = mapUV(c.x + TANGENT_D, yNorm);
+          const prSu = transformPoint(mT.u, mT.v, inst, rainDY);
+          tx = prSu.X - pr.X;
+          ty = prSu.Y - pr.Y;
+        }
         const len = Math.hypot(tx, ty);
         if (len >= 1e-4) {
           const ca = tx / len;
@@ -1053,7 +1257,7 @@ function build3D(params, width, height) {
             f: pr.Y,
           };
         }
-        // else: degenerate tangent — fall back to billboard (matrixTransform stays null)
+        // else: degenerate tangent — billboard (matrixTransform stays null)
       }
 
       glyphs.push({
@@ -1382,6 +1586,181 @@ function buildGuidesData(ctx) {
         }
         d += pc + ' ';
       }
+      break;
+    }
+    case 'paraboloid': {
+      d += ellipse(0, r);           // rim
+      d += ellipse(-h * 0.25, 0);   // apex (dot — just a point)
+      for (let q = 0; q < 4; q++) {
+        const a = (q / 4) * 2 * Math.PI;
+        let pp = '';
+        for (let i = 0; i <= 24; i++) {
+          const rv = i / 24;
+          const pr = pj(r * rv * Math.cos(a), rv * rv * h * 0.55 - h * 0.25, r * rv * Math.sin(a));
+          pp += (i === 0 ? 'M' : 'L') + pr.X.toFixed(2) + ' ' + pr.Y.toFixed(2);
+        }
+        d += pp + ' ';
+      }
+      break;
+    }
+    case 'hyperboloid': {
+      const kh = Math.max(0.5, P.aspect) * 2.2;
+      d += ellipse(-h / 2, r * 0.45 * Math.cosh(kh * 0.5)); // top ring
+      d += ellipse(0, r * 0.45);                              // waist
+      d += ellipse(h / 2, r * 0.45 * Math.cosh(kh * 0.5));  // bottom ring
+      for (let q = 0; q < 4; q++) {
+        const a = (q / 4) * 2 * Math.PI;
+        let ph = '';
+        for (let i = 0; i <= 32; i++) {
+          const vv = i / 32;
+          const ch = Math.cosh((vv - 0.5) * kh);
+          const pr = pj(r * 0.45 * ch * Math.cos(a), (vv - 0.5) * h, r * 0.45 * ch * Math.sin(a));
+          ph += (i === 0 ? 'M' : 'L') + pr.X.toFixed(2) + ' ' + pr.Y.toFixed(2);
+        }
+        d += ph + ' ';
+      }
+      break;
+    }
+    case 'ellipsoid': {
+      d += ellipse(0, r);          // equatorial ring
+      // Meridional ellipse (y-major)
+      let pm = '';
+      for (let i = 0; i <= 48; i++) {
+        const lat = (i / 48 - 0.5) * Math.PI;
+        const pr = pj(r * Math.cos(lat), r * P.aspect * Math.sin(lat), 0);
+        pm += (i === 0 ? 'M' : 'L') + pr.X.toFixed(2) + ' ' + pr.Y.toFixed(2);
+      }
+      d += pm + ' ';
+      let pm2 = '';
+      for (let i = 0; i <= 48; i++) {
+        const lat = (i / 48 - 0.5) * Math.PI;
+        const pr = pj(0, r * P.aspect * Math.sin(lat), r * Math.cos(lat));
+        pm2 += (i === 0 ? 'M' : 'L') + pr.X.toFixed(2) + ' ' + pr.Y.toFixed(2);
+      }
+      d += pm2 + ' ';
+      break;
+    }
+    case 'spring': {
+      const turns_s = Math.max(1, P.turns);
+      const HR = r * 0.65;
+      let ps = '';
+      const steps = turns_s * 40;
+      for (let i = 0; i <= steps; i++) {
+        const vv = i / steps;
+        const theta_s = vv * 2 * Math.PI * turns_s;
+        const pr = pj(HR * Math.cos(theta_s), (vv - 0.5) * h, HR * Math.sin(theta_s));
+        ps += (i === 0 ? 'M' : 'L') + pr.X.toFixed(2) + ' ' + pr.Y.toFixed(2);
+      }
+      d += ps + ' ';
+      break;
+    }
+    case 'monkey-saddle': {
+      const msx = S / 2, msz = (S * P.aspect) / 2;
+      // 3 parabola arms
+      for (let arm = 0; arm < 3; arm++) {
+        const ang_ms = (arm / 3) * 2 * Math.PI;
+        let pa = '';
+        for (let i = 0; i <= 24; i++) {
+          const t = (i / 24 - 0.5);
+          const ux2 = t * Math.cos(ang_ms) * 0.5;
+          const vz2 = t * Math.sin(ang_ms) * 0.5 / P.aspect;
+          const pr = pj(ux2 * S, (ux2 * ux2 * ux2 - 3 * ux2 * vz2 * vz2) * r * 1.6, vz2 * S * P.aspect);
+          pa += (i === 0 ? 'M' : 'L') + pr.X.toFixed(2) + ' ' + pr.Y.toFixed(2);
+        }
+        d += pa + ' ';
+      }
+      d += seg(-msx, 0, -msz, msx, 0, -msz);
+      d += seg(msx, 0, -msz, msx, 0, msz);
+      d += seg(msx, 0, msz, -msx, 0, msz);
+      d += seg(-msx, 0, msz, -msx, 0, -msz);
+      break;
+    }
+    case 'shell': {
+      const turns_sh = Math.max(1, P.turns);
+      let psh = '';
+      const steps_sh = turns_sh * 40;
+      for (let i = 0; i <= steps_sh; i++) {
+        const vv = i / steps_sh;
+        const sweep = vv * 2 * Math.PI * turns_sh;
+        const Rc = r * 0.25 * Math.exp(vv * 2.0);
+        const pr = pj(Rc * Math.cos(sweep), (0.5 - vv) * h * 0.5, Rc * Math.sin(sweep));
+        psh += (i === 0 ? 'M' : 'L') + pr.X.toFixed(2) + ' ' + pr.Y.toFixed(2);
+      }
+      d += psh + ' ';
+      break;
+    }
+    case 'catenoid': {
+      const kc = Math.max(0.5, 3 / P.aspect);
+      const rW = r / Math.cosh(kc * 0.5);
+      d += ellipse(-h / 2, rW * Math.cosh(kc * 0.5)); // top
+      d += ellipse(0, rW);                              // waist
+      d += ellipse(h / 2, rW * Math.cosh(kc * 0.5));  // bottom
+      for (let q = 0; q < 4; q++) {
+        const a = (q / 4) * 2 * Math.PI;
+        let pc = '';
+        for (let i = 0; i <= 32; i++) {
+          const vv = i / 32;
+          const ch = Math.cosh((vv - 0.5) * kc);
+          const pr = pj(rW * ch * Math.cos(a), (vv - 0.5) * h, rW * ch * Math.sin(a));
+          pc += (i === 0 ? 'M' : 'L') + pr.X.toFixed(2) + ' ' + pr.Y.toFixed(2);
+        }
+        d += pc + ' ';
+      }
+      break;
+    }
+    case 'superquadric': {
+      const expG = 2 / Math.max(0.25, Math.min(8, P.facets));
+      const sgnG = (val) => (val >= 0 ? 1 : -1);
+      const spG = (val, e) => sgnG(val) * Math.abs(val) ** e;
+      // 3 cross-section rings
+      for (let ci = 0; ci < 3; ci++) {
+        const latG = (ci / 2 - 0.5) * Math.PI * 0.8;
+        let pg = '';
+        for (let i = 0; i <= 48; i++) {
+          const lonG = (i / 48) * 2 * Math.PI;
+          const pr = pj(
+            r * spG(Math.cos(lonG), expG) * spG(Math.cos(latG), expG),
+            r * P.aspect * spG(Math.sin(latG), expG),
+            r * spG(Math.sin(lonG), expG) * spG(Math.cos(latG), expG),
+          );
+          pg += (i === 0 ? 'M' : 'L') + pr.X.toFixed(2) + ' ' + pr.Y.toFixed(2);
+        }
+        d += pg + ' ';
+      }
+      break;
+    }
+    case 'dini': {
+      const a_d = r * 0.42;
+      const twist_d = Math.max(0.05, P.aspect) * 3;
+      const turns_d = Math.max(1, P.turns);
+      let pd = '';
+      for (let i = 0; i <= 120; i++) {
+        const vv = i / 120;
+        const phi_d = vv * Math.PI * 0.82 + 0.09;
+        const theta_d = (i / 120) * 2 * Math.PI * turns_d + twist_d * vv;
+        const pr = pj(
+          a_d * Math.sin(phi_d) * Math.cos(theta_d),
+          a_d * (Math.cos(phi_d) + Math.log(Math.tan(phi_d / 2))),
+          a_d * Math.sin(phi_d) * Math.sin(theta_d),
+        );
+        pd += (i === 0 ? 'M' : 'L') + pr.X.toFixed(2) + ' ' + pr.Y.toFixed(2);
+      }
+      d += pd + ' ';
+      break;
+    }
+    case 'trifolium': {
+      // Top and bottom trifolium outlines + axis.
+      for (const yOff of [-h / 2, h / 2]) {
+        let pt3 = '';
+        for (let i = 0; i <= 96; i++) {
+          const theta3 = (i / 96) * 2 * Math.PI;
+          const rho3 = r * 0.6 * Math.max(0, 1 + Math.cos(3 * theta3)) * 0.5;
+          const pr = pj(rho3 * Math.cos(theta3), yOff, rho3 * Math.sin(theta3));
+          pt3 += (i === 0 ? 'M' : 'L') + pr.X.toFixed(2) + ' ' + pr.Y.toFixed(2);
+        }
+        d += pt3 + ' ';
+      }
+      d += seg(0, -h / 2, 0, 0, h / 2, 0); // axis
       break;
     }
     case 'double-helix': {

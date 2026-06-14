@@ -29,6 +29,22 @@
 
 ---
 
+## 2026-06-15 (sessió 3) — ArcLUT tangent + 10 formes noves
+
+### Fet
+- **Option B (rendiment)**: `buildArcLUT` ara retorna `(px) => { u, tangent }`. El loop de glifs usa `rotateDir(m0.tangent)` en lloc d'un segon `surfaceMap+rotate3D+project` — elimina ~50% de la càrrega per glif en mode `surfaceText` amb `rings` i `spiral`.
+- **10 formes noves**: paraboloide, hiperboloide, el·lipsoide, molla (spring), sella de mico, nautilus (shell), catenoide, superquàdrica, Dini, trifoli.
+- Guies (dashed wireframe) implementades per totes les formes noves.
+- HTML: 10 opcions noves al select `#form`.
+- `FORM_3D_CONTROLS`: entrades per les 10 noves formes (paràmetres rellevants visibles).
+- Sync a `02 Pixel Perfect/shaper/`.
+
+### Pendent
+- Validació visual al navegador (totes les formes noves).
+- Commit pendent.
+
+---
+
 ## 2026-06-13 (vespre) — Layout 3 columnes
 
 ### Fet

@@ -61,7 +61,17 @@ const FORM_3D_CONTROLS = {
   box:           ['formSize'],
   saddle:        ['formSize', 'aspect'],
   capsule:       ['formSize', 'aspect'],
-  'double-helix':['formSize', 'aspect', 'turns'],
+  'double-helix':  ['formSize', 'aspect', 'turns'],
+  paraboloid:      ['formSize', 'aspect'],
+  hyperboloid:     ['formSize', 'aspect'],
+  ellipsoid:       ['formSize', 'aspect'],
+  spring:          ['formSize', 'aspect', 'turns'],
+  'monkey-saddle': ['formSize', 'aspect'],
+  shell:           ['formSize', 'turns'],
+  catenoid:        ['formSize', 'aspect'],
+  superquadric:    ['formSize', 'aspect', 'facets'],
+  dini:            ['formSize', 'aspect', 'turns'],
+  trifolium:       ['formSize', 'aspect'],
 };
 
 const $ = (id) => document.getElementById(id);

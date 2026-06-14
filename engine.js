@@ -936,6 +936,193 @@ function buildGuidesData(ctx) {
       }
       break;
     }
+    case 'plane': {
+      // Bounding rectangle of the plane extents + axis cross.
+      const px = S / 2, pz = (S * P.aspect) / 2;
+      d += seg(-px, 0, -pz, px, 0, -pz);
+      d += seg(px, 0, -pz, px, 0, pz);
+      d += seg(px, 0, pz, -px, 0, pz);
+      d += seg(-px, 0, pz, -px, 0, -pz);
+      d += seg(-px, 0, 0, px, 0, 0);
+      d += seg(0, 0, -pz, 0, 0, pz);
+      break;
+    }
+    case 'torus': {
+      const Rt = r, rt = r * Math.max(0.1, Math.min(P.aspect, 1.5)) * 0.4;
+      d += ellipse(0, Rt + rt);           // outer equatorial ring
+      if (Rt - rt > 2) d += ellipse(0, Rt - rt); // inner equatorial ring
+      // Meridional ring (a circle through the tube cross-section at u=0)
+      let pm = '';
+      for (let i = 0; i <= 48; i++) {
+        const b = (i / 48) * 2 * Math.PI;
+        const px2 = (Rt + rt * Math.cos(b)), py2 = rt * Math.sin(b);
+        const pr = pj(px2, py2, 0);
+        pm += (i === 0 ? 'M' : 'L') + pr.X.toFixed(2) + ' ' + pr.Y.toFixed(2);
+      }
+      d += pm + ' ';
+      break;
+    }
+    case 'cone': {
+      d += ellipse(h / 2, r);             // base circle
+      // 4 edges from apex (top) to base rim
+      for (let q = 0; q < 4; q++) {
+        const a = (q / 4) * 2 * Math.PI;
+        d += seg(0, -h / 2, 0, r * Math.cos(a), h / 2, r * Math.sin(a));
+      }
+      break;
+    }
+    case 'disc': {
+      const innerR = r * P.aspect * 0.25;
+      d += ellipse(0, r);                 // outer rim
+      if (innerR > 2) d += ellipse(0, innerR); // inner hole
+      d += seg(-r, 0, 0, r, 0, 0);       // diameter cross
+      d += seg(0, 0, -r, 0, 0, r);
+      break;
+    }
+    case 'wave-plane': {
+      const wx = S / 2, wz = (S * P.aspect) / 2;
+      // Flat boundary rectangle
+      d += seg(-wx, 0, -wz, wx, 0, -wz);
+      d += seg(wx, 0, -wz, wx, 0, wz);
+      d += seg(wx, 0, wz, -wx, 0, wz);
+      d += seg(-wx, 0, wz, -wx, 0, -wz);
+      // Wave profile at z=0
+      const turns = Math.max(1, P.turns);
+      let pw = '';
+      for (let i = 0; i <= 64; i++) {
+        const u = i / 64;
+        const wx2 = (u - 0.5) * S;
+        const wy2 = Math.sin(u * 2 * Math.PI * turns) * r * 0.45;
+        const pr = pj(wx2, wy2, 0);
+        pw += (i === 0 ? 'M' : 'L') + pr.X.toFixed(2) + ' ' + pr.Y.toFixed(2);
+      }
+      d += pw + ' ';
+      break;
+    }
+    case 'mobius': {
+      // Center-line of the strip (w=0 in the parametric)
+      let pm = '';
+      for (let i = 0; i <= 96; i++) {
+        const t = (i / 96) * 2 * Math.PI;
+        const pr = pj(r * Math.cos(t), 0, r * Math.sin(t));
+        pm += (i === 0 ? 'M' : 'L') + pr.X.toFixed(2) + ' ' + pr.Y.toFixed(2);
+      }
+      d += pm + ' ';
+      // Width guide at 0 and π
+      const hw = r * Math.max(0.2, P.aspect) * 0.3;
+      d += seg(r, hw, 0, r, -hw, 0);
+      d += seg(-r, -hw, 0, -r, hw, 0);
+      break;
+    }
+    case 'torus-knot': {
+      const pk = Math.max(1, Math.round(P.facets));
+      const qk = Math.max(1, Math.round(P.turns));
+      const Rk = r * 0.62, rtk = r * 0.28;
+      let pk2 = '';
+      const steps = 120 * Math.max(pk, qk);
+      for (let i = 0; i <= steps; i++) {
+        const t = (i / steps) * 2 * Math.PI;
+        const kx = (Rk + rtk * Math.cos(qk * t)) * Math.cos(pk * t);
+        const kz = (Rk + rtk * Math.cos(qk * t)) * Math.sin(pk * t);
+        const ky = rtk * Math.sin(qk * t) * 1.8;
+        const pr = pj(kx, ky, kz);
+        pk2 += (i === 0 ? 'M' : 'L') + pr.X.toFixed(2) + ' ' + pr.Y.toFixed(2);
+      }
+      d += pk2 + ' ';
+      break;
+    }
+    case 'box': {
+      // 12-edge wireframe (same as cube)
+      const c = r;
+      const verts = [
+        [-c, -c, -c], [c, -c, -c], [c, -c, c], [-c, -c, c],
+        [-c, c, -c], [c, c, -c], [c, c, c], [-c, c, c],
+      ];
+      const edges = [
+        [0, 1], [1, 2], [2, 3], [3, 0],
+        [4, 5], [5, 6], [6, 7], [7, 4],
+        [0, 4], [1, 5], [2, 6], [3, 7],
+      ];
+      for (const [a, b] of edges) {
+        const va = verts[a], vb = verts[b];
+        d += seg(va[0], va[1], va[2], vb[0], vb[1], vb[2]);
+      }
+      break;
+    }
+    case 'saddle': {
+      // Two parabolic cross-sections + boundary rect
+      const sx = S / 2, sz = (S * P.aspect) / 2;
+      // X-axis parabola (at z=0): y=(ux^2)*r*1.2 as ux varies -0.5..0.5
+      let psx = '';
+      for (let i = 0; i <= 32; i++) {
+        const ux = i / 32 - 0.5;
+        const vz2 = 0;
+        const xx = ux * S, zz = vz2 * S * P.aspect;
+        const yy = (ux * ux - vz2 * vz2) * r * 1.2;
+        const pr = pj(xx, yy, zz);
+        psx += (i === 0 ? 'M' : 'L') + pr.X.toFixed(2) + ' ' + pr.Y.toFixed(2);
+      }
+      d += psx + ' ';
+      // Z-axis parabola (at x=0)
+      let psz = '';
+      for (let i = 0; i <= 32; i++) {
+        const ux2 = 0;
+        const vz3 = i / 32 - 0.5;
+        const xx2 = ux2 * S, zz2 = vz3 * S * P.aspect;
+        const yy2 = (ux2 * ux2 - vz3 * vz3) * r * 1.2;
+        const pr = pj(xx2, yy2, zz2);
+        psz += (i === 0 ? 'M' : 'L') + pr.X.toFixed(2) + ' ' + pr.Y.toFixed(2);
+      }
+      d += psz + ' ';
+      // Boundary corners (4 edges of the flat XZ extent)
+      d += seg(-sx, 0, -sz, sx, 0, -sz);
+      d += seg(sx, 0, -sz, sx, 0, sz);
+      d += seg(sx, 0, sz, -sx, 0, sz);
+      d += seg(-sx, 0, sz, -sx, 0, -sz);
+      break;
+    }
+    case 'capsule': {
+      const bodyHalf = h * 0.28;
+      const fullH = bodyHalf * 2 + r * 2;
+      const topY = bodyHalf + r, botY = -(bodyHalf + r);
+      d += ellipse(-bodyHalf, r);         // bottom cap join
+      d += ellipse(bodyHalf, r);          // top cap join
+      // Vertical edges
+      d += seg(r, botY, 0, r, topY, 0);
+      d += seg(-r, botY, 0, -r, topY, 0);
+      d += seg(0, botY, r, 0, topY, r);
+      d += seg(0, botY, -r, 0, topY, -r);
+      // Hemisphere outlines (meridional arcs at top/bottom)
+      for (let cap = -1; cap <= 1; cap += 2) {
+        let pc = '';
+        const cy = cap * bodyHalf;
+        for (let i = 0; i <= 24; i++) {
+          const a = (i / 24) * Math.PI - Math.PI / 2;
+          const pr = pj(r * Math.cos(a), cy + cap * r * Math.sin(a), 0);
+          pc += (i === 0 ? 'M' : 'L') + pr.X.toFixed(2) + ' ' + pr.Y.toFixed(2);
+        }
+        d += pc + ' ';
+      }
+      break;
+    }
+    case 'double-helix': {
+      // Two helix strands offset by π
+      for (let strand = 0; strand < 2; strand++) {
+        const phaseOff = strand * Math.PI;
+        const turns = Math.max(1, P.turns);
+        let ph = '';
+        for (let i = 0; i <= 96; i++) {
+          const u = i / 96;
+          const ang = u * 2 * Math.PI * turns + phaseOff;
+          const pr = pj(r * 0.55 * Math.cos(ang), (u - 0.5) * h, r * 0.55 * Math.sin(ang));
+          ph += (i === 0 ? 'M' : 'L') + pr.X.toFixed(2) + ' ' + pr.Y.toFixed(2);
+        }
+        d += ph + ' ';
+      }
+      // Axis line
+      d += seg(0, -h / 2, 0, 0, h / 2, 0);
+      break;
+    }
     default:
       break;
   }

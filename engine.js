@@ -1415,7 +1415,7 @@ export function buildScene(params, width, height) {
   // --- 2D fast path ---
   // Explicit mode='2d' always forces the 2D path regardless of 3D params.
   // mode absent (back-compat / Node tests) falls through to is2DPath check.
-  if (params.mode === '2d' || P3.form === 'plane' || P3.form === 'wave-plane' || (params.mode !== '3d' && is2DPath(P3))) {
+  if (params.mode === '2d' || (params.mode !== '3d' && is2DPath(P3))) {
     const { lines } = layout(params, width, height);
     return {
       mode: '2d',

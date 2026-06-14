@@ -3,38 +3,38 @@ import { buildSVG, buildScene, drawScene, DEFAULT_CUSTOM_PROFILE, DEFAULT_CUSTOM
 
 // Slider definitions: key -> { label, default }
 const SLIDERS = {
-  fontSize: { label: 'Cos', def: 16 },
-  amplitude: { label: 'Amplitud', def: 0 },
+  fontSize: { label: 'Cos', def: 24 },
+  amplitude: { label: 'Amplitud', def: 47 },
   frequency: { label: 'Freqüència', def: 0.001 },
-  charTrack: { label: 'Kerning', def: 0 },
-  leading: { label: 'Interlínia', def: 72 },
+  charTrack: { label: 'Kerning', def: 36 },
+  leading: { label: 'Interlínia', def: 50 },
   noiseAmt: { label: 'Soroll horitzontal', def: 0 },
-  rainSpeed2d: { label: 'Velocitat de moviment', def: 1 },
-  speed2d: { label: 'Velocitat', def: 1 },
-  speed3d: { label: 'Velocitat', def: 1 },
-  wordTrack: { label: 'Espai entre paraules', def: 0 },
+  rainSpeed2d: { label: 'Velocitat de moviment', def: 0 },
+  speed2d: { label: 'Velocitat', def: 0.2 },
+  speed3d: { label: 'Velocitat', def: 0.1 },
+  wordTrack: { label: 'Espai entre paraules', def: 52 },
   wordChaos: { label: 'Variació de paraules', def: 0 },
-  wordRamp: { label: 'Progressió de paraules', def: 0 },
+  wordRamp: { label: 'Progressió de paraules', def: 0.6 },
   charChaos: { label: 'Desordre de lletres', def: 0 },
   yJitter: { label: 'Tremolor vertical', def: 0 },
   yJitterAffect: { label: 'Abast del tremolor', def: 0 },
   dropProb: { label: 'Amagar caràcters', def: 0 },
-  wordsPerRow: { label: 'Paraules per línia', def: 4 },
+  wordsPerRow: { label: 'Paraules per línia', def: 2 },
   // --- 3D: Form ---
-  formSize: { label: 'Mida de forma', def: 400 },
-  aspect: { label: 'Proporció', def: 1 },
+  formSize: { label: 'Mida de forma', def: 413 },
+  aspect: { label: 'Proporció', def: 2.6 },
   facets: { label: 'Cares', def: 4 },
-  turns: { label: 'Voltes', def: 3 },
+  turns: { label: 'Voltes', def: 1 },
   count: { label: 'Quantitat', def: 3 },
   scatter: { label: 'Dispersió', def: 0 },
   // --- 3D: Camera ---
   fov: { label: 'Camp visual', def: 60 },
-  zoom: { label: 'Zoom', def: 1 },
-  rotXSpeed: { label: 'Rotació X', def: 0 },
+  zoom: { label: 'Zoom', def: 2.3 },
+  rotXSpeed: { label: 'Rotació X', def: -0.7 },
   rotYSpeed: { label: 'Rotació Y', def: 0 },
   rotZSpeed: { label: 'Rotació Z', def: 0 },
-  angleX: { label: 'Angle X', def: 0 },
-  angleY: { label: 'Angle Y', def: 0 },
+  angleX: { label: 'Angle X', def: 141.3984375 },
+  angleY: { label: 'Angle Y', def: 126.4140625 },
   depthFade: { label: 'Esvaïment per profunditat', def: 0 },
   // --- 3D: Motion ---
   pulse: { label: 'Pols', def: 0 },
@@ -67,24 +67,24 @@ const FORM_3D_CONTROLS = {
 const $ = (id) => document.getElementById(id);
 
 const state = {
-  text: 'Ritme compartit. Flux individual.',
+  text: '!"·$%&/()=?¿',
   font: 'courier-regular',
   shape: 'rectangle',
   textColor: '#111111',
   bgColor: '#f4f4f4',
   seed: 1,
   hardWrap: false,
-  motion2d: 'flow',
-  mode: '2d', // '2d' | '3d'
+  motion2d: 'static',
+  mode: '3d', // '2d' | '3d'
   // --- 3D selects + checkboxes (sliders come from SLIDERS defaults below) ---
-  form: 'plane',
+  form: 'mobius',
   projection: 'isometric',
-  guides: false,
+  guides: true,
   backfaceMirror: false,
   surfaceText: true,
   t: 0, // animation time (seconds)
-  canvasW: 1080,
-  canvasH: 1350,
+  canvasW: 1350,
+  canvasH: 1080,
   // Custom drawing data (input data, never randomness). Plain arrays so they
   // pass straight into the engine. Default = engine defaults.
   customProfile: DEFAULT_CUSTOM_PROFILE.slice(),
@@ -1177,6 +1177,15 @@ function init() {
   $('guides').checked = state.guides;
   $('backfaceMirror').checked = state.backfaceMirror;
   $('surfaceText').checked = state.surfaceText;
+  // Sync format-select and renderInfo to default canvas size
+  const formatSel = $('format-select');
+  if (formatSel) {
+    const canvasVal = `${state.canvasW}x${state.canvasH}`;
+    const exists = [...formatSel.options].some((o) => o.value === canvasVal);
+    formatSel.value = exists ? canvasVal : 'custom';
+  }
+  const renderInfo = $('renderInfo');
+  if (renderInfo) renderInfo.textContent = `Canvas ${state.canvasW} × ${state.canvasH}`;
   updateFovEnabled();
   updateEditorVisibility();
   updatePlayPauseUI();

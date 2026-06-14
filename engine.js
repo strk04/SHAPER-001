@@ -214,10 +214,8 @@ export function layout(params, width, height) {
     motion2d === 'rain'
       ? ((time * spd * (typeof rainSpeed2d === 'number' ? rainSpeed2d : 1) * leading) % leading)
       : 0;
-  const flowOffset2d =
-    motion2d === 'flow'
-      ? ((time * spd * (typeof rainSpeed2d === 'number' ? rainSpeed2d : 1) * Math.max(1, fontSize * 2)) % width)
-      : 0;
+  const flowRate2d =
+    (typeof rainSpeed2d === 'number' ? rainSpeed2d : 1) * Math.max(1, fontSize * 2);
 
   const lines = [];
   let wordIndex = 0; // walks the repeated word stream
@@ -233,10 +231,9 @@ export function layout(params, width, height) {
     // oscillates it via sin with the per-line seeded phase (no strobing).
     const noiseOsc = Math.sin(time * spd * PHASE_RATE + linePhase * 2 * Math.PI);
     const noise = noiseOsc * noiseAmt;
-    let x0 =
+    const x0 =
       shapeOffset(shape, baseY, height, marginLeft, amplitude, frequency, time, spd, linePhase, profile) +
-      noise +
-      flowOffset2d;
+      noise;
 
     // how many words on this line
     let wordsThisLine = wordsPerRow;
@@ -277,7 +274,183 @@ export function layout(params, width, height) {
       x += wordTrack + chaos + ramp;
     }
 
+    // Flow: tile the line content periodically so it scrolls as a seamless
+    // horizontal loop — the canvas can never go blank. Period = content advance.
+    if (motion2d === 'flow') {
+      const advance = x - x0;
+      if (advance > 1) {
+        const s = (((time * spd * flowRate2d) % advance) + advance) % advance;
+        const tiled = [];
+        for (const c of chars) {
+          let px = c.x + s - advance;
+          for (; px < width + fontSize; px += advance) {
+            if (px > -fontSize) tiled.push({ ch: c.ch, x: px, y: c.y });
+          }
+        }
+        lines.push({ y: baseY, chars: tiled });
+        continue;
+      }
+    }
+
     lines.push({ y: baseY, chars });
+  }
+
+  // --- 2D motion post-processing (new modes) ---
+  // rain and flow are handled inside the loop above; static needs nothing.
+  if (motion2d !== 'static' && motion2d !== 'rain' && motion2d !== 'flow') {
+    const T = time * spd;
+    const cx = width / 2;
+    const cy = height / 2;
+
+    switch (motion2d) {
+      case 'wave-h': {
+        // Each row oscillates horizontally; wave travels downward.
+        const A = leading * 0.6;
+        lines.forEach((line, li) => {
+          const dx = A * Math.sin(T * 2 * Math.PI + li * 0.7);
+          line.chars = line.chars.map((c) => ({ ...c, x: c.x + dx }));
+        });
+        break;
+      }
+      case 'bounce': {
+        // Each char bounces vertically with a seeded phase.
+        let ci = 0;
+        for (const line of lines) {
+          for (let k = 0; k < line.chars.length; k++, ci++) {
+            const phase = (ci * 0.618) % 1;
+            const yOff = leading * 0.7 * Math.abs(Math.sin(Math.PI * T + phase * 2 * Math.PI));
+            line.chars[k] = { ...line.chars[k], y: line.chars[k].y - yOff };
+          }
+        }
+        break;
+      }
+      case 'pendulum': {
+        // Global left–right swing.
+        const dx = cx * 0.45 * Math.sin(T * 2 * Math.PI);
+        for (const line of lines) {
+          line.chars = line.chars.map((c) => ({ ...c, x: c.x + dx }));
+        }
+        break;
+      }
+      case 'cascade': {
+        // Staggered horizontal flow: each row has a phase offset → diagonal cascade.
+        const rate = (typeof rainSpeed2d === 'number' ? rainSpeed2d : 1) * Math.max(1, fontSize * 2);
+        lines.forEach((line, li) => {
+          if (!line.chars.length) return;
+          const xs = line.chars.map((c) => c.x);
+          const x0c = Math.min(...xs);
+          const advance = Math.max(...xs) + fontSize - x0c;
+          if (advance < 1) return;
+          const rowPhase = li * (advance / Math.max(1, lines.length));
+          const s = (((T * rate + rowPhase) % advance) + advance) % advance;
+          const tiled = [];
+          for (const c of line.chars) {
+            let px = c.x + s - advance;
+            for (; px < width + fontSize; px += advance) {
+              if (px > -fontSize) tiled.push({ ch: c.ch, x: px, y: c.y });
+            }
+          }
+          lines[li] = { ...line, chars: tiled };
+        });
+        break;
+      }
+      case 'scatter': {
+        // Chars breathe radially outward from canvas center.
+        const factor = Math.sin(T * 2 * Math.PI) * 0.4;
+        for (const line of lines) {
+          line.chars = line.chars.map((c) => ({
+            ...c,
+            x: cx + (c.x - cx) * (1 + factor),
+            y: cy + (c.y - cy) * (1 + factor),
+          }));
+        }
+        break;
+      }
+      case 'vortex': {
+        // Each char rotates around canvas center.
+        const angSpeed = T * 2 * Math.PI * 0.3;
+        for (const line of lines) {
+          line.chars = line.chars.map((c) => {
+            const dx2 = c.x - cx, dy2 = c.y - cy;
+            const dist = Math.hypot(dx2, dy2);
+            if (dist < 1) return c;
+            const angle = Math.atan2(dy2, dx2) + angSpeed;
+            return { ...c, x: cx + Math.cos(angle) * dist, y: cy + Math.sin(angle) * dist };
+          });
+        }
+        break;
+      }
+      case 'expand': {
+        // Radial pulse: chars breathe outward from center synchronously.
+        const factor = 1 + 0.35 * Math.sin(T * 2 * Math.PI);
+        for (const line of lines) {
+          line.chars = line.chars.map((c) => ({
+            ...c,
+            x: cx + (c.x - cx) * factor,
+            y: cy + (c.y - cy) * factor,
+          }));
+        }
+        break;
+      }
+      case 'typewriter': {
+        // Sequential char reveal, loops continuously.
+        const allChars = [];
+        for (const line of lines) {
+          for (const c of line.chars) allChars.push({ line, c });
+        }
+        const total = allChars.length;
+        if (total > 0) {
+          const charsPerSec = Math.max(2, fontSize * 0.4);
+          const cycle = total / charsPerSec;
+          const phase = ((T % cycle) + cycle) % cycle;
+          const visN = Math.floor(phase * charsPerSec);
+          for (const line of lines) line.chars = [];
+          for (let k = 0; k < Math.min(visN, total); k++) {
+            allChars[k].line.chars.push(allChars[k].c);
+          }
+        }
+        break;
+      }
+      case 'noise-walk': {
+        // Each char follows a unique smooth Lissajous-like path.
+        const B = fontSize * 0.9;
+        let ci = 0;
+        for (const line of lines) {
+          for (let k = 0; k < line.chars.length; k++, ci++) {
+            const ph = ci * 0.618 * Math.PI * 2;
+            const dx2 = B * Math.sin(T * 1.31 + ph);
+            const dy2 = B * 0.8 * Math.cos(T * 0.97 + ph * 1.23);
+            line.chars[k] = { ...line.chars[k], x: line.chars[k].x + dx2, y: line.chars[k].y + dy2 };
+          }
+        }
+        break;
+      }
+      case 'stagger': {
+        // Rows slide in from the left with staggered timing, then slide out.
+        const nLines = Math.max(1, lines.length);
+        const period = Math.max(2, nLines * 0.25 + 1.5);
+        const tCycle = ((T % period) + period) % period;
+        const inDur = 0.35, holdDur = period * 0.45, outDur = 0.35;
+        lines.forEach((line, li) => {
+          const delay = (li / nLines) * (period * 0.35);
+          const tRow = tCycle - delay;
+          let xOff;
+          if (tRow <= 0) {
+            xOff = -width * 1.2;
+          } else if (tRow < inDur) {
+            xOff = -width * 1.2 * Math.pow(1 - tRow / inDur, 3);
+          } else if (tRow < inDur + holdDur) {
+            xOff = 0;
+          } else if (tRow < inDur + holdDur + outDur) {
+            xOff = width * 1.2 * Math.pow((tRow - inDur - holdDur) / outDur, 3);
+          } else {
+            xOff = width * 1.2;
+          }
+          line.chars = line.chars.map((c) => ({ ...c, x: c.x + xOff }));
+        });
+        break;
+      }
+    }
   }
 
   return { lines };

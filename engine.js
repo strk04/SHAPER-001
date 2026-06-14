@@ -648,6 +648,39 @@ function projectPersp(p, P, width, height) {
   };
 }
 
+// Arc-length LUT: maps pixel-space x to the u parameter that gives
+// arc-length-proportional spacing on a given surface row (v fixed).
+// Samples the surface N times along u=[0..uRange], builds cumulative arc,
+// then interpolates. Result: consistent kerning regardless of surface curvature.
+function buildArcLUT(formKey, v, P, inst, width, N = 200) {
+  const uRange = 2.5;
+  const step = uRange / N;
+  let prev = surfaceMap(formKey, 0, v, P, inst);
+  const cum = [0];
+  const us = [0];
+  for (let i = 1; i <= N; i++) {
+    const u = i * step;
+    const pt = surfaceMap(formKey, u, v, P, inst);
+    cum.push(cum[i - 1] + Math.hypot(pt.x - prev.x, pt.y - prev.y, pt.z - prev.z));
+    us.push(u);
+    prev = pt;
+  }
+  const wrapN = Math.round(N / uRange); // samples that cover u=0..1
+  const arc01 = cum[wrapN] || (cum[N] / uRange);
+  return (px) => {
+    const target = (px / width) * arc01;
+    if (target <= 0) return target / (arc01 || 1);
+    if (target >= cum[N]) return us[N] + (target - cum[N]) / (arc01 || 1);
+    let lo = 0, hi = N;
+    while (lo < hi - 1) {
+      const mid = (lo + hi) >> 1;
+      if (cum[mid] <= target) lo = mid; else hi = mid;
+    }
+    const seg = cum[lo + 1] - cum[lo] || 1e-10;
+    return us[lo] + (us[lo + 1] - us[lo]) * ((target - cum[lo]) / seg);
+  };
+}
+
 // Build the per-glyph 3D draw list. Returns { glyphs, meta }.
 function build3D(params, width, height) {
   const P = read3DParams(params);
@@ -703,6 +736,16 @@ function build3D(params, width, height) {
   const formKey = P.form === 'cluster' ? 'cube' : P.form;
   const surfaceFlowU = time * spd * 0.12;
 
+  // Arc-length LUTs: one per unique v (line), built lazily.
+  const arcLUTs = new Map();
+  const getArcLUT = (v) => {
+    const key = v.toFixed(4);
+    if (!arcLUTs.has(key)) {
+      arcLUTs.set(key, buildArcLUT(formKey, v, P, instances[0], width));
+    }
+    return arcLUTs.get(key);
+  };
+
   // Helper: apply the full transform chain to a (u,v) point given a fixed
   // instance offset and a fixed rain fall offset (dy). Returns projected point.
   const transformPoint = (u, v, inst, rainDY) => {
@@ -720,8 +763,9 @@ function build3D(params, width, height) {
   const glyphs = [];
   for (const line of lines) {
     for (const c of line.chars) {
-      const u = c.x / width + surfaceFlowU;
       const v = c.y / height;
+      const arcLUT = getArcLUT(v);
+      const u = arcLUT(c.x) + surfaceFlowU;
       // Per-glyph: distribute across cluster instances by a seeded roll.
       // PRNG WARNING: consume rolls in FIXED order — inst pick first, then rain.
       const inst = instances[Math.floor(rand3() * instCount) % instCount];
@@ -756,7 +800,7 @@ function build3D(params, width, height) {
       // Surface tangent matrix (only computed when surfaceText is on).
       let matrixTransform = null;
       if (P.surfaceText) {
-        const uU = (c.x + TANGENT_D) / width + surfaceFlowU;
+        const uU = arcLUT(c.x + TANGENT_D) + surfaceFlowU;
         const prSu = transformPoint(uU, v, inst, rainDY);
         const tx = prSu.X - pr.X;
         const ty = prSu.Y - pr.Y;

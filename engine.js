@@ -408,10 +408,11 @@ function surfaceMap(form, u, v, P, inst) {
       break;
     }
     case 'helix': {
-      const ang = u * 2 * Math.PI * P.turns;
+      const uw = ((u % 1) + 1) % 1;
+      const ang = uw * 2 * Math.PI * P.turns;
       x = r * Math.cos(ang);
       z = r * Math.sin(ang);
-      y = (u - 0.5) * h + (v - 0.5) * (h * 0.1);
+      y = (uw - 0.5) * h + (v - 0.5) * (h * 0.1);
       nx = Math.cos(ang); ny = 0; nz = Math.sin(ang);
       break;
     }

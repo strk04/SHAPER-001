@@ -51,7 +51,7 @@ const state = {
   bgColor: '#f4f4f4',
   seed: 1,
   hardWrap: false,
-  motion2d: 'rain',
+  motion2d: 'static',
   mode: '2d', // '2d' | '3d'
   // --- 3D selects + checkboxes (sliders come from SLIDERS defaults below) ---
   form: 'plane',

@@ -645,18 +645,24 @@ function build3D(params, width, height) {
       let matrixTransform = null;
       if (P.surfaceText) {
         const uU = (c.x + TANGENT_D) / width + surfaceFlowU;
-        const vV = (c.y + TANGENT_D) / height;
         const prSu = transformPoint(uU, v, inst, rainDY);
-        const prSv = transformPoint(u, vV, inst, rainDY);
-        const ma = (prSu.X - pr.X) / TANGENT_D;
-        const mb = (prSu.Y - pr.Y) / TANGENT_D;
-        const mc = (prSv.X - pr.X) / TANGENT_D;
-        const md = (prSv.Y - pr.Y) / TANGENT_D;
-        const det = ma * md - mb * mc;
-        if (Math.abs(det) >= 1e-4) {
-          matrixTransform = { a: ma, b: mb, c: mc, d: md, e: pr.X, f: pr.Y };
+        const tx = prSu.X - pr.X;
+        const ty = prSu.Y - pr.Y;
+        const len = Math.hypot(tx, ty);
+        if (len >= 1e-4) {
+          const ca = tx / len;
+          const sa = ty / len;
+          const scale = P.projection === 'perspective' ? pr.scale : 1;
+          matrixTransform = {
+            a: ca * scale,
+            b: sa * scale,
+            c: -sa * scale,
+            d: ca * scale,
+            e: pr.X,
+            f: pr.Y,
+          };
         }
-        // else: degenerate — fall back to billboard (matrixTransform stays null)
+        // else: degenerate tangent — fall back to billboard (matrixTransform stays null)
       }
 
       glyphs.push({

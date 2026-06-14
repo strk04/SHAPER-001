@@ -829,14 +829,13 @@ function build3D(params, width, height) {
         const ty = prSu.Y - pr.Y;
         const len = Math.hypot(tx, ty);
         if (len >= 1e-4) {
-          const ca = tx / len;
-          const sa = ty / len;
-          const scale = P.projection === 'perspective' ? pr.scale : 1;
+          // Scale = len/TANGENT_D: glyphs grow proportionally with zoom and formSize.
+          const surfScale = (P.projection === 'perspective' ? pr.scale : 1) / TANGENT_D;
           matrixTransform = {
-            a: ca * scale,
-            b: sa * scale,
-            c: -sa * scale,
-            d: ca * scale,
+            a: tx * surfScale,
+            b: ty * surfScale,
+            c: -ty * surfScale,
+            d: tx * surfScale,
             e: pr.X,
             f: pr.Y,
           };
@@ -1215,7 +1214,7 @@ export function buildScene(params, width, height) {
   // --- 2D fast path ---
   // Explicit mode='2d' always forces the 2D path regardless of 3D params.
   // mode absent (back-compat / Node tests) falls through to is2DPath check.
-  if (params.mode === '2d' || (params.mode !== '3d' && is2DPath(P3))) {
+  if (params.mode === '2d' || P3.form === 'plane' || P3.form === 'wave-plane' || (params.mode !== '3d' && is2DPath(P3))) {
     const { lines } = layout(params, width, height);
     return {
       mode: '2d',

@@ -1230,13 +1230,16 @@ function build3D(params, width, height) {
       const rainRoll = rand3();
       const rainPhase = rand3();
 
-      // fBm noise alpha: dense zones opaque, sparse zones transparent.
-      // Power curve applied so noiseTexture=0 → no effect, =1 → strong contrast.
-      const noiseAlpha = P.noiseTexture > 0
-        ? Math.pow(fbm2D(u * 2, v * 2.5), P.noiseTexture * 3)
-        : 1;
+      // Domain warp: two independent fBm fields displace (u,v) before surfaceMap.
+      // Characters are attracted toward noise peaks → organic density clusters.
+      let wu = u, wv = v;
+      if (P.noiseTexture > 0) {
+        const str = P.noiseTexture * 0.22;
+        wu = u + (fbm2D(u * 2 + 17.5, v * 2.5 + 3.2) - 0.5) * str;
+        wv = v + (fbm2D(u * 2 +  3.1, v * 2.5 + 12.7) - 0.5) * str * 0.6;
+      }
 
-      let pt = surfaceMap(formKey, u, v, P, inst);
+      let pt = surfaceMap(formKey, wu, wv, P, inst);
 
       // Pulse (radial scale about origin).
       if (P.pulse > 0) {
@@ -1308,7 +1311,6 @@ function build3D(params, width, height) {
         scale: pr.scale,
         back,
         matrixTransform,
-        noiseAlpha,
       });
     }
   }
@@ -1868,7 +1870,6 @@ export function buildScene(params, width, height) {
     const back = g.back;
     if (P.backfaceMirror && back) op *= 0.55;
     op = Math.max(0.15, op);
-    op *= (g.noiseAlpha ?? 1); // noise applied after floor: sparse zones → near 0
 
     if (P.surfaceText && g.matrixTransform !== null) {
       // Surface glyph: matrix carries all scale/perspective + skew. fontSize

@@ -41,6 +41,10 @@
           <span class="app-menu-mark" aria-hidden="true">[ ]</span>
           <span>Export</span>
         </button>
+        <button class="app-menu-item" type="button" data-panel-target="panel-charmap" aria-pressed="false">
+          <span class="app-menu-mark" aria-hidden="true">[ ]</span>
+          <span>Mapa</span>
+        </button>
       </div>
     </section>
 
@@ -354,6 +358,28 @@
           </div>
 
           <p id="exportStatus" role="status" aria-live="polite" aria-atomic="true"></p>
+        </section>
+
+        <section class="panel" id="panel-charmap" hidden>
+          <h3 class="panel-title">Mapa de caràcters</h3>
+          <div class="charmap-controls">
+            <label class="control-row" for="charmapFont">
+              <span>Tipografia</span>
+              <select id="charmapFont" name="charmapFont">
+                <option value="times-regular">Times New Roman</option>
+                <option value="times-bold">Times New Roman Bold</option>
+                <option value="courier-regular">Courier</option>
+                <option value="courier-bold">Courier Bold</option>
+                <option value="helvetica-regular">Helvetica</option>
+                <option value="helvetica-bold">Helvetica Bold</option>
+              </select>
+            </label>
+            <label class="control-stack" for="charmapSearch">
+              <span>Cerca bloc, hex o caràcter</span>
+              <input type="text" id="charmapSearch" class="charmap-search" placeholder="ex: arrow, 20AC, €…" autocomplete="off">
+            </label>
+          </div>
+          <div id="charmapBlocks" class="charmap-blocks"></div>
         </section>
 
       </form>

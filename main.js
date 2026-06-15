@@ -542,6 +542,7 @@ function activatePanel(panelId) {
     scheduleRender();
   }
 
+  if (panelId === 'panel-charmap') buildCharMap();
   const sidebar = document.querySelector('.section-sidebar');
   if (sidebar) sidebar.scrollTop = 0;
 }
@@ -1194,6 +1195,141 @@ function wirePresets() {
       e.target.value = '';
     };
     reader.readAsText(file);
+  });
+}
+
+// --- Character Map ---
+const CHARMAP_FONT_CSS = {
+  'times-regular':     { family: '"Times New Roman", Times, serif', weight: 400 },
+  'times-bold':        { family: '"Times New Roman", Times, serif', weight: 700 },
+  'courier-regular':   { family: '"Courier New", Courier, monospace', weight: 400 },
+  'courier-bold':      { family: '"Courier New", Courier, monospace', weight: 700 },
+  'helvetica-regular': { family: 'Helvetica, Arial, sans-serif', weight: 400 },
+  'helvetica-bold':    { family: 'Helvetica, Arial, sans-serif', weight: 700 },
+};
+
+const CHAR_BLOCKS = [
+  { label: 'Basic Latin (ASCII)',          start: 0x0020, end: 0x007E },
+  { label: 'Latin-1 Supplement',           start: 0x00A0, end: 0x00FF },
+  { label: 'Latin Extended-A',             start: 0x0100, end: 0x017F },
+  { label: 'Latin Extended-B',             start: 0x0180, end: 0x024F },
+  { label: 'IPA Extensions',               start: 0x0250, end: 0x02AF },
+  { label: 'Space Modifier Letters',       start: 0x02B0, end: 0x02FF },
+  { label: 'Combining Diacritical Marks',  start: 0x0300, end: 0x036F },
+  { label: 'Greek and Coptic',             start: 0x0370, end: 0x03FF },
+  { label: 'Cyrillic',                     start: 0x0400, end: 0x04FF },
+  { label: 'General Punctuation',          start: 0x2000, end: 0x206F },
+  { label: 'Superscripts & Subscripts',    start: 0x2070, end: 0x209F },
+  { label: 'Currency Symbols',             start: 0x20A0, end: 0x20CF },
+  { label: 'Letterlike Symbols',           start: 0x2100, end: 0x214F },
+  { label: 'Number Forms',                 start: 0x2150, end: 0x218F },
+  { label: 'Arrows',                       start: 0x2190, end: 0x21FF },
+  { label: 'Mathematical Operators',       start: 0x2200, end: 0x22FF },
+  { label: 'Enclosed Alphanumerics',       start: 0x2460, end: 0x24FF },
+  { label: 'Box Drawing',                  start: 0x2500, end: 0x257F },
+  { label: 'Block Elements',               start: 0x2580, end: 0x259F },
+  { label: 'Geometric Shapes',             start: 0x25A0, end: 0x25FF },
+  { label: 'Miscellaneous Symbols',        start: 0x2600, end: 0x26FF },
+  { label: 'Dingbats',                     start: 0x2700, end: 0x27BF },
+  { label: 'Braille Patterns',             start: 0x2800, end: 0x28FF },
+];
+
+function buildCharMap() {
+  const container = $('panel-charmap');
+  if (!container || container.dataset.built) return;
+  container.dataset.built = '1';
+
+  const blocksEl = $('charmapBlocks');
+  const fontSel = $('charmapFont');
+  const searchEl = $('charmapSearch');
+
+  fontSel.value = CHARMAP_FONT_CSS[state.font] ? state.font : 'courier-regular';
+
+  function gridStyle() {
+    const f = CHARMAP_FONT_CSS[fontSel.value] || CHARMAP_FONT_CSS['courier-regular'];
+    return 'font-family:' + f.family + ';font-weight:' + f.weight;
+  }
+
+  CHAR_BLOCKS.forEach(({ label, start, end }) => {
+    const section = document.createElement('div');
+    section.className = 'charmap-block';
+    section.dataset.blockLabel = label.toLowerCase();
+
+    const title = document.createElement('p');
+    title.className = 'charmap-block-title';
+    title.textContent = label;
+    section.appendChild(title);
+
+    const grid = document.createElement('div');
+    grid.className = 'charmap-grid';
+    grid.setAttribute('style', gridStyle());
+
+    for (let cp = start; cp <= end; cp++) {
+      const ch = String.fromCodePoint(cp);
+      const hex = cp.toString(16).toUpperCase().padStart(4, '0');
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'charmap-cell';
+      btn.setAttribute('aria-label', 'U+' + hex + ' — copia');
+      btn.dataset.cp = hex;
+      btn.dataset.ch = ch;
+
+      const charSpan = document.createElement('span');
+      charSpan.className = 'charmap-char';
+      charSpan.setAttribute('aria-hidden', 'true');
+      charSpan.textContent = ch;
+
+      const hexSpan = document.createElement('span');
+      hexSpan.className = 'charmap-hex';
+      hexSpan.setAttribute('aria-hidden', 'true');
+      hexSpan.textContent = hex;
+
+      btn.append(charSpan, hexSpan);
+
+      btn.addEventListener('click', () => {
+        navigator.clipboard.writeText(ch).then(() => {
+          btn.classList.add('is-copied');
+          announce('Copiat U+' + hex);
+          setTimeout(() => btn.classList.remove('is-copied'), 500);
+        }).catch(() => {
+          announce('U+' + hex);
+        });
+      });
+
+      grid.appendChild(btn);
+    }
+
+    section.appendChild(grid);
+    blocksEl.appendChild(section);
+  });
+
+  fontSel.addEventListener('change', () => {
+    const style = gridStyle();
+    blocksEl.querySelectorAll('.charmap-grid').forEach((g) => g.setAttribute('style', style));
+  });
+
+  searchEl.addEventListener('input', () => {
+    const q = searchEl.value.trim().toLowerCase();
+    blocksEl.querySelectorAll('.charmap-block').forEach((block) => {
+      if (!q) {
+        block.hidden = false;
+        block.querySelectorAll('.charmap-cell').forEach((c) => { c.hidden = false; });
+        return;
+      }
+      if (block.dataset.blockLabel.includes(q)) {
+        block.hidden = false;
+        block.querySelectorAll('.charmap-cell').forEach((c) => { c.hidden = false; });
+        return;
+      }
+      let any = false;
+      block.querySelectorAll('.charmap-cell').forEach((cell) => {
+        const vis = cell.dataset.cp.toLowerCase().includes(q) || cell.dataset.ch === q;
+        cell.hidden = !vis;
+        if (vis) any = true;
+      });
+      block.hidden = !any;
+    });
   });
 }
 

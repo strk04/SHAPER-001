@@ -1,7 +1,7 @@
 // engine.js — pure functions for SHAPER 001
 // Seeded PRNG + layout algorithm. Same seed + params => identical output.
 
-// 2D value noise: smooth interpolation of a hash lattice. [0,1] output.
+// 2D value noise: smooth trilinear hash. Output [0,1].
 function valueNoise2D(x, y) {
   const ix = Math.floor(x), iy = Math.floor(y);
   const fx = x - ix, fy = y - iy;
@@ -11,6 +11,17 @@ function valueNoise2D(x, y) {
        + h(ix + 1, iy) * ux * (1 - uy)
        + h(ix, iy + 1) * (1 - ux) * uy
        + h(ix + 1, iy + 1) * ux * uy;
+}
+
+// 4-octave fBm: offsets per octave prevent axis alignment → organic feel.
+function fbm2D(x, y) {
+  let v = 0, a = 0.5, px = x, py = y;
+  for (let i = 0; i < 4; i++) {
+    v += a * valueNoise2D(px, py);
+    px = px * 2.1 + 1.7; py = py * 2.1 + 0.3;
+    a *= 0.5;
+  }
+  return v; // ≈ [0, 1]
 }
 
 // mulberry32 seeded PRNG
@@ -1219,9 +1230,11 @@ function build3D(params, width, height) {
       const rainRoll = rand3();
       const rainPhase = rand3();
 
-      // Noise dropout: skip glyph where surface noise is below threshold.
-      // Moved after all PRNG rolls to preserve determinism, before surfaceMap for perf.
-      if (P.noiseTexture > 0 && valueNoise2D(u * 4, v * 5) < P.noiseTexture) continue;
+      // fBm noise alpha: dense zones opaque, sparse zones transparent.
+      // Power curve applied so noiseTexture=0 → no effect, =1 → strong contrast.
+      const noiseAlpha = P.noiseTexture > 0
+        ? Math.pow(fbm2D(u * 2, v * 2.5), P.noiseTexture * 3)
+        : 1;
 
       let pt = surfaceMap(formKey, u, v, P, inst);
 
@@ -1295,6 +1308,7 @@ function build3D(params, width, height) {
         scale: pr.scale,
         back,
         matrixTransform,
+        noiseAlpha,
       });
     }
   }
@@ -1854,6 +1868,7 @@ export function buildScene(params, width, height) {
     const back = g.back;
     if (P.backfaceMirror && back) op *= 0.55;
     op = Math.max(0.15, op);
+    op *= (g.noiseAlpha ?? 1); // noise applied after floor: sparse zones → near 0
 
     if (P.surfaceText && g.matrixTransform !== null) {
       // Surface glyph: matrix carries all scale/perspective + skew. fontSize

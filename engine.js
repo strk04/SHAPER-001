@@ -502,9 +502,17 @@ function escXML(s) {
 // cycles-per-second = pulseSpeed * PULSE_RATE must be <= 2 => PULSE_RATE <= 1.
 export const PULSE_RATE = 1.0;
 
+const CAM_NEUTRAL = {
+  fov: 60, zoom: 1,
+  rotXSpeed: 0, rotYSpeed: 0, rotZSpeed: 0,
+  depthFade: 0, angleX: 0, angleY: 0,
+};
+
 // Defaults for 3D params (keep static plane render unaffected when absent).
 function read3DParams(params) {
   const num = (v, d) => (typeof v === 'number' && !isNaN(v) ? v : d);
+  const ce = params.cameraEnabled || {};
+  const cam = (key) => ce[key] === false ? CAM_NEUTRAL[key] : num(params[key], CAM_NEUTRAL[key]);
   return {
     form: params.form || 'plane',
     projection: params.projection || 'isometric',
@@ -514,12 +522,12 @@ function read3DParams(params) {
     turns: Math.max(1, Math.round(num(params.turns, 3))),
     count: Math.max(1, Math.round(num(params.count, 3))),
     scatter: num(params.scatter, 80),
-    fov: num(params.fov, 60),
-    zoom: num(params.zoom, 1),
-    rotXSpeed: num(params.rotXSpeed, 0.2),
-    rotYSpeed: num(params.rotYSpeed, 0.5),
-    rotZSpeed: num(params.rotZSpeed, 0),
-    depthFade: num(params.depthFade, 0.4),
+    fov: cam('fov'),
+    zoom: cam('zoom'),
+    rotXSpeed: cam('rotXSpeed'),
+    rotYSpeed: cam('rotYSpeed'),
+    rotZSpeed: cam('rotZSpeed'),
+    depthFade: cam('depthFade'),
     pulse: num(params.pulse, 0),
     pulseSpeed: num(params.pulseSpeed, 1),
     rainProb: num(params.rainProb, 0),
@@ -527,8 +535,8 @@ function read3DParams(params) {
     guides: !!params.guides,
     backfaceMirror: !!params.backfaceMirror,
     surfaceText: !!params.surfaceText,
-    angleX: num(params.angleX, 0),
-    angleY: num(params.angleY, 0),
+    angleX: cam('angleX'),
+    angleY: cam('angleY'),
     customOutline: (params.form || 'plane') === 'custom-prism'
       ? readOutlinePoints(params.customOutline)
       : null,
@@ -536,6 +544,8 @@ function read3DParams(params) {
     wrapMode: params.wrapMode || 'rings',
     paramSpeed: num(params.paramSpeed, 0),
     noiseTexture: num(params.noiseTexture, 0),
+    guideMeta: !!params.guideMeta,
+    fps: num(params.fps, 0),
   };
 }
 
@@ -1901,6 +1911,15 @@ export function buildScene(params, width, height) {
     bgColor, textColor, fontSize, fontSpec, width, height,
     glyphs,
     guides: P.guides ? buildGuidesData(ctx) : '',
+    guideMeta: P.guideMeta,
+    guideMetaData: P.guideMeta ? {
+      formSize: Math.round(P.formSize),
+      paramSpeed: P.paramSpeed,
+      angleX: P.angleX,
+      angleY: P.angleY,
+      speed3d: typeof params.speed3d === 'number' ? params.speed3d : 0,
+      fps: P.fps,
+    } : null,
   };
 }
 
@@ -2042,6 +2061,27 @@ export function drawScene(ctx, scene, width, height, dpr) {
     }
   }
   ctx.globalAlpha = 1;
+
+  if (scene.guideMeta && scene.guideMetaData) {
+    const md = scene.guideMetaData;
+    const fs = scene.fontSpec;
+    ctx.setTransform(d, 0, 0, d, 0, 0);
+    ctx.fillStyle = scene.textColor;
+    ctx.globalAlpha = 0.55;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.font = fs.weight + ' 9px ' + fs.family;
+    const rows = [
+      'SIZE ' + md.formSize,
+      'EASE ' + md.paramSpeed.toFixed(2),
+      'AX ' + md.angleX.toFixed(1) + '  AY ' + md.angleY.toFixed(1),
+      'SPD ' + md.speed3d.toFixed(2),
+      'FPS ' + Math.round(md.fps),
+    ];
+    const lh = 11;
+    rows.forEach((row, i) => ctx.fillText(row, 10, height - 10 - (rows.length - 1 - i) * lh));
+    ctx.globalAlpha = 1;
+  }
 
   ctx.setTransform(1, 0, 0, 1, 0, 0);
 }

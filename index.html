@@ -161,6 +161,10 @@
             <span>Guies</span>
             <input type="checkbox" id="guides" name="guides">
           </label>
+          <label class="control-row" for="guideMeta" id="guideMetaRow" hidden>
+            <span>Meta a les guies</span>
+            <input type="checkbox" id="guideMeta" name="guideMeta">
+          </label>
           <label class="control-row" for="backfaceMirror">
             <span>Mirall posterior</span>
             <input type="checkbox" id="backfaceMirror" name="backfaceMirror">
@@ -236,14 +240,14 @@
               <option value="perspective">Perspectiva</option>
             </select>
           </label>
-          <label class="control-stack slider" data-key="zoom" data-min="0.3" data-max="3" data-step="0.1"></label>
-          <label class="control-stack slider" data-key="fov" data-min="30" data-max="120" data-step="1"></label>
-          <label class="control-stack slider" data-key="rotXSpeed" data-min="-2" data-max="2" data-step="0.1"></label>
-          <label class="control-stack slider" data-key="rotYSpeed" data-min="-2" data-max="2" data-step="0.1"></label>
-          <label class="control-stack slider" data-key="rotZSpeed" data-min="-2" data-max="2" data-step="0.1"></label>
-          <label class="control-stack slider" data-key="angleX" data-min="-180" data-max="180" data-step="1"></label>
-          <label class="control-stack slider" data-key="angleY" data-min="-180" data-max="180" data-step="1"></label>
-          <label class="control-stack slider" data-key="depthFade" data-min="0" data-max="1" data-step="0.05"></label>
+          <label class="control-stack slider" data-key="zoom" data-min="0.3" data-max="3" data-step="0.1" data-cam-toggle></label>
+          <label class="control-stack slider" data-key="fov" data-min="30" data-max="120" data-step="1" data-cam-toggle></label>
+          <label class="control-stack slider" data-key="rotXSpeed" data-min="-2" data-max="2" data-step="0.1" data-cam-toggle></label>
+          <label class="control-stack slider" data-key="rotYSpeed" data-min="-2" data-max="2" data-step="0.1" data-cam-toggle></label>
+          <label class="control-stack slider" data-key="rotZSpeed" data-min="-2" data-max="2" data-step="0.1" data-cam-toggle></label>
+          <label class="control-stack slider" data-key="angleX" data-min="-180" data-max="180" data-step="1" data-cam-toggle></label>
+          <label class="control-stack slider" data-key="angleY" data-min="-180" data-max="180" data-step="1" data-cam-toggle></label>
+          <label class="control-stack slider" data-key="depthFade" data-min="0" data-max="1" data-step="0.05" data-cam-toggle></label>
 
           <h3 class="panel-title">Moviment 3D</h3>
           <label class="control-stack slider" data-key="speed3d" data-min="0" data-max="3" data-step="0.1"></label>

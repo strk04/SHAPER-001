@@ -97,9 +97,16 @@ const state = {
   surfaceText: true,
   vNorm: false,
   wrapMode: 'rings',
-  t: 0, // animation time (seconds)
+  t: 0,
   canvasW: 1350,
   canvasH: 1080,
+  cameraEnabled: {
+    zoom: true, fov: true,
+    rotXSpeed: true, rotYSpeed: true, rotZSpeed: true,
+    angleX: true, angleY: true, depthFade: true,
+  },
+  guideMeta: false,
+  fps: 0,
   // Custom drawing data (input data, never randomness). Plain arrays so they
   // pass straight into the engine. Default = engine defaults.
   customProfile: DEFAULT_CUSTOM_PROFILE.slice(),
@@ -161,6 +168,24 @@ function buildSliders() {
     range.value = state[key];
     range.setAttribute('aria-valuetext', output.textContent);
 
+    if ('camToggle' in host.dataset) {
+      const toggleBtn = document.createElement('button');
+      toggleBtn.type = 'button';
+      toggleBtn.className = 'cam-toggle-btn';
+      toggleBtn.setAttribute('aria-label', 'Activa/desactiva ' + meta.label);
+      toggleBtn.setAttribute('aria-pressed', 'true');
+      toggleBtn.textContent = '[·]';
+      host.classList.add('has-cam-toggle');
+      toggleBtn.addEventListener('click', () => {
+        const nowOn = !state.cameraEnabled[key];
+        state.cameraEnabled[key] = nowOn;
+        toggleBtn.textContent = nowOn ? '[·]' : '[ ]';
+        toggleBtn.setAttribute('aria-pressed', String(nowOn));
+        host.classList.toggle('cam-disabled', !nowOn);
+        scheduleRender();
+      });
+      line.prepend(toggleBtn);
+    }
     line.append(label, output);
     host.append(line, range);
     sliderRefs[key] = { range, output, min: +min, max: +max };
@@ -267,6 +292,7 @@ function frame(ts) {
     const dt = (ts - lastTs) / 1000;
     const speed = state.mode === '2d' ? state.speed2d : state.speed3d;
     state.t += dt * speed;
+    if (dt > 0) state.fps = state.fps * 0.85 + (1 / dt) * 0.15;
     if (recState.isRecording) {
       const fps = getRecordFps();
       recState._accumTime += dt;
@@ -438,6 +464,8 @@ function updateEditorVisibility() {
   const su3d = $('svgUpload3d');
   if (su2d) su2d.hidden = state.shape !== 'custom';
   if (su3d) su3d.hidden = state.form !== 'custom-prism';
+  const guideMetaRow = $('guideMetaRow');
+  if (guideMetaRow) guideMetaRow.hidden = !state.guides;
 
   const form = state.form;
   const visibleFormControls = new Set(FORM_3D_CONTROLS[form] || FORM_3D_CONTROLS.plane);
@@ -723,8 +751,16 @@ function wireControls() {
   });
   $('guides').addEventListener('change', (e) => {
     state.guides = e.target.checked;
+    updateEditorVisibility();
     scheduleRender();
   });
+  const guideMetaEl = $('guideMeta');
+  if (guideMetaEl) {
+    guideMetaEl.addEventListener('change', (e) => {
+      state.guideMeta = e.target.checked;
+      scheduleRender();
+    });
+  }
   $('backfaceMirror').addEventListener('change', (e) => {
     state.backfaceMirror = e.target.checked;
     scheduleRender();

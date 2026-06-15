@@ -648,6 +648,35 @@ output { color: var(--ink); }
 
 .preset-delete { color: var(--ink-4); }
 
+/* ── Camera toggles ─────────────────────────────────────── */
+.slider.has-cam-toggle .control-line {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.cam-toggle-btn {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-xs);
+  letter-spacing: 0;
+  text-transform: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.cam-toggle-btn:hover { background: transparent; border-color: transparent; }
+.slider.cam-disabled .cam-toggle-btn { color: var(--ink-4); }
+.slider.cam-disabled .control-line span { opacity: 0.35; }
+.slider.cam-disabled output { opacity: 0.35; }
+.slider.cam-disabled input[type="range"] { opacity: 0.2; pointer-events: none; }
+
 /* ── Character Map ──────────────────────────────────────── */
 .charmap-controls {
   display: grid;

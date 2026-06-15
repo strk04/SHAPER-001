@@ -511,6 +511,7 @@ function read3DParams(params) {
       : null,
     vNorm: !!params.vNorm,
     wrapMode: params.wrapMode || 'rings',
+    paramSpeed: num(params.paramSpeed, 0),
   };
 }
 
@@ -1059,7 +1060,12 @@ function buildArcLUT(formKey, v, P, inst, width, N = 200) {
     }
     const seg = cum[lo + 1] - cum[lo] || 1e-10;
     const t = Math.max(0, Math.min(1, (target - cum[lo]) / seg));
-    const u = us[lo] + (us[lo + 1] - us[lo]) * t;
+    const uArc = us[lo] + (us[lo + 1] - us[lo]) * t;
+    // Blend arc-length-corrected u with raw parametric u.
+    // paramSpeed=0: even 3D spacing. paramSpeed=1: raw parametric -> each
+    // surface's curvature drives its own density pattern (corner acceleration).
+    const ps = P.paramSpeed;
+    const u = ps > 0 ? uArc * (1 - ps) + (px / width) * uRange * ps : uArc;
     const ta = tangents[lo], tb = tangents[Math.min(lo + 1, N)];
     const tdx = ta.dx + (tb.dx - ta.dx) * t;
     const tdy = ta.dy + (tb.dy - ta.dy) * t;

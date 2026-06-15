@@ -41,6 +41,8 @@ const SLIDERS = {
   pulseSpeed: { label: 'Velocitat del pols', def: 0 },
   rainProb: { label: 'Probabilitat de pluja', def: 0 },
   rainSpeed: { label: 'Velocitat de pluja', def: 0 },
+  // --- 3D: Distribució ---
+  paramSpeed: { label: 'Easing paramètric', def: 0 },
 };
 
 const FORM_3D_CONTROLS = {
@@ -442,6 +444,8 @@ function updateEditorVisibility() {
     const el = document.querySelector(`.slider[data-key="${key}"]`);
     if (el) el.hidden = !visibleFormControls.has(key);
   }
+  const psEl = document.querySelector('.slider[data-key="paramSpeed"]');
+  if (psEl) psEl.hidden = state.wrapMode !== 'rings' && state.wrapMode !== 'spiral';
 }
 
 // --- SVG shape import ---
@@ -733,6 +737,7 @@ function wireControls() {
   });
   $('wrapMode').addEventListener('change', (e) => {
     state.wrapMode = e.target.value;
+    updateEditorVisibility();
     scheduleRender();
   });
 
@@ -1090,7 +1095,7 @@ function applyPreset(p) {
   if (p.backfaceMirror  != null) { state.backfaceMirror  = p.backfaceMirror;  $('backfaceMirror').checked  = p.backfaceMirror; }
   if (p.surfaceText     != null) { state.surfaceText      = p.surfaceText;     $('surfaceText').checked     = p.surfaceText; }
   if (p.vNorm           != null) { state.vNorm            = p.vNorm;           $('vNorm').checked           = p.vNorm; }
-  if (p.wrapMode        != null) { state.wrapMode         = p.wrapMode;        $('wrapMode').value          = p.wrapMode; }
+  if (p.wrapMode        != null) { state.wrapMode         = p.wrapMode;        $('wrapMode').value          = p.wrapMode; updateEditorVisibility(); }
   if (p.canvasW && p.canvasH) applyCanvasSize(p.canvasW, p.canvasH);
   scheduleRender();
 }

@@ -271,6 +271,12 @@ input[type="radio"] {
   color: var(--ink);
 }
 
+.app-menu-item:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .app-menu-mark { color: var(--ink); }
 
 .section-sidebar {

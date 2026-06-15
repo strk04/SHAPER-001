@@ -1234,9 +1234,9 @@ function build3D(params, width, height) {
       // Characters are attracted toward noise peaks → organic density clusters.
       let wu = u, wv = v;
       if (P.noiseTexture > 0) {
-        const str = P.noiseTexture * 0.22;
+        const str = P.noiseTexture * 0.7;
         wu = u + (fbm2D(u * 2 + 17.5, v * 2.5 + 3.2) - 0.5) * str;
-        wv = v + (fbm2D(u * 2 +  3.1, v * 2.5 + 12.7) - 0.5) * str * 0.6;
+        wv = v + (fbm2D(u * 2 +  3.1, v * 2.5 + 12.7) - 0.5) * str * 0.5;
       }
 
       let pt = surfaceMap(formKey, wu, wv, P, inst);

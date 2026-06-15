@@ -912,6 +912,7 @@ function savePNG(dpi) {
 // --- Video recording (WebCodecs → MP4) ---
 const recState = {
   isRecording: false,
+  _stopping: false,
   videoEncoder: null,
   muxer: null,
   frameN: 0,
@@ -1003,7 +1004,9 @@ async function startRecord() {
 }
 
 async function stopRecord() {
-  if (!recState.videoEncoder) return;
+  if (!recState.videoEncoder || recState._stopping) return;
+  recState._stopping = true;
+  recState.isRecording = false; // stop captureFrame from queuing more encodes
   try {
     await recState.videoEncoder.flush();
     recState.muxer.finalize();
@@ -1019,6 +1022,7 @@ async function stopRecord() {
   } catch (e) {
     setExportStatus(`Error export: ${e.message}`);
   } finally {
+    recState._stopping = false;
     recState.isRecording = false;
     recState.loopTotal = 0;
     recState.videoEncoder = null;

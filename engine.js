@@ -1044,8 +1044,18 @@ function buildArcLUT(formKey, v, P, inst, width, N = 200) {
 
   const wrapN = Math.round(N / uRange); // samples that cover u=0..1
   const arc01 = cum[wrapN] || (cum[N] / uRange);
+  const ps = P.paramSpeed;
+  const _N4 = 4; // corners per revolution for the density warp
+  const _K = ps > 0 ? ps * 0.85 / (_N4 * 2 * Math.PI) : 0;
   return (px) => {
-    const target = (px / width) * arc01;
+    const t01 = px / width;
+    // paramSpeed > 0: monotone sinusoidal warp concentrates chars at corner
+    // positions (t01 = 0, 0.25, 0.5, 0.75) and thins them at face centres.
+    // Works on any form regardless of cross-section uniformity.
+    const tW = _K > 0
+      ? Math.max(0, Math.min(1, t01 - _K * Math.sin(_N4 * 2 * Math.PI * t01)))
+      : t01;
+    const target = tW * arc01;
     let lo = 0;
     if (target <= 0) {
       lo = 0;
@@ -1060,12 +1070,7 @@ function buildArcLUT(formKey, v, P, inst, width, N = 200) {
     }
     const seg = cum[lo + 1] - cum[lo] || 1e-10;
     const t = Math.max(0, Math.min(1, (target - cum[lo]) / seg));
-    const uArc = us[lo] + (us[lo + 1] - us[lo]) * t;
-    // Blend arc-length-corrected u with raw parametric u.
-    // paramSpeed=0: even 3D spacing. paramSpeed=1: raw parametric -> each
-    // surface's curvature drives its own density pattern (corner acceleration).
-    const ps = P.paramSpeed;
-    const u = ps > 0 ? uArc * (1 - ps) + (px / width) * uRange * ps : uArc;
+    const u = us[lo] + (us[lo + 1] - us[lo]) * t;
     const ta = tangents[lo], tb = tangents[Math.min(lo + 1, N)];
     const tdx = ta.dx + (tb.dx - ta.dx) * t;
     const tdy = ta.dy + (tb.dy - ta.dy) * t;

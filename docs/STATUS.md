@@ -18,9 +18,24 @@ Vanilla JS zero-build (index.html, main.js, engine.js, styles.css). Sense bundle
 
 ## Darrera sessió
 
-2026-06-15 — Moviment 2D ampliat + correccions de formes 3D.
+2026-06-15 (sessió 4) — Character Map + polits UI + audioreactiu fork.
 
-Fet:
+Fet (sessió 4):
+
+- **Slider `paramSpeed`** (Easing paramètric): warp sinusoïdal monotó sobre t01 de pantalla, crea 4 zones de densitat per revolució. Funciona a totes les formes 3D.
+- **Slider `noiseTexture`** (Buits de textura): domain warp de coordenades UV via dos camps fBm independents abans de `surfaceMap`. Causa clustering físic de caràcters (sense tocar opacitat).
+- **Fix export MP4**: race condition `Cannot read properties of null ('finalize')` — guard `_stopping` + `isRecording=false` immediat al inici de `stopRecord()`.
+- **Secció 2D desactivada**: botó `disabled aria-disabled="true"` mentre no és funcional.
+- **Eliminat `vNorm`** de la UI (control + checkbox).
+- **Eliminat canvas size** del footer; només roman play/pause.
+- **10 formes 3D noves**: paraboloide, hiperboloide, el·lipsoide, molla, sella de mico, nautilus, catenoide, superquàdrica, Dini, trifoli.
+- **ArcLUT tangent (Option B)**: retorna `{u, tangent}` per eliminar el doble `surfaceMap` per glif en mode `surfaceText` + `rings`/`spiral`.
+- **Panel "Mapa de caràcters"**: 23 blocs Unicode (Basic Latin → Braille), selector tipografia independent, cerca per nom de bloc/hex/caràcter, click → clipboard + anunci live region. Build lazy al primer accés.
+- **Fork `18 SHAPER 002`**: còpia física independent, `.git` reinicialitzat sense remote — base per audioreactivitat.
+
+Sincronitzat a `02 Pixel Perfect/shaper/` ✓
+
+Fet (sessions anteriors):
 
 - Auto-play a l'inici (respecta `prefers-reduced-motion`).
 - Toggle vNorm: normalització de cobertura-v per forma (torus, con, esfera, disc, Möbius).
@@ -69,6 +84,7 @@ No resolt / vigilar:
 
 ## Pendent
 
-- Revisar i commitejar, si escau, el diff pendent de guies 3D a `engine.js` també a la còpia integrada de PP.
-- Fer una passada manual final al navegador real amb totes les formes 3D noves.
-- Revisar token `--rule: #9d9d9d` a Q S 003 (contrast insuficient WCAG 1.4.11 — només 2.71:1).
+- Commit pendent: `feat: paramSpeed warp, 10 new 3D forms, flat-form fixes, UI cleanup` + `fix: video export race condition` + `feat: domain warp noise` + `feat: Character Map panel`.
+- Validació visual al navegador de totes les 10 formes 3D noves i dels sliders `paramSpeed` / `noiseTexture`.
+- Revisió token `--rule: #9d9d9d` (contrast 2.71:1 — insuficient WCAG 1.4.11).
+- `18 SHAPER 002` — audioreactivitat (propera sessió, repo local sense remote).

@@ -1,5 +1,30 @@
 # Decisions — SHAPER 001
 
+## 2026-06-15 (sessió 4) — paramSpeed: warp sinusoïdal vs blend ArcLUT
+
+Primera implementació: `u = uArc*(1-ps) + rawU*ps`. No funcionava per formes circulars perquè `arcLUT(u) ≈ u` quan la curvatura és uniforme → blend ≈ no-op.
+
+Solució: warp monotó sobre posició de pantalla `tW = t01 - K·sin(N·2π·t01)` amb `K = 0.85/(N·2π)` (garanteix monotonia: derivada mín 0.15 > 0). `N=4` → 4 zones denses per revolució. Funciona a totes les formes independentment de la seva curvatura.
+
+## 2026-06-15 (sessió 4) — noiseTexture: domain warp vs dropout vs opacitat
+
+Tres implementacions per "zones amb més densitat de caràcters":
+1. Dropout (skip glif si `valueNoise < threshold`) → rebutjat, "no vull treure".
+2. Opacitat fBm per glif (`noiseAlpha`) → rebutjat, "no vull opacitat".
+3. Domain warp UV: `wu = u + (fbm2D(…)-0.5)*str` abans de `surfaceMap` → desplaçament físic de posició → clustering real. **Acceptat.** str=0.7 (exagerat a petició per fer-ho visible).
+
+Nota PRNG: `rainRoll` i `rainPhase` moguts abans del warp per mantenir ordre de consum fix.
+
+## 2026-06-15 (sessió 4) — Character Map: build lazy, font independent del canvas
+
+El panel no es construeix fins al primer click. ~2800 botons en 23 blocs → cost one-time acceptable al primer accés. Font selector independent de `state.font` (no afecta el canvas en fer browse del mapa).
+
+## 2026-06-15 (sessió 4) — Fork audioreactiu com a còpia física independent
+
+`18 SHAPER 002` és una còpia física de tots els fitxers de `17 SHAPER 001`. `.git` reinicialitzat buit (sense remote) per evitar push accidental a `strk04/SHAPER-001`. Les dues apps no comparteixen cap fitxer ni repositori.
+
+
+
 ## 2026-06-15 — Formes planes: dos bugs estructurals a `engine.js`
 
 **Bug A** (`plane` surfaceMap eix equivocat): el `default` case posava els glifs al pla XY (`y=(v-0.5)*S*aspect, z=0`) però la guia dibuixava el rectangle al pla XZ (`y=0, z=(v-0.5)*S*aspect`). Resultat: glifs i guia en planes completament disfasades. Correcció: el cas `plane` ara usa `z=(v-0.5)*S*aspect, y=0, ny=1`.

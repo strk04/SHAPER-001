@@ -1,5 +1,22 @@
 # Progress — SHAPER 001
 
+## 2026-06-15 (sessió 4) — noiseTexture, paramSpeed, Character Map, fork 002
+
+### Fet
+- `paramSpeed` (Easing paramètric): warp sinusoïdal `t01 - K·sin(4·2π·t01)`. Fix respecte a la primera impl (blend ArcLUT/raw-u no tenia efecte per formes circulars).
+- `noiseTexture` (Buits de textura): domain warp UV via fBm. str=0.7 (exagerat a petició). Dues impls anteriors rebutjades (dropout, opacitat) — solució: desplaçament físic de posició.
+- Fix race condition `stopRecord()`: guard `_stopping`, prevents doble `finalize()`.
+- UI: 2D `disabled`, `vNorm` eliminat, canvas size del footer eliminat.
+- Panel "Mapa de caràcters": 23 blocs Unicode, font selector, cerca, copy+live region, lazy build.
+- Fork `18 SHAPER 002` independent (git reinicialitzat, sense remote) → audioreactivitat.
+- Sync `02 Pixel Perfect/shaper/` ✓
+
+### Pendent
+- Commit pendent (acumulats des de sessió 3).
+- Validació navegador: 10 formes noves + paramSpeed + noiseTexture.
+
+---
+
 ## 2026-06-15 — Moviment 2D × 10 + fixes 3D
 
 ### Fet

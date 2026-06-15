@@ -43,6 +43,7 @@ const SLIDERS = {
   rainSpeed: { label: 'Velocitat de pluja', def: 0 },
   // --- 3D: Distribució ---
   paramSpeed: { label: 'Easing paramètric', def: 0 },
+  noiseTexture: { label: 'Buits de textura', def: 0 },
 };
 
 const FORM_3D_CONTROLS = {

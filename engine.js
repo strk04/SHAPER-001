@@ -1,6 +1,18 @@
 // engine.js — pure functions for SHAPER 001
 // Seeded PRNG + layout algorithm. Same seed + params => identical output.
 
+// 2D value noise: smooth interpolation of a hash lattice. [0,1] output.
+function valueNoise2D(x, y) {
+  const ix = Math.floor(x), iy = Math.floor(y);
+  const fx = x - ix, fy = y - iy;
+  const ux = fx * fx * (3 - 2 * fx), uy = fy * fy * (3 - 2 * fy);
+  const h = (a, b) => { const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return s - Math.floor(s); };
+  return h(ix, iy) * (1 - ux) * (1 - uy)
+       + h(ix + 1, iy) * ux * (1 - uy)
+       + h(ix, iy + 1) * (1 - ux) * uy
+       + h(ix + 1, iy + 1) * ux * uy;
+}
+
 // mulberry32 seeded PRNG
 export function mulberry32(seed) {
   let a = seed >>> 0;
@@ -512,6 +524,7 @@ function read3DParams(params) {
     vNorm: !!params.vNorm,
     wrapMode: params.wrapMode || 'rings',
     paramSpeed: num(params.paramSpeed, 0),
+    noiseTexture: num(params.noiseTexture, 0),
   };
 }
 
@@ -1201,8 +1214,14 @@ function build3D(params, width, height) {
       const u = m0.u;
       const v = m0.v;
       // Per-glyph: distribute across cluster instances by a seeded roll.
-      // PRNG WARNING: consume rolls in FIXED order — inst pick first, then rain.
+      // PRNG WARNING: consume rolls in FIXED order — inst, rain rolls, then noise.
       const inst = instances[Math.floor(rand3() * instCount) % instCount];
+      const rainRoll = rand3();
+      const rainPhase = rand3();
+
+      // Noise dropout: skip glyph where surface noise is below threshold.
+      // Moved after all PRNG rolls to preserve determinism, before surfaceMap for perf.
+      if (P.noiseTexture > 0 && valueNoise2D(u * 4, v * 5) < P.noiseTexture) continue;
 
       let pt = surfaceMap(formKey, u, v, P, inst);
 
@@ -1211,9 +1230,6 @@ function build3D(params, width, height) {
         pt = { ...pt, x: pt.x * pulseScale, y: pt.y * pulseScale, z: pt.z * pulseScale };
       }
 
-      // Rain: one seeded roll per glyph; falls deterministically with t.
-      const rainRoll = rand3();
-      const rainPhase = rand3();
       let rainDY = 0;
       if (P.rainProb > 0 && rainRoll < P.rainProb) {
         const fall =

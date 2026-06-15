@@ -731,10 +731,7 @@ function wireControls() {
     state.surfaceText = e.target.checked;
     scheduleRender();
   });
-  $('vNorm').addEventListener('change', (e) => {
-    state.vNorm = e.target.checked;
-    scheduleRender();
-  });
+
   $('wrapMode').addEventListener('change', (e) => {
     state.wrapMode = e.target.value;
     updateEditorVisibility();
@@ -1059,7 +1056,7 @@ function capturePreset() {
   Object.keys(SLIDERS).forEach((k) => { snap[k] = state[k]; });
   ['text', 'font', 'shape', 'textColor', 'bgColor', 'hardWrap',
    'motion2d', 'mode', 'form', 'projection', 'guides',
-   'backfaceMirror', 'surfaceText', 'vNorm', 'wrapMode', 'canvasW', 'canvasH'].forEach((k) => {
+   'backfaceMirror', 'surfaceText', 'wrapMode', 'canvasW', 'canvasH'].forEach((k) => {
     snap[k] = state[k];
   });
   return snap;
@@ -1094,7 +1091,6 @@ function applyPreset(p) {
   if (p.guides          != null) { state.guides          = p.guides;          $('guides').checked          = p.guides; }
   if (p.backfaceMirror  != null) { state.backfaceMirror  = p.backfaceMirror;  $('backfaceMirror').checked  = p.backfaceMirror; }
   if (p.surfaceText     != null) { state.surfaceText      = p.surfaceText;     $('surfaceText').checked     = p.surfaceText; }
-  if (p.vNorm           != null) { state.vNorm            = p.vNorm;           $('vNorm').checked           = p.vNorm; }
   if (p.wrapMode        != null) { state.wrapMode         = p.wrapMode;        $('wrapMode').value          = p.wrapMode; updateEditorVisibility(); }
   if (p.canvasW && p.canvasH) applyCanvasSize(p.canvasW, p.canvasH);
   scheduleRender();
@@ -1213,7 +1209,7 @@ function init() {
   $('guides').checked = state.guides;
   $('backfaceMirror').checked = state.backfaceMirror;
   $('surfaceText').checked = state.surfaceText;
-  $('vNorm').checked = state.vNorm;
+
   $('wrapMode').value = state.wrapMode;
   // Sync format-select and renderInfo to default canvas size
   const formatSel = $('format-select');

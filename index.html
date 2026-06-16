@@ -115,10 +115,51 @@
           <label class="control-stack slider" data-key="dropProb" data-min="0" data-max="1" data-step="0.01"></label>
           <label class="control-stack slider" data-key="densityMap" data-min="0" data-max="1" data-step="0.01"></label>
 
-          <h3 class="panel-title">Per caràcter</h3>
-          <label class="control-stack slider" data-key="charOpacity" data-min="0" data-max="1" data-step="0.01"></label>
+          <h3 class="panel-title">Transparència</h3>
+          <label class="control-row" for="opacityMode">
+            <span>Mode</span>
+            <select id="opacityMode" name="opacityMode">
+              <option value="none">Cap</option>
+              <option value="seeded">Aleatori</option>
+              <option value="alternating-word">Alternació de paraules</option>
+              <option value="first-letter">Primera lletra</option>
+            </select>
+          </label>
+          <label class="control-stack slider" data-key="charOpacity" data-min="0" data-max="1" data-step="0.01" hidden></label>
+          <label class="control-stack slider" data-key="opacityProb" data-min="0" data-max="1" data-step="0.01" hidden></label>
+          <label class="control-stack slider" data-key="opacityEvery" data-min="1" data-max="8" data-step="1" hidden></label>
+
+          <h3 class="panel-title">Intermitència</h3>
+          <label class="control-row" for="blinkMode">
+            <span>Mode</span>
+            <select id="blinkMode" name="blinkMode">
+              <option value="none">Cap</option>
+              <option value="seeded">Aleatori</option>
+              <option value="alternating-word">Alternació de paraules</option>
+              <option value="first-letter">Primera lletra</option>
+            </select>
+          </label>
+          <label class="control-stack slider" data-key="blinkRate" data-min="0.5" data-max="10" data-step="0.5" hidden></label>
+          <label class="control-stack slider" data-key="blinkProb" data-min="0" data-max="1" data-step="0.01" hidden></label>
+          <label class="control-stack slider" data-key="blinkEvery" data-min="1" data-max="8" data-step="1" hidden></label>
+
+          <h3 class="panel-title">Mida</h3>
+          <label class="control-row" for="sizeMode">
+            <span>Mode</span>
+            <select id="sizeMode" name="sizeMode">
+              <option value="none">Cap</option>
+              <option value="seeded">Aleatori</option>
+              <option value="alternating-word">Alternació de paraules</option>
+              <option value="first-letter">Primera lletra</option>
+              <option value="ramp">Rampa</option>
+            </select>
+          </label>
+          <label class="control-stack slider" data-key="sizeAmt" data-min="0.1" data-max="3" data-step="0.1" hidden></label>
+          <label class="control-stack slider" data-key="sizeProb" data-min="0" data-max="1" data-step="0.01" hidden></label>
+          <label class="control-stack slider" data-key="sizeEvery" data-min="1" data-max="8" data-step="1" hidden></label>
+
+          <h3 class="panel-title">Inclinació</h3>
           <label class="control-stack slider" data-key="charSkew" data-min="0" data-max="1" data-step="0.01"></label>
-          <label class="control-stack slider" data-key="sizeRamp" data-min="-1" data-max="1" data-step="0.05"></label>
 
           <h3 class="panel-title">Màscara</h3>
           <label class="control-row" for="maskShape">

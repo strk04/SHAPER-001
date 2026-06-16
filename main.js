@@ -22,9 +22,16 @@ const SLIDERS = {
   densityMap: { label: 'Mapa de densitat', def: 0 },
   wordsPerRow: { label: 'Paraules per línia', def: 2 },
   // --- Per caràcter ---
-  charOpacity: { label: 'Opacitat aleatòria', def: 0 },
+  charOpacity: { label: 'Grau', def: 0.6 },
   charSkew: { label: 'Inclinació aleatòria', def: 0 },
-  sizeRamp: { label: 'Rampa de mida', def: 0 },
+  opacityProb: { label: 'Probabilitat', def: 0.15 },
+  opacityEvery: { label: 'Freqüència', def: 2 },
+  blinkRate: { label: 'Velocitat', def: 2 },
+  blinkProb: { label: 'Probabilitat', def: 0.15 },
+  blinkEvery: { label: 'Freqüència', def: 2 },
+  sizeAmt: { label: 'Quantitat', def: 1.5 },
+  sizeProb: { label: 'Probabilitat', def: 0.15 },
+  sizeEvery: { label: 'Freqüència', def: 2 },
   // --- Màscara ---
   maskRadius: { label: 'Mida de la màscara', def: 0.75 },
   // --- Accent color ---
@@ -116,6 +123,9 @@ const state = {
   },
   guideMeta: false,
   maskShape: 'none',
+  opacityMode: 'none',
+  blinkMode: 'none',
+  sizeMode: 'none',
   accentMode: 'none',
   accentColor: '#e8400a',
   fps: 0,
@@ -134,7 +144,8 @@ function formatSliderValue(key, value) {
   const n = Number(value);
   if (!Number.isFinite(n)) return String(value);
   if (['dropProb', 'yJitterAffect', 'depthFade', 'pulse', 'rainProb', 'wordRamp',
-       'charOpacity', 'charSkew', 'sizeRamp', 'densityMap', 'maskRadius', 'accentProb'].includes(key)) {
+       'charOpacity', 'charSkew', 'densityMap', 'maskRadius',
+       'opacityProb', 'blinkProb', 'sizeProb', 'accentProb'].includes(key)) {
     return n.toFixed(2).replace(/\.?0+$/, '');
   }
   if (['frequency'].includes(key)) return n.toFixed(3).replace(/\.?0+$/, '');
@@ -471,6 +482,36 @@ function restoreCustomData() {
   } catch (e) {}
 }
 
+function updateOpacityVisibility() {
+  const mode = state.opacityMode;
+  const amtRow  = document.querySelector('[data-key="charOpacity"]');
+  const probRow = document.querySelector('[data-key="opacityProb"]');
+  const evRow   = document.querySelector('[data-key="opacityEvery"]');
+  if (amtRow)  amtRow.hidden  = mode === 'none';
+  if (probRow) probRow.hidden = mode !== 'seeded';
+  if (evRow)   evRow.hidden   = mode !== 'alternating-word';
+}
+
+function updateBlinkVisibility() {
+  const mode = state.blinkMode;
+  const rateRow = document.querySelector('[data-key="blinkRate"]');
+  const probRow = document.querySelector('[data-key="blinkProb"]');
+  const evRow   = document.querySelector('[data-key="blinkEvery"]');
+  if (rateRow) rateRow.hidden = mode === 'none';
+  if (probRow) probRow.hidden = mode !== 'seeded';
+  if (evRow)   evRow.hidden   = mode !== 'alternating-word';
+}
+
+function updateSizeVisibility() {
+  const mode = state.sizeMode;
+  const amtRow  = document.querySelector('[data-key="sizeAmt"]');
+  const probRow = document.querySelector('[data-key="sizeProb"]');
+  const evRow   = document.querySelector('[data-key="sizeEvery"]');
+  if (amtRow)  amtRow.hidden  = mode === 'none';
+  if (probRow) probRow.hidden = mode !== 'seeded';
+  if (evRow)   evRow.hidden   = mode !== 'alternating-word';
+}
+
 function updateAccentVisibility() {
   const mode = state.accentMode;
   const colorRow = document.querySelector('label[for="accentColor"]');
@@ -743,6 +784,30 @@ function wireControls() {
   if (maskShapeEl) {
     maskShapeEl.addEventListener('change', (e) => {
       state.maskShape = e.target.value;
+      scheduleRender();
+    });
+  }
+  const opacityModeEl = $('opacityMode');
+  if (opacityModeEl) {
+    opacityModeEl.addEventListener('change', (e) => {
+      state.opacityMode = e.target.value;
+      updateOpacityVisibility();
+      scheduleRender();
+    });
+  }
+  const blinkModeEl = $('blinkMode');
+  if (blinkModeEl) {
+    blinkModeEl.addEventListener('change', (e) => {
+      state.blinkMode = e.target.value;
+      updateBlinkVisibility();
+      scheduleRender();
+    });
+  }
+  const sizeModeEl = $('sizeMode');
+  if (sizeModeEl) {
+    sizeModeEl.addEventListener('change', (e) => {
+      state.sizeMode = e.target.value;
+      updateSizeVisibility();
       scheduleRender();
     });
   }
@@ -1143,7 +1208,7 @@ function capturePreset() {
   ['text', 'font', 'shape', 'textColor', 'bgColor', 'hardWrap',
    'motion2d', 'mode', 'form', 'projection', 'guides',
    'backfaceMirror', 'surfaceText', 'wrapMode', 'canvasW', 'canvasH',
-   'maskShape', 'accentMode', 'accentColor'].forEach((k) => {
+   'maskShape', 'opacityMode', 'blinkMode', 'sizeMode', 'accentMode', 'accentColor'].forEach((k) => {
     snap[k] = state[k];
   });
   return snap;
@@ -1184,6 +1249,24 @@ function applyPreset(p) {
     state.maskShape = p.maskShape;
     const el = $('maskShape');
     if (el) el.value = p.maskShape;
+  }
+  if (p.opacityMode != null) {
+    state.opacityMode = p.opacityMode;
+    const el = $('opacityMode');
+    if (el) el.value = p.opacityMode;
+    updateOpacityVisibility();
+  }
+  if (p.blinkMode != null) {
+    state.blinkMode = p.blinkMode;
+    const el = $('blinkMode');
+    if (el) el.value = p.blinkMode;
+    updateBlinkVisibility();
+  }
+  if (p.sizeMode != null) {
+    state.sizeMode = p.sizeMode;
+    const el = $('sizeMode');
+    if (el) el.value = p.sizeMode;
+    updateSizeVisibility();
   }
   if (p.accentMode != null) {
     state.accentMode = p.accentMode;
@@ -1467,6 +1550,9 @@ function init() {
   if (renderInfo) renderInfo.textContent = `Canvas ${state.canvasW} × ${state.canvasH}`;
   updateFovEnabled();
   updateEditorVisibility();
+  updateOpacityVisibility();
+  updateBlinkVisibility();
+  updateSizeVisibility();
   updateAccentVisibility();
   updatePlayPauseUI();
   updateArtworkLabel();

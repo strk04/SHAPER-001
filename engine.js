@@ -218,10 +218,20 @@ export function layout(params, width, height) {
     t,
     speed,
     customProfile,
-    charOpacity = 0,
+    charOpacity = 0.6,
     charSkew = 0,
-    sizeRamp = 0,
     densityMap = 0,
+    opacityMode = 'none',
+    opacityProb = 0.15,
+    opacityEvery = 2,
+    blinkMode = 'none',
+    blinkRate = 2,
+    blinkProb = 0.15,
+    blinkEvery = 2,
+    sizeMode = 'none',
+    sizeAmt = 1.5,
+    sizeProb = 0.15,
+    sizeEvery = 2,
     accentMode = 'none',
     accentProb = 0.15,
     accentEvery = 2,
@@ -292,6 +302,8 @@ export function layout(params, width, height) {
         const atomOp = randAtom();
         const atomSkewRaw = randAtom();
         const atomAccent = randAtom();
+        const atomBlink = randAtom();
+        const atomSize = randAtom();
 
         const jitterOn = rand() < yJitterAffect;
         const yOff = jitterOn ? (rand() - 0.5) * 2 * yJitter : 0;
@@ -308,18 +320,32 @@ export function layout(params, width, height) {
 
         if (!drop) {
           const xNorm = width > 0 ? Math.max(0, Math.min(1, (x + xChaos) / width)) : 0;
-          const extraOp = charOpacity > 0 ? Math.max(0.05, 1 - charOpacity * (1 - atomOp)) : 1;
+
+          let opacityT = 0;
+          if (opacityMode === 'seeded') opacityT = atomOp < opacityProb ? 1 : 0;
+          else if (opacityMode === 'alternating-word') opacityT = Math.floor(wordIdxForAccent / Math.max(1, opacityEvery)) % 2 === 1 ? 1 : 0;
+          else if (opacityMode === 'first-letter') opacityT = c === 0 ? 1 : 0;
+          const extraOp = opacityT ? Math.max(0.05, 1 - charOpacity) : 1;
+
           const skew = (atomSkewRaw - 0.5) * 2 * charSkew;
-          const sizeMul = sizeRamp !== 0 ? Math.max(0.1, 1 + sizeRamp * (xNorm * 2 - 1)) : 1;
+
+          let sizeMul = 1;
+          if (sizeMode === 'ramp') sizeMul = Math.max(0.05, Math.pow(Math.max(0.01, sizeAmt), xNorm * 2 - 1));
+          else if (sizeMode === 'seeded') sizeMul = atomSize < sizeProb ? sizeAmt : 1;
+          else if (sizeMode === 'alternating-word') sizeMul = Math.floor(wordIdxForAccent / Math.max(1, sizeEvery)) % 2 === 1 ? sizeAmt : 1;
+          else if (sizeMode === 'first-letter') sizeMul = c === 0 ? sizeAmt : 1;
+
+          let blinkT = 0;
+          if (blinkMode === 'seeded') blinkT = atomBlink < blinkProb ? 1 : 0;
+          else if (blinkMode === 'alternating-word') blinkT = Math.floor(wordIdxForAccent / Math.max(1, blinkEvery)) % 2 === 1 ? 1 : 0;
+          else if (blinkMode === 'first-letter') blinkT = c === 0 ? 1 : 0;
+
           let accentT = 0;
-          if (accentMode === 'seeded') {
-            accentT = atomAccent < accentProb ? 1 : 0;
-          } else if (accentMode === 'alternating-word') {
-            accentT = Math.floor(wordIdxForAccent / Math.max(1, accentEvery)) % 2 === 1 ? 1 : 0;
-          } else if (accentMode === 'first-letter') {
-            accentT = c === 0 ? 1 : 0;
-          }
-          chars.push({ ch, x: x + xChaos, y: baseY + yOff, extraOp, skew, sizeMul, accentT });
+          if (accentMode === 'seeded') accentT = atomAccent < accentProb ? 1 : 0;
+          else if (accentMode === 'alternating-word') accentT = Math.floor(wordIdxForAccent / Math.max(1, accentEvery)) % 2 === 1 ? 1 : 0;
+          else if (accentMode === 'first-letter') accentT = c === 0 ? 1 : 0;
+
+          chars.push({ ch, x: x + xChaos, y: baseY + yOff, extraOp, skew, sizeMul, accentT, blinkT });
         }
         x += cw + charTrack + trackJ + xChaos;
       }
@@ -1389,6 +1415,7 @@ function build3D(params, width, height) {
         back,
         matrixTransform,
         accentT: c.accentT || 0,
+        blinkT: c.blinkT || 0,
       });
     }
   }
@@ -1935,6 +1962,8 @@ export function buildScene(params, width, height) {
       lines,
       maskShape: params.maskShape || 'none',
       maskRadius: typeof params.maskRadius === 'number' ? params.maskRadius : 0.75,
+      blinkMode: params.blinkMode || 'none',
+      blinkRate: typeof params.blinkRate === 'number' ? params.blinkRate : 2,
       accentMode: params.accentMode || 'none',
       accentColor: params.accentColor || textColor,
     };
@@ -1964,6 +1993,7 @@ export function buildScene(params, width, height) {
         mirrored: false,
         X: g.X, Y: g.Y,
         accentT: g.accentT || 0,
+        blinkT: g.blinkT || 0,
       });
     } else {
       // Billboard path (surfaceText off, or degenerate fallback).
@@ -1976,6 +2006,7 @@ export function buildScene(params, width, height) {
         mirrored: !!(P.backfaceMirror && back),
         X: g.X, Y: g.Y,
         accentT: g.accentT || 0,
+        blinkT: g.blinkT || 0,
       });
     }
   }
@@ -1995,6 +2026,8 @@ export function buildScene(params, width, height) {
     } : null,
     maskShape: params.maskShape || 'none',
     maskRadius: typeof params.maskRadius === 'number' ? params.maskRadius : 0.75,
+    blinkMode: params.blinkMode || 'none',
+    blinkRate: typeof params.blinkRate === 'number' ? params.blinkRate : 2,
     accentMode: params.accentMode || 'none',
     accentColor: params.accentColor || textColor,
   };
@@ -2096,10 +2129,13 @@ export function drawScene(ctx, scene, width, height, dpr) {
     ctx.textBaseline = 'alphabetic';
     const fs2d = scene.fontSpec;
     const hasAccent = scene.accentMode && scene.accentMode !== 'none';
+    const blinkHalfMs2d = scene.blinkRate > 0 ? (500 / scene.blinkRate) : 500;
+    const blinkActive2d = scene.blinkMode !== 'none' && Math.floor(performance.now() / blinkHalfMs2d) % 2 === 0;
     let lastFs2d = -1;
 
     for (const line of scene.lines) {
       for (const c of line.chars) {
+        if (c.blinkT && blinkActive2d) continue;
         const extraOp = c.extraOp !== undefined ? c.extraOp : 1;
         const sizeMul = c.sizeMul !== undefined ? c.sizeMul : 1;
         const skew = c.skew || 0;
@@ -2164,8 +2200,11 @@ export function drawScene(ctx, scene, width, height, dpr) {
   ctx.textBaseline = 'alphabetic';
   const fs3d = scene.fontSpec;
   const hasAccent3d = scene.accentMode && scene.accentMode !== 'none';
+  const blinkHalfMs3d = scene.blinkRate > 0 ? (500 / scene.blinkRate) : 500;
+  const blinkActive3d = scene.blinkMode !== 'none' && Math.floor(performance.now() / blinkHalfMs3d) % 2 === 0;
   let lastFs = null;
   for (const g of scene.glyphs) {
+    if (g.blinkT && blinkActive3d) continue;
     ctx.globalAlpha = g.opacity;
     ctx.fillStyle = (hasAccent3d && g.accentT) ? scene.accentColor : scene.textColor;
     if (g.matrix) {

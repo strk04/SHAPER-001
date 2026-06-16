@@ -473,6 +473,16 @@ function restoreCustomData() {
   } catch (e) {}
 }
 
+function updateAccentVisibility() {
+  const mode = state.accentMode;
+  const colorRow = document.querySelector('label[for="accentColor"]');
+  const probRow  = document.querySelector('[data-key="accentProb"]');
+  const everyRow = document.querySelector('[data-key="accentEvery"]');
+  if (colorRow) colorRow.hidden = mode === 'none';
+  if (probRow)  probRow.hidden  = mode !== 'seeded';
+  if (everyRow) everyRow.hidden = mode !== 'alternating-word';
+}
+
 // --- Visibility (reused by select listeners and init) ---
 function updateEditorVisibility() {
   const su2d = $('svgUpload2d');
@@ -746,6 +756,7 @@ function wireControls() {
   if (accentModeEl) {
     accentModeEl.addEventListener('change', (e) => {
       state.accentMode = e.target.value;
+      updateAccentVisibility();
       scheduleRender();
     });
   }
@@ -1184,6 +1195,7 @@ function applyPreset(p) {
     state.accentMode = p.accentMode;
     const el = $('accentMode');
     if (el) el.value = p.accentMode;
+    updateAccentVisibility();
   }
   if (p.accentColor != null) {
     state.accentColor = p.accentColor;
@@ -1461,6 +1473,7 @@ function init() {
   if (renderInfo) renderInfo.textContent = `Canvas ${state.canvasW} × ${state.canvasH}`;
   updateFovEnabled();
   updateEditorVisibility();
+  updateAccentVisibility();
   updatePlayPauseUI();
   updateArtworkLabel();
   render();

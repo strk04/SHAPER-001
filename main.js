@@ -27,8 +27,6 @@ const SLIDERS = {
   sizeRamp: { label: 'Rampa de mida', def: 0 },
   // --- Màscara ---
   maskRadius: { label: 'Mida de la màscara', def: 0.75 },
-  // --- Color gradient ---
-  colorRamp: { label: 'Gradient de color', def: 0 },
   // --- Accent color ---
   accentProb: { label: 'Probabilitat d\'accent', def: 0.15 },
   accentEvery: { label: 'Freqüència d\'alternança', def: 2 },
@@ -120,7 +118,6 @@ const state = {
   },
   guideMeta: false,
   maskShape: 'none',
-  colorRampTo: '#111111',
   accentMode: 'none',
   accentColor: '#e8400a',
   fps: 0,
@@ -139,7 +136,7 @@ function formatSliderValue(key, value) {
   const n = Number(value);
   if (!Number.isFinite(n)) return String(value);
   if (['dropProb', 'yJitterAffect', 'depthFade', 'pulse', 'rainProb', 'wordRamp',
-       'charOpacity', 'charSkew', 'sizeRamp', 'densityMap', 'colorRamp', 'maskRadius', 'accentProb'].includes(key)) {
+       'charOpacity', 'charSkew', 'sizeRamp', 'densityMap', 'maskRadius', 'accentProb'].includes(key)) {
     return n.toFixed(2).replace(/\.?0+$/, '');
   }
   if (['frequency'].includes(key)) return n.toFixed(3).replace(/\.?0+$/, '');
@@ -745,14 +742,6 @@ function wireControls() {
       scheduleRender();
     });
   }
-  const colorRampToEl = $('colorRampTo');
-  if (colorRampToEl) {
-    colorRampToEl.addEventListener('input', (e) => {
-      state.colorRampTo = e.target.value;
-      scheduleRender();
-    });
-  }
-
   const accentModeEl = $('accentMode');
   if (accentModeEl) {
     accentModeEl.addEventListener('change', (e) => {
@@ -1149,7 +1138,7 @@ function capturePreset() {
   ['text', 'font', 'shape', 'textColor', 'bgColor', 'hardWrap',
    'motion2d', 'mode', 'form', 'projection', 'guides',
    'backfaceMirror', 'surfaceText', 'wrapMode', 'canvasW', 'canvasH',
-   'maskShape', 'colorRampTo', 'accentMode', 'accentColor'].forEach((k) => {
+   'maskShape', 'accentMode', 'accentColor'].forEach((k) => {
     snap[k] = state[k];
   });
   return snap;
@@ -1190,11 +1179,6 @@ function applyPreset(p) {
     state.maskShape = p.maskShape;
     const el = $('maskShape');
     if (el) el.value = p.maskShape;
-  }
-  if (p.colorRampTo != null) {
-    state.colorRampTo = p.colorRampTo;
-    const el = $('colorRampTo');
-    if (el) el.value = p.colorRampTo;
   }
   if (p.accentMode != null) {
     state.accentMode = p.accentMode;

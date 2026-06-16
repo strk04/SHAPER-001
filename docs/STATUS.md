@@ -1,6 +1,6 @@
 # STATUS — SHAPER 001
 
-_Actualitzat: 2026-06-17_
+_Actualitzat: 2026-06-17 (sessió 6)_
 
 ## Estat general
 
@@ -18,14 +18,29 @@ Vanilla JS zero-build (index.html, main.js, engine.js, styles.css). Sense bundle
 
 ## Darrera sessió
 
-2026-06-17 (sessió 5) — 6 paràmetres d'àtom: charOpacity, charSkew, sizeRamp, colorRamp, densityMap, maskShape.
+2026-06-17 (sessió 6) — Color d'accent per caràcter + eliminació gradient de color.
+
+Fet (sessió 6):
+
+- **`accentMode`** (select: none/seeded/alternating-word/first-letter): color d'accent puntual per caràcter via `randAtom`. Tres modes: aleatori per caràcter (`accentProb`), alternació per paraula (`accentEvery`), primera lletra de cada paraula.
+- **`accentColor`** (color picker): color d'accent aplicat als caràcters seleccionats.
+- **Fix pipeline 3D**: `accentT` propagat per tota la cadena 3D (`build3D` → `buildScene` superfície+billboard → `drawScene` 3D fillStyle). Sense el fix, el color d'accent no tenia efecte en mode 3D.
+- **Charmap → Àtom**: click a un caràcter del mapa ara l'afegeix directament a `state.text` (+ textarea) a més de copiar al portapapers.
+- **Eliminat gradient de color**: `colorRamp`, `colorRampTo`, `lerpHex`, `parseHexColor` eliminats completament de `engine.js`, `main.js` i `index.html`. El gradient no afegia valor artístic; el color d'accent és la solució correcta.
+
+Sincronitzat a `02 Pixel Perfect/shaper/` ✓
+
+---
+
+## Darrera sessió (anterior)
+
+2026-06-17 (sessió 5) — 6 paràmetres d'àtom: charOpacity, charSkew, sizeRamp, densityMap, maskShape.
 
 Fet (sessió 5):
 
 - **`charOpacity`** (Opacitat aleatòria): opacitat per caràcter seeded independent (PRNG `randAtom`); rang 0=off → 1=màxima variació.
 - **`charSkew`** (Inclinació aleatòria): skew horitzontal per caràcter via shear canvas (`ctx.setTransform`); rang 0–1.
 - **`sizeRamp`** (Rampa de mida): `sizeMul` per posició X normalitzada; −1=gran esquerra/petit dreta, +1=l'invers. No afecta l'interletraje, efecte visual pur.
-- **`colorRamp`** + **`colorRampTo`**: gradient A→B esquerra→dreta; `lerpHex` per interpolar HEX; control de color addicional al panel Colors.
 - **`densityMap`** (Mapa de densitat): `dropProb` augmenta linealment cap a la dreta (zona densa esquerra → zona dispersa dreta).
 - **`maskShape`** (Forma màscara): clip canvas a cercle, diamant, el·lipse H/V, triangle; `maskRadius` controla la mida. Funciona tant a 2D com 3D.
 - **PRNGs separats**: `randAtom` (`seed ^ 0x9e3779b9`) és independent de `rand`; no trenca els presets existents.

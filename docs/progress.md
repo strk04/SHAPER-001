@@ -1,12 +1,27 @@
 # Progress — SHAPER 001
 
-## 2026-06-17 (sessió 5) — 6 paràmetres àtom: charOpacity, charSkew, sizeRamp, colorRamp, densityMap, maskShape
+## 2026-06-17 (sessió 6) — Color d'accent per caràcter + eliminació gradient
+
+### Fet
+- **`accentMode`** (select: none/seeded/alternating-word/first-letter) + **`accentProb`** + **`accentEvery`**: color puntual per caràcter via `randAtom`. Tres modes implementats.
+- **`accentColor`**: color picker al panel Colors.
+- **Fix 3D accent**: `accentT` propagat per `build3D` → `buildScene` → `drawScene` 3D. Sense el fix, el color d'accent no tenia efecte visual en mode 3D (era el bug principal de la sessió).
+- **Charmap → Àtom**: click als botons del mapa ara actualitza `state.text` + textarea directament.
+- **Eliminació gradient de color**: `colorRamp`, `colorRampTo`, `lerpHex`, `parseHexColor` eliminats de `engine.js`, `main.js`, `index.html`. Cap referència resta al codi viu.
+- Sync `02 Pixel Perfect/shaper/` ✓
+
+### Pendent
+- Commit pendent (acumulats des de sessió 3–4–5–6).
+- Validació navegador.
+
+---
+
+## 2026-06-17 (sessió 5) — 6 paràmetres àtom: charOpacity, charSkew, sizeRamp, densityMap, maskShape
 
 ### Fet
 - **`charOpacity`** [0–1]: opacitat aleatòria per caràcter via `randAtom` (PRNG separat de `rand`, seed `seed ^ 0x9e3779b9`).
 - **`charSkew`** [0–1]: inclinació aleatòria per caràcter via `ctx.setTransform` (shear × 0.3).
 - **`sizeRamp`** [−1–1]: rampa de mida per posició X; `sizeMul = 1 + sizeRamp*(xNorm*2−1)`.
-- **`colorRamp`** [0–1] + **`colorRampTo`** (color): gradient esquerra→dreta via `lerpHex`; control al panel Colors.
 - **`densityMap`** [0–1]: `dropProb` augmenta linealment cap a la dreta `(dropProb + densityMap * xNorm)`.
 - **`maskShape`** (select: none/circle/diamond/ellipse-h/ellipse-v/triangle) + **`maskRadius`** [0.1–1]: clip canvas; funciona a 2D i 3D (guideMeta fora del clip).
 - Fix `flow` i `cascade`: ara copien tots els atributs del caràcter (`{ ...c, x: px }`).

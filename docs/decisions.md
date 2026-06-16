@@ -1,5 +1,15 @@
 # Decisions — SHAPER 001
 
+## 2026-06-17 (sessió 6) — Eliminar gradient de color en favor del color d'accent
+
+El paràmetre `colorRamp` aplicava un gradient A→B horitzontal a tots els caràcters de l'àtom. L'usuari va demanar eliminar-lo completament perquè el color d'accent (`accentMode`) és la solució correcta per al cas d'ús real: color puntual i selectiu, no un gradient uniforme.
+
+Eliminats: `colorRamp`, `colorRampTo` (state, SLIDERS, UI, buildScene, drawScene), `lerpHex`, `parseHexColor`. Cap codi de gradient roman al projecte.
+
+## 2026-06-17 (sessió 6) — accentT: pipeline 3D complet
+
+`accentT` es calcula a `layout()` per caràcter. Per al path 3D, la cadena és `layout()` → `build3D()` → `buildScene()` → `drawScene()`. Cal propagar `accentT` en cada pas. Fix: `build3D` inclou `accentT: c.accentT || 0` a cada glif; `buildScene` 3D el copia a les superfícies i billboards; `drawScene` 3D usa `g.accentT` per decidir el fillStyle. Sense la propagació completa, el canvi de color no té efecte en mode 3D (el mode per defecte).
+
 ## 2026-06-17 (sessió 5) — randAtom: PRNG separat per efectes d'àtom
 
 Els efectes `charOpacity` i `charSkew` necessiten rolls aleatoris per caràcter. Afegir-los a `rand` canviaria l'output de tots els presets existents (el número de rolls per caràcter canviaria).

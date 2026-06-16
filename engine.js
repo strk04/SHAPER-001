@@ -319,7 +319,7 @@ export function layout(params, width, height) {
           } else if (accentMode === 'first-letter') {
             accentT = c === 0 ? 1 : 0;
           }
-          chars.push({ ch, x: x + xChaos, y: baseY + yOff, extraOp, skew, sizeMul, colorT: xNorm, accentT });
+          chars.push({ ch, x: x + xChaos, y: baseY + yOff, extraOp, skew, sizeMul, accentT });
         }
         x += cw + charTrack + trackJ + xChaos;
       }
@@ -525,18 +525,6 @@ function escXML(s) {
     .replace(/"/g, '&quot;');
 }
 
-// Parse a #rrggbb hex color into [r, g, b] integers.
-function parseHexColor(hex) {
-  const h = String(hex || '#000000').replace('#', '').padEnd(6, '0');
-  return [parseInt(h.slice(0, 2), 16) || 0, parseInt(h.slice(2, 4), 16) || 0, parseInt(h.slice(4, 6), 16) || 0];
-}
-
-// Linear interpolate between two #rrggbb colors; returns rgb() string.
-function lerpHex(a, b, t) {
-  const [ar, ag, ab] = parseHexColor(a);
-  const [br, bg, bb] = parseHexColor(b);
-  return `rgb(${Math.round(ar + (br - ar) * t)},${Math.round(ag + (bg - ag) * t)},${Math.round(ab + (bb - ab) * t)})`;
-}
 
 // Build a canvas clip path for maskShape. Returns true if a path was created.
 function applyMaskClip(ctx, shape, radius, width, height) {
@@ -1974,8 +1962,6 @@ export function buildScene(params, width, height) {
       lines,
       maskShape: params.maskShape || 'none',
       maskRadius: typeof params.maskRadius === 'number' ? params.maskRadius : 0.75,
-      colorRamp: typeof params.colorRamp === 'number' ? params.colorRamp : 0,
-      colorRampTo: params.colorRampTo || textColor,
       accentMode: params.accentMode || 'none',
       accentColor: params.accentColor || textColor,
     };
@@ -2037,8 +2023,6 @@ export function buildScene(params, width, height) {
     } : null,
     maskShape: params.maskShape || 'none',
     maskRadius: typeof params.maskRadius === 'number' ? params.maskRadius : 0.75,
-    colorRamp: typeof params.colorRamp === 'number' ? params.colorRamp : 0,
-    colorRampTo: params.colorRampTo || textColor,
     accentMode: params.accentMode || 'none',
     accentColor: params.accentColor || textColor,
   };
@@ -2139,7 +2123,6 @@ export function drawScene(ctx, scene, width, height, dpr) {
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
     const fs2d = scene.fontSpec;
-    const hasColorRamp = scene.colorRamp > 0 && scene.colorRampTo;
     const hasAccent = scene.accentMode && scene.accentMode !== 'none';
     let lastFs2d = -1;
 
@@ -2148,13 +2131,10 @@ export function drawScene(ctx, scene, width, height, dpr) {
         const extraOp = c.extraOp !== undefined ? c.extraOp : 1;
         const sizeMul = c.sizeMul !== undefined ? c.sizeMul : 1;
         const skew = c.skew || 0;
-        const colorT = c.colorT || 0;
 
         ctx.globalAlpha = extraOp;
         if (hasAccent && c.accentT) {
           ctx.fillStyle = scene.accentColor;
-        } else if (hasColorRamp && colorT > 0) {
-          ctx.fillStyle = lerpHex(scene.textColor, scene.colorRampTo, scene.colorRamp * colorT);
         } else {
           ctx.fillStyle = scene.textColor;
         }

@@ -32,8 +32,6 @@ const SLIDERS = {
   sizeAmt: { label: 'Quantitat', def: 1.5 },
   sizeProb: { label: 'Probabilitat', def: 0.15 },
   sizeEvery: { label: 'Freqüència', def: 2 },
-  // --- Màscara ---
-  maskRadius: { label: 'Mida de la màscara', def: 0.75 },
   // --- Accent color ---
   accentProb: { label: 'Probabilitat d\'accent', def: 0.15 },
   accentEvery: { label: 'Freqüència d\'alternança', def: 2 },
@@ -122,9 +120,9 @@ const state = {
     angleX: true, angleY: true, depthFade: true,
   },
   guideMeta: false,
-  maskShape: 'none',
   opacityMode: 'none',
   blinkMode: 'none',
+  blinkFade: false,
   sizeMode: 'none',
   accentMode: 'none',
   accentColor: '#e8400a',
@@ -144,7 +142,7 @@ function formatSliderValue(key, value) {
   const n = Number(value);
   if (!Number.isFinite(n)) return String(value);
   if (['dropProb', 'yJitterAffect', 'depthFade', 'pulse', 'rainProb', 'wordRamp',
-       'charOpacity', 'charSkew', 'densityMap', 'maskRadius',
+       'charOpacity', 'charSkew', 'densityMap',
        'opacityProb', 'blinkProb', 'sizeProb', 'accentProb'].includes(key)) {
     return n.toFixed(2).replace(/\.?0+$/, '');
   }
@@ -494,12 +492,14 @@ function updateOpacityVisibility() {
 
 function updateBlinkVisibility() {
   const mode = state.blinkMode;
-  const rateRow = document.querySelector('[data-key="blinkRate"]');
-  const probRow = document.querySelector('[data-key="blinkProb"]');
-  const evRow   = document.querySelector('[data-key="blinkEvery"]');
-  if (rateRow) rateRow.hidden = mode === 'none';
-  if (probRow) probRow.hidden = mode !== 'seeded';
-  if (evRow)   evRow.hidden   = mode !== 'alternating-word';
+  const rateRow  = document.querySelector('[data-key="blinkRate"]');
+  const probRow  = document.querySelector('[data-key="blinkProb"]');
+  const evRow    = document.querySelector('[data-key="blinkEvery"]');
+  const fadeRow  = document.querySelector('label[for="blinkFade"]');
+  if (rateRow)  rateRow.hidden  = mode === 'none';
+  if (probRow)  probRow.hidden  = mode !== 'seeded';
+  if (evRow)    evRow.hidden    = mode !== 'alternating-word';
+  if (fadeRow)  fadeRow.hidden  = mode === 'none';
 }
 
 function updateSizeVisibility() {
@@ -780,10 +780,10 @@ function wireControls() {
     scheduleRender();
   });
 
-  const maskShapeEl = $('maskShape');
-  if (maskShapeEl) {
-    maskShapeEl.addEventListener('change', (e) => {
-      state.maskShape = e.target.value;
+  const blinkFadeEl = $('blinkFade');
+  if (blinkFadeEl) {
+    blinkFadeEl.addEventListener('change', (e) => {
+      state.blinkFade = e.target.checked;
       scheduleRender();
     });
   }
@@ -1208,7 +1208,7 @@ function capturePreset() {
   ['text', 'font', 'shape', 'textColor', 'bgColor', 'hardWrap',
    'motion2d', 'mode', 'form', 'projection', 'guides',
    'backfaceMirror', 'surfaceText', 'wrapMode', 'canvasW', 'canvasH',
-   'maskShape', 'opacityMode', 'blinkMode', 'sizeMode', 'accentMode', 'accentColor'].forEach((k) => {
+   'opacityMode', 'blinkMode', 'blinkFade', 'sizeMode', 'accentMode', 'accentColor'].forEach((k) => {
     snap[k] = state[k];
   });
   return snap;
@@ -1245,10 +1245,10 @@ function applyPreset(p) {
   if (p.surfaceText     != null) { state.surfaceText      = p.surfaceText;     $('surfaceText').checked     = p.surfaceText; }
   if (p.wrapMode        != null) { state.wrapMode         = p.wrapMode;        $('wrapMode').value          = p.wrapMode; updateEditorVisibility(); }
   if (p.canvasW && p.canvasH) applyCanvasSize(p.canvasW, p.canvasH);
-  if (p.maskShape != null) {
-    state.maskShape = p.maskShape;
-    const el = $('maskShape');
-    if (el) el.value = p.maskShape;
+  if (p.blinkFade != null) {
+    state.blinkFade = !!p.blinkFade;
+    const el = $('blinkFade');
+    if (el) el.checked = state.blinkFade;
   }
   if (p.opacityMode != null) {
     state.opacityMode = p.opacityMode;

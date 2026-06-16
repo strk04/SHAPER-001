@@ -552,41 +552,7 @@ function escXML(s) {
 }
 
 
-// Build a canvas clip path for maskShape. Returns true if a path was created.
-function applyMaskClip(ctx, shape, radius, width, height) {
-  const cx = width / 2, cy = height / 2;
-  const r = Math.min(width, height) * (radius || 0.75) * 0.5;
-  const rx = width * (radius || 0.75) * 0.5;
-  const ry = height * (radius || 0.75) * 0.5;
-  ctx.beginPath();
-  switch (shape) {
-    case 'circle':
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      break;
-    case 'ellipse-h':
-      ctx.ellipse(cx, cy, rx, ry * 0.55, 0, 0, Math.PI * 2);
-      break;
-    case 'ellipse-v':
-      ctx.ellipse(cx, cy, rx * 0.55, ry, 0, 0, Math.PI * 2);
-      break;
-    case 'diamond':
-      ctx.moveTo(cx, cy - r);
-      ctx.lineTo(cx + r, cy);
-      ctx.lineTo(cx, cy + r);
-      ctx.lineTo(cx - r, cy);
-      ctx.closePath();
-      break;
-    case 'triangle':
-      ctx.moveTo(cx, cy - r);
-      ctx.lineTo(cx + r, cy + r);
-      ctx.lineTo(cx - r, cy + r);
-      ctx.closePath();
-      break;
-    default:
-      return false;
-  }
-  return true;
-}
+
 
 // ===========================================================================
 // 3D pipeline. 2D is a special case: when form==='plane' and no 3D motion /
@@ -1960,10 +1926,9 @@ export function buildScene(params, width, height) {
       mode: '2d',
       bgColor, textColor, fontSize, fontSpec, width, height,
       lines,
-      maskShape: params.maskShape || 'none',
-      maskRadius: typeof params.maskRadius === 'number' ? params.maskRadius : 0.75,
       blinkMode: params.blinkMode || 'none',
       blinkRate: typeof params.blinkRate === 'number' ? params.blinkRate : 2,
+      blinkFade: !!params.blinkFade,
       accentMode: params.accentMode || 'none',
       accentColor: params.accentColor || textColor,
     };
@@ -2024,10 +1989,9 @@ export function buildScene(params, width, height) {
       speed3d: typeof params.speed3d === 'number' ? params.speed3d : 0,
       fps: P.fps,
     } : null,
-    maskShape: params.maskShape || 'none',
-    maskRadius: typeof params.maskRadius === 'number' ? params.maskRadius : 0.75,
     blinkMode: params.blinkMode || 'none',
     blinkRate: typeof params.blinkRate === 'number' ? params.blinkRate : 2,
+    blinkFade: !!params.blinkFade,
     accentMode: params.accentMode || 'none',
     accentColor: params.accentColor || textColor,
   };
@@ -2113,30 +2077,22 @@ export function drawScene(ctx, scene, width, height, dpr) {
   ctx.fillRect(0, 0, width, height);
 
   if (scene.mode === '2d') {
-    // Mask clip (2D)
-    let maskSaved2d = false;
-    if (scene.maskShape && scene.maskShape !== 'none') {
-      ctx.save();
-      if (applyMaskClip(ctx, scene.maskShape, scene.maskRadius, width, height)) {
-        ctx.clip();
-        maskSaved2d = true;
-      } else {
-        ctx.restore();
-      }
-    }
-
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
     const fs2d = scene.fontSpec;
     const hasAccent = scene.accentMode && scene.accentMode !== 'none';
     const blinkHalfMs2d = scene.blinkRate > 0 ? (500 / scene.blinkRate) : 500;
-    const blinkActive2d = scene.blinkMode !== 'none' && Math.floor(performance.now() / blinkHalfMs2d) % 2 === 0;
+    const blinkActive2d = !scene.blinkFade && scene.blinkMode !== 'none' && Math.floor(performance.now() / blinkHalfMs2d) % 2 === 0;
+    const blinkFadeFactor2d = (scene.blinkFade && scene.blinkMode !== 'none')
+      ? (Math.cos(performance.now() / (blinkHalfMs2d * 2) * Math.PI * 2) + 1) / 2
+      : 1;
     let lastFs2d = -1;
 
     for (const line of scene.lines) {
       for (const c of line.chars) {
         if (c.blinkT && blinkActive2d) continue;
-        const extraOp = c.extraOp !== undefined ? c.extraOp : 1;
+        const rawOp = c.extraOp !== undefined ? c.extraOp : 1;
+        const extraOp = (c.blinkT && scene.blinkFade) ? rawOp * blinkFadeFactor2d : rawOp;
         const sizeMul = c.sizeMul !== undefined ? c.sizeMul : 1;
         const skew = c.skew || 0;
 
@@ -2164,23 +2120,11 @@ export function drawScene(ctx, scene, width, height, dpr) {
     }
     ctx.globalAlpha = 1;
 
-    if (maskSaved2d) ctx.restore();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     return;
   }
 
   // --- 3D ---
-  // Mask clip (3D)
-  let maskSaved3d = false;
-  if (scene.maskShape && scene.maskShape !== 'none') {
-    ctx.save();
-    if (applyMaskClip(ctx, scene.maskShape, scene.maskRadius, width, height)) {
-      ctx.clip();
-      maskSaved3d = true;
-    } else {
-      ctx.restore();
-    }
-  }
 
   // Guides: dashed strokes under the text.
   if (scene.guides) {
@@ -2201,11 +2145,14 @@ export function drawScene(ctx, scene, width, height, dpr) {
   const fs3d = scene.fontSpec;
   const hasAccent3d = scene.accentMode && scene.accentMode !== 'none';
   const blinkHalfMs3d = scene.blinkRate > 0 ? (500 / scene.blinkRate) : 500;
-  const blinkActive3d = scene.blinkMode !== 'none' && Math.floor(performance.now() / blinkHalfMs3d) % 2 === 0;
+  const blinkActive3d = !scene.blinkFade && scene.blinkMode !== 'none' && Math.floor(performance.now() / blinkHalfMs3d) % 2 === 0;
+  const blinkFadeFactor3d = (scene.blinkFade && scene.blinkMode !== 'none')
+    ? (Math.cos(performance.now() / (blinkHalfMs3d * 2) * Math.PI * 2) + 1) / 2
+    : 1;
   let lastFs = null;
   for (const g of scene.glyphs) {
     if (g.blinkT && blinkActive3d) continue;
-    ctx.globalAlpha = g.opacity;
+    ctx.globalAlpha = (g.blinkT && scene.blinkFade) ? g.opacity * blinkFadeFactor3d : g.opacity;
     ctx.fillStyle = (hasAccent3d && g.accentT) ? scene.accentColor : scene.textColor;
     if (g.matrix) {
       const m = g.matrix;
@@ -2229,8 +2176,6 @@ export function drawScene(ctx, scene, width, height, dpr) {
     }
   }
   ctx.globalAlpha = 1;
-
-  if (maskSaved3d) ctx.restore();
 
   if (scene.guideMeta && scene.guideMetaData) {
     const md = scene.guideMetaData;

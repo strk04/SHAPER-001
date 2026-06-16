@@ -612,8 +612,6 @@ function read3DParams(params) {
       : null,
     vNorm: !!params.vNorm,
     wrapMode: params.wrapMode || 'rings',
-    paramSpeed: num(params.paramSpeed, 0),
-    surfaceEase: Math.max(0, Math.min(1, num(params.surfaceEase, 1))),
     noiseTexture: num(params.noiseTexture, 0),
     guideMeta: !!params.guideMeta,
     fps: num(params.fps, 0),
@@ -1149,18 +1147,9 @@ function buildArcLUT(formKey, v, P, inst, width, N = 200) {
 
   const wrapN = Math.round(N / uRange); // samples that cover u=0..1
   const arc01 = cum[wrapN] || (cum[N] / uRange);
-  const ps = P.paramSpeed;
-  const _N4 = 4; // corners per revolution for the density warp
-  const _K = ps > 0 ? ps * 0.85 / (_N4 * 2 * Math.PI) : 0;
   return (px, uOffset = 0) => {
     const t01 = px / width;
-    // paramSpeed > 0: monotone sinusoidal warp concentrates chars at corner
-    // positions (t01 = 0, 0.25, 0.5, 0.75) and thins them at face centres.
-    // Works on any form regardless of cross-section uniformity.
-    const tW = _K > 0
-      ? Math.max(0, Math.min(1, t01 - _K * Math.sin(_N4 * 2 * Math.PI * t01)))
-      : t01;
-    const shifted = tW + (((uOffset % 1) + 1) % 1);
+    const shifted = t01 + (((uOffset % 1) + 1) % 1);
     const shifted01 = shifted <= 1 ? shifted : shifted % 1;
     const target = shifted01 * arc01;
     let lo = 0;
@@ -1185,15 +1174,6 @@ function buildArcLUT(formKey, v, P, inst, width, N = 200) {
     const tlen = Math.hypot(tdx, tdy, tdz) || 1;
     return { u, tangent: { dx: tdx / tlen, dy: tdy / tlen, dz: tdz / tlen } };
   };
-}
-
-function applySurfaceFlowInertia(linearFlow, time, speed, amount) {
-  const a = Math.max(0, Math.min(1, amount));
-  if (a <= 0 || speed === 0) return linearFlow;
-  const rate = 0.12 * speed;
-  const omega = 2 * Math.PI * 0.65 * Math.max(0.2, Math.abs(speed));
-  const depth = 0.85 * a;
-  return linearFlow + (rate * depth / omega) * Math.sin(omega * time);
 }
 
 // Build the per-glyph 3D draw list. Returns { glyphs, meta }.
@@ -1252,7 +1232,7 @@ function build3D(params, width, height) {
   // Delta in layout pixels used for surface tangent sampling.
   const TANGENT_D = 2;
   const formKey = P.form === 'cluster' ? 'cube' : P.form;
-  const surfaceFlowU = applySurfaceFlowInertia(time * spd * 0.12, time, spd, P.surfaceEase);
+  const surfaceFlowU = time * spd * 0.12;
 
   // Flat forms don't wrap in u: an unbounded surfaceFlowU would move glyphs
   // off the surface (x=(u-0.5)*S grows without limit). Zero it for these.
@@ -2008,7 +1988,6 @@ export function buildScene(params, width, height) {
     guideMeta: P.guideMeta,
     guideMetaData: P.guideMeta ? {
       formSize: Math.round(P.formSize),
-      paramSpeed: P.paramSpeed,
       angleX: P.angleX,
       angleY: P.angleY,
       speed3d: typeof params.speed3d === 'number' ? params.speed3d : 0,
@@ -2225,7 +2204,6 @@ export function drawScene(ctx, scene, width, height, dpr) {
     ctx.font = fs.weight + ' 9px ' + fs.family;
     const rows = [
       'SIZE ' + md.formSize,
-      'EASE ' + md.paramSpeed.toFixed(2),
       'AX ' + md.angleX.toFixed(1) + '  AY ' + md.angleY.toFixed(1),
       'SPD ' + md.speed3d.toFixed(2),
       'FPS ' + Math.round(md.fps),

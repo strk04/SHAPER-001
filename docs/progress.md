@@ -1,5 +1,24 @@
 # Progress — SHAPER 001
 
+## 2026-06-17 (sessió 7) — Retirada Easing paramètric / Inèrcia de superfície
+
+### Fet
+- Eliminat `paramSpeed` del runtime: slider, estat, lectura de paràmetres, warp dins `buildArcLUT` i línia `EASE` del guide meta.
+- Eliminat `surfaceEase` del runtime: slider, estat, visibilitat condicional i funcions d'inèrcia.
+- `surfaceFlowU` torna a ser lineal (`time * speed * 0.12`).
+- `buildArcLUT` queda només com a mapeig arc-length/tangent.
+
+### Provat i no funcionat
+- `paramSpeed`: warp sinusoïdal de posició (`t01 - K·sin(...)`). No generava la sensació clara que les tipos acceleressin/frenessin.
+- `surfaceEase` com a blend ArcLUT/raw-u: invisible o massa feble en formes uniformes.
+- Warp espacial sobre `u`: sí canviava posicions, però deformava/recol·locava el layout a `t=0`; no era una animació de velocitat.
+- Modulació temporal de `flowU`: numèricament creava variació, però no resolia la percepció visual en ús real.
+
+### Decisió
+- Cap control d'easing/inèrcia queda actiu. No reintroduir sense prova visual al navegador.
+
+---
+
 ## 2026-06-17 (sessió 6) — Color d'accent per caràcter + eliminació gradient
 
 ### Fet
@@ -33,10 +52,10 @@
 
 ---
 
-## 2026-06-15 (sessió 4) — noiseTexture, paramSpeed, Character Map, fork 002
+## 2026-06-15 (sessió 4) — noiseTexture, paramSpeed retirat, Character Map, fork 002
 
 ### Fet
-- `paramSpeed` (Easing paramètric): warp sinusoïdal `t01 - K·sin(4·2π·t01)`. Fix respecte a la primera impl (blend ArcLUT/raw-u no tenia efecte per formes circulars).
+- `paramSpeed` (Easing paramètric): implementat com a warp sinusoïdal, però retirat a la sessió 7 perquè no funcionava visualment.
 - `noiseTexture` (Buits de textura): domain warp UV via fBm. str=0.7 (exagerat a petició). Dues impls anteriors rebutjades (dropout, opacitat) — solució: desplaçament físic de posició.
 - Fix race condition `stopRecord()`: guard `_stopping`, prevents doble `finalize()`.
 - UI: 2D `disabled`, `vNorm` eliminat, canvas size del footer eliminat.
@@ -46,7 +65,7 @@
 
 ### Pendent
 - Commit pendent (acumulats des de sessió 3).
-- Validació navegador: 10 formes noves + paramSpeed + noiseTexture.
+- Validació navegador: 10 formes noves + noiseTexture.
 
 ---
 

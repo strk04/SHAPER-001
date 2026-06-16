@@ -1,6 +1,6 @@
 # STATUS — SHAPER 001
 
-_Actualitzat: 2026-06-17 (sessió 6)_
+_Actualitzat: 2026-06-17 (sessió 7)_
 
 ## Estat general
 
@@ -17,6 +17,30 @@ Estable. Desplegat a producció dins Pixel Perfect. La URL canònica és `/shape
 Vanilla JS zero-build (index.html, main.js, engine.js, styles.css). Sense bundler ni node_modules. `mp4-muxer.mjs` s'usa per a l'export MP4 via WebCodecs.
 
 ## Darrera sessió
+
+2026-06-17 (sessió 7) — Eliminació d'Easing paramètric / Inèrcia de superfície.
+
+Fet (sessió 7):
+
+- **Eliminat `paramSpeed` / Easing paramètric** de `engine.js`, `main.js` i `index.html`.
+- **Eliminat `surfaceEase` / Inèrcia de superfície** de `engine.js`, `main.js` i `index.html`.
+- `buildArcLUT` es conserva només per arc-length/tangent de superfície; ja no aplica warp paramètric.
+- `surfaceFlowU` torna a ser lineal: `time * speed * 0.12`.
+- Guide meta ja no mostra `EASE`.
+- Sync a `02 Pixel Perfect/shaper/` pendent de commit/push en aquesta sessió.
+
+Provat i descartat:
+
+- **Warp paramètric espacial (`paramSpeed`)**: concentrava caràcters en zones del recorregut però no donava l'acceleració perceptiva buscada.
+- **Blend ArcLUT/raw-u (`surfaceEase`)**: només deixava passar irregularitats de formes que ja les tenien; en formes uniformes com esfera/cilindre/torus no es percebia.
+- **Warp espacial sobre `u`**: alterava la composició fins i tot a `t=0`, canviant el layout en lloc de només el moviment.
+- **Modulació temporal del `flowU`**: els tests numèrics indicaven variació, però visualment no resolia el problema en l'ús real. Retirat.
+
+Decisió: no mantenir cap control d'easing/inèrcia fins trobar una solució visualment comprovada en navegador real.
+
+---
+
+## Darrera sessió (anterior)
 
 2026-06-17 (sessió 6) — Color d'accent per caràcter + eliminació gradient de color.
 
@@ -56,7 +80,7 @@ Sincronitzat a `02 Pixel Perfect/shaper/` ✓
 
 Fet (sessió 4):
 
-- **Slider `paramSpeed`** (Easing paramètric): warp sinusoïdal monotó sobre t01 de pantalla, crea 4 zones de densitat per revolució. Funciona a totes les formes 3D.
+- ~~**Slider `paramSpeed`** (Easing paramètric)~~: retirat a la sessió 7 perquè no produïa l'acceleració perceptiva buscada.
 - **Slider `noiseTexture`** (Buits de textura): domain warp de coordenades UV via dos camps fBm independents abans de `surfaceMap`. Causa clustering físic de caràcters (sense tocar opacitat).
 - **Fix export MP4**: race condition `Cannot read properties of null ('finalize')` — guard `_stopping` + `isRecording=false` immediat al inici de `stopRecord()`.
 - **Secció 2D desactivada**: botó `disabled aria-disabled="true"` mentre no és funcional.
@@ -118,7 +142,6 @@ No resolt / vigilar:
 
 ## Pendent
 
-- Commit pendent: `feat: paramSpeed warp, 10 new 3D forms, flat-form fixes, UI cleanup` + `fix: video export race condition` + `feat: domain warp noise` + `feat: Character Map panel`.
-- Validació visual al navegador de totes les 10 formes 3D noves i dels sliders `paramSpeed` / `noiseTexture`.
+- Validació visual al navegador de totes les formes 3D noves i del slider `noiseTexture`.
 - Revisió token `--rule: #9d9d9d` (contrast 2.71:1 — insuficient WCAG 1.4.11).
 - `18 SHAPER 002` — audioreactivitat (propera sessió, repo local sense remote).

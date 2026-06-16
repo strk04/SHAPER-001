@@ -1931,7 +1931,7 @@ export function buildScene(params, width, height) {
       lines,
       blinkMode: params.blinkMode || 'none',
       blinkRate: typeof params.blinkRate === 'number' ? params.blinkRate : 2,
-      blinkFade: !!params.blinkFade,
+      blinkFade: typeof params.blinkFade === 'number' ? params.blinkFade : (params.blinkFade ? 1 : 0),
       accentMode: params.accentMode || 'none',
       accentColor: params.accentColor || textColor,
     };
@@ -2091,17 +2091,17 @@ export function drawScene(ctx, scene, width, height, dpr) {
     const fs2d = scene.fontSpec;
     const hasAccent = scene.accentMode && scene.accentMode !== 'none';
     const blinkHalfMs2d = scene.blinkRate > 0 ? (500 / scene.blinkRate) : 500;
-    const blinkActive2d = !scene.blinkFade && scene.blinkMode !== 'none' && Math.floor(performance.now() / blinkHalfMs2d) % 2 === 0;
-    const blinkFadeFactor2d = (scene.blinkFade && scene.blinkMode !== 'none')
-      ? (Math.cos(performance.now() / (blinkHalfMs2d * 2) * Math.PI * 2) + 1) / 2
-      : 1;
+    const blinkActive2d = scene.blinkFade === 0 && scene.blinkMode !== 'none' && Math.floor(performance.now() / blinkHalfMs2d) % 2 === 0;
+    const _cos2d = (Math.cos(performance.now() / (blinkHalfMs2d * 2) * Math.PI * 2) + 1) / 2;
+    const blinkFadeFactor2d = scene.blinkFade > 0 && scene.blinkMode !== 'none'
+      ? 1 - scene.blinkFade * (1 - _cos2d) : 1;
     let lastFs2d = -1;
 
     for (const line of scene.lines) {
       for (const c of line.chars) {
         if (c.blinkT && blinkActive2d) continue;
         const rawOp = c.extraOp !== undefined ? c.extraOp : 1;
-        const extraOp = (c.blinkT && scene.blinkFade) ? rawOp * blinkFadeFactor2d : rawOp;
+        const extraOp = (c.blinkT && scene.blinkFade > 0) ? rawOp * blinkFadeFactor2d : rawOp;
         const sizeMul = c.sizeMul !== undefined ? c.sizeMul : 1;
         const skew = c.skew || 0;
 
@@ -2154,14 +2154,14 @@ export function drawScene(ctx, scene, width, height, dpr) {
   const fs3d = scene.fontSpec;
   const hasAccent3d = scene.accentMode && scene.accentMode !== 'none';
   const blinkHalfMs3d = scene.blinkRate > 0 ? (500 / scene.blinkRate) : 500;
-  const blinkActive3d = !scene.blinkFade && scene.blinkMode !== 'none' && Math.floor(performance.now() / blinkHalfMs3d) % 2 === 0;
-  const blinkFadeFactor3d = (scene.blinkFade && scene.blinkMode !== 'none')
-    ? (Math.cos(performance.now() / (blinkHalfMs3d * 2) * Math.PI * 2) + 1) / 2
-    : 1;
+  const blinkActive3d = scene.blinkFade === 0 && scene.blinkMode !== 'none' && Math.floor(performance.now() / blinkHalfMs3d) % 2 === 0;
+  const _cos3d = (Math.cos(performance.now() / (blinkHalfMs3d * 2) * Math.PI * 2) + 1) / 2;
+  const blinkFadeFactor3d = scene.blinkFade > 0 && scene.blinkMode !== 'none'
+    ? 1 - scene.blinkFade * (1 - _cos3d) : 1;
   let lastFs = null;
   for (const g of scene.glyphs) {
     if (g.blinkT && blinkActive3d) continue;
-    const baseOp = (g.blinkT && scene.blinkFade) ? g.opacity * blinkFadeFactor3d : g.opacity;
+    const baseOp = (g.blinkT && scene.blinkFade > 0) ? g.opacity * blinkFadeFactor3d : g.opacity;
     ctx.globalAlpha = baseOp * (g.extraOp !== undefined ? g.extraOp : 1);
     ctx.fillStyle = (hasAccent3d && g.accentT) ? scene.accentColor : scene.textColor;
     const sm = g.sizeMul !== undefined ? g.sizeMul : 1;

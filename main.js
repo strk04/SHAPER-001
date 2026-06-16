@@ -27,6 +27,7 @@ const SLIDERS = {
   opacityProb: { label: 'Probabilitat', def: 0.15 },
   opacityEvery: { label: 'Freqüència', def: 2 },
   blinkRate: { label: 'Velocitat', def: 2 },
+  blinkFade: { label: 'Dissolència', def: 0 },
   blinkProb: { label: 'Probabilitat', def: 0.15 },
   blinkEvery: { label: 'Freqüència', def: 2 },
   sizeAmt: { label: 'Quantitat', def: 1.5 },
@@ -122,7 +123,7 @@ const state = {
   guideMeta: false,
   opacityMode: 'none',
   blinkMode: 'none',
-  blinkFade: false,
+  blinkFade: 0,
   sizeMode: 'none',
   accentMode: 'none',
   accentColor: '#e8400a',
@@ -495,7 +496,7 @@ function updateBlinkVisibility() {
   const rateRow  = document.querySelector('[data-key="blinkRate"]');
   const probRow  = document.querySelector('[data-key="blinkProb"]');
   const evRow    = document.querySelector('[data-key="blinkEvery"]');
-  const fadeRow  = document.querySelector('label[for="blinkFade"]');
+  const fadeRow  = document.querySelector('[data-key="blinkFade"]');
   if (rateRow)  rateRow.hidden  = mode === 'none';
   if (probRow)  probRow.hidden  = mode !== 'seeded';
   if (evRow)    evRow.hidden    = mode !== 'alternating-word';
@@ -780,13 +781,6 @@ function wireControls() {
     scheduleRender();
   });
 
-  const blinkFadeEl = $('blinkFade');
-  if (blinkFadeEl) {
-    blinkFadeEl.addEventListener('change', (e) => {
-      state.blinkFade = e.target.checked;
-      scheduleRender();
-    });
-  }
   const opacityModeEl = $('opacityMode');
   if (opacityModeEl) {
     opacityModeEl.addEventListener('change', (e) => {
@@ -1246,9 +1240,9 @@ function applyPreset(p) {
   if (p.wrapMode        != null) { state.wrapMode         = p.wrapMode;        $('wrapMode').value          = p.wrapMode; updateEditorVisibility(); }
   if (p.canvasW && p.canvasH) applyCanvasSize(p.canvasW, p.canvasH);
   if (p.blinkFade != null) {
-    state.blinkFade = !!p.blinkFade;
-    const el = $('blinkFade');
-    if (el) el.checked = state.blinkFade;
+    state.blinkFade = typeof p.blinkFade === 'number' ? p.blinkFade : (p.blinkFade ? 1 : 0);
+    const ref = sliderRefs['blinkFade'];
+    if (ref) { ref.range.value = state.blinkFade; ref.number.value = state.blinkFade; }
   }
   if (p.opacityMode != null) {
     state.opacityMode = p.opacityMode;

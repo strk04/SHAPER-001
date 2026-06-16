@@ -1199,6 +1199,14 @@ function buildArcLUT(formKey, v, P, inst, width, N = 200) {
   };
 }
 
+function applySurfaceInertia(u, amount) {
+  const a = Math.max(0, Math.min(1, amount));
+  if (a <= 0) return u;
+  const cycles = 4;
+  const k = (a * 0.7) / (cycles * 2 * Math.PI);
+  return u - k * Math.sin(cycles * 2 * Math.PI * u);
+}
+
 // Build the per-glyph 3D draw list. Returns { glyphs, meta }.
 function build3D(params, width, height) {
   const P = read3DParams(params);
@@ -1289,7 +1297,8 @@ function build3D(params, width, height) {
         const motionU = flowU + yNorm * Math.max(1, P.turns);
         const { u, tangent } = getArcLUT(vN)(xPix, motionU);
         const rawMovedU = rawU + motionU;
-        const baseU = u + (rawMovedU - u) * P.surfaceEase;
+        const inertialU = applySurfaceInertia(rawMovedU, P.surfaceEase);
+        const baseU = u + (inertialU - u) * P.surfaceEase;
         return {
           u: baseU,
           v: vN,
@@ -1303,7 +1312,8 @@ function build3D(params, width, height) {
         const rawU = xPix / width;
         const { u, tangent } = getArcLUT(vN)(xPix, flowU);
         const rawMovedU = rawU + flowU;
-        const baseU = u + (rawMovedU - u) * P.surfaceEase;
+        const inertialU = applySurfaceInertia(rawMovedU, P.surfaceEase);
+        const baseU = u + (inertialU - u) * P.surfaceEase;
         return { u: baseU, v: vN, tangent: P.surfaceEase > 0 ? null : tangent };
       }
     }

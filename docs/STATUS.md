@@ -1,6 +1,6 @@
 # STATUS — SHAPER 001
 
-_Actualitzat: 2026-06-17 (sessió 7)_
+_Actualitzat: 2026-06-17 (sessió 8)_
 
 ## Estat general
 
@@ -17,6 +17,20 @@ Estable. Desplegat a producció dins Pixel Perfect. La URL canònica és `/shape
 Vanilla JS zero-build (index.html, main.js, engine.js, styles.css). Sense bundler ni node_modules. `mp4-muxer.mjs` s'usa per a l'export MP4 via WebCodecs.
 
 ## Darrera sessió
+
+2026-06-17 (sessió 8) — Fix pipeline 3D: Transparència, Mida, Inclinació per caràcter.
+
+Fet (sessió 8):
+
+- **Fix `extraOp`/`sizeMul`/`skew` en mode 3D**: els tres valors es calculaven correctament a `layout()` però no es propagaven a `build3D` → `buildScene` → `drawScene`. Ara propagats i aplicats.
+- Transparència per caràcter (Transparència/opacityMode) ara visible en 3D.
+- Mida per caràcter (Mida/sizeMode) ara visible en 3D — superfície via escala de matriu, billboard via fontSize × sizeMul.
+- Inclinació aleatòria (charSkew) ara visible en 3D — aplicat com a shear al billboard; superfície usa la rotació pròpia de la matriu.
+- Sync `02 Pixel Perfect/shaper/engine.js` ✓
+
+---
+
+## Darrera sessió (anterior)
 
 2026-06-17 (sessió 7) — Eliminació d'Easing paramètric / Inèrcia de superfície.
 

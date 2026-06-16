@@ -1,5 +1,13 @@
 # Decisions — SHAPER 001
 
+## 2026-06-17 (sessió 8) — extraOp/sizeMul/skew: pipeline 3D complet
+
+Igual que `accentT` (sessió 6), els valors per caràcter calculats a `layout()` han de propagar-se per tota la cadena 3D: `build3D` → `buildScene` → `drawScene`. Sense la propagació, qualsevol efecte per caràcter és invisible en mode 3D.
+
+Per a `sizeMul` en glifs de superfície: s'aplica escalant els components `a,b,c,d` de la matriu de transformació per `sizeMul`. La font size no cal canviar-la — la matriu ja porta l'escala de perspectiva. Per a billboards: `fontSize × sizeMul`.
+
+Per a `skew` en billboards: s'afegeix com a component `c` del setTransform (shear horitzontal `sk * 0.3`). En glifs de superfície el shear no s'afegeix perquè la matriu de rotació ja porta inclinació pròpia de la superfície.
+
 ## 2026-06-17 (sessió 6) — Eliminar gradient de color en favor del color d'accent
 
 El paràmetre `colorRamp` aplicava un gradient A→B horitzontal a tots els caràcters de l'àtom. L'usuari va demanar eliminar-lo completament perquè el color d'accent (`accentMode`) és la solució correcta per al cas d'ús real: color puntual i selectiu, no un gradient uniforme.

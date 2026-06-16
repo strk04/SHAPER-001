@@ -1,5 +1,22 @@
 # Progress — SHAPER 001
 
+## 2026-06-17 (sessió 8) — Fix pipeline 3D: Transparència / Mida / Inclinació
+
+### Fet
+- **Fix `extraOp` en 3D**: `build3D` i `buildScene` ara propaguen `extraOp` a cada glif; `drawScene` 3D multiplica `g.extraOp` per l'opacitat de profunditat. La Transparència per caràcter ara funciona en mode 3D (default).
+- **Fix `sizeMul` en 3D**: propagat igual. `drawScene` 3D escala la matriu de superfície per `sizeMul` i multiplica `fontSize` del billboard. La Mida per caràcter ara funciona en 3D.
+- **Fix `skew` en 3D billboard**: propagat. `drawScene` 3D afegeix shear (component `c` del transform) per a glifs billboard. Per a glifs de superfície el skew s'aplica via l'escala de la matriu (no hi ha shear afegit — la matriu de rotació ja porta inclinació pròpia).
+- Sync `02 Pixel Perfect/shaper/engine.js` ✓
+
+### Causa del bug
+`build3D` i `buildScene` propagaven `accentT` i `blinkT` però NO `extraOp`, `skew` ni `sizeMul`. En mode 3D (el default), els tres efectes s'aplicaven correctament en `layout()` però es perdien en entrar al pipeline 3D.
+
+### Pendent
+- Validació navegador dels tres efectes en mode 3D.
+- Commit pendent (acumulats sessions 3–8).
+
+---
+
 ## 2026-06-17 (sessió 7) — Retirada Easing paramètric / Inèrcia de superfície
 
 ### Fet

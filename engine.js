@@ -1382,6 +1382,9 @@ function build3D(params, width, height) {
         matrixTransform,
         accentT: c.accentT || 0,
         blinkT: c.blinkT || 0,
+        extraOp: c.extraOp !== undefined ? c.extraOp : 1,
+        skew: c.skew || 0,
+        sizeMul: c.sizeMul !== undefined ? c.sizeMul : 1,
       });
     }
   }
@@ -1959,6 +1962,9 @@ export function buildScene(params, width, height) {
         X: g.X, Y: g.Y,
         accentT: g.accentT || 0,
         blinkT: g.blinkT || 0,
+        extraOp: g.extraOp !== undefined ? g.extraOp : 1,
+        skew: g.skew || 0,
+        sizeMul: g.sizeMul !== undefined ? g.sizeMul : 1,
       });
     } else {
       // Billboard path (surfaceText off, or degenerate fallback).
@@ -1972,6 +1978,9 @@ export function buildScene(params, width, height) {
         X: g.X, Y: g.Y,
         accentT: g.accentT || 0,
         blinkT: g.blinkT || 0,
+        extraOp: g.extraOp !== undefined ? g.extraOp : 1,
+        skew: g.skew || 0,
+        sizeMul: g.sizeMul !== undefined ? g.sizeMul : 1,
       });
     }
   }
@@ -2152,26 +2161,29 @@ export function drawScene(ctx, scene, width, height, dpr) {
   let lastFs = null;
   for (const g of scene.glyphs) {
     if (g.blinkT && blinkActive3d) continue;
-    ctx.globalAlpha = (g.blinkT && scene.blinkFade) ? g.opacity * blinkFadeFactor3d : g.opacity;
+    const baseOp = (g.blinkT && scene.blinkFade) ? g.opacity * blinkFadeFactor3d : g.opacity;
+    ctx.globalAlpha = baseOp * (g.extraOp !== undefined ? g.extraOp : 1);
     ctx.fillStyle = (hasAccent3d && g.accentT) ? scene.accentColor : scene.textColor;
+    const sm = g.sizeMul !== undefined ? g.sizeMul : 1;
     if (g.matrix) {
       const m = g.matrix;
-      // setTransform composes with dpr: device = dpr * matrix.
-      ctx.setTransform(d * m.a, d * m.b, d * m.c, d * m.d, d * m.e, d * m.f);
+      // Scale matrix components by sizeMul for per-char size variation.
+      ctx.setTransform(d * m.a * sm, d * m.b * sm, d * m.c * sm, d * m.d * sm, d * m.e, d * m.f);
       if (scene.fontSize !== lastFs) {
         ctx.font = `${fs3d.weight} ${scene.fontSize}px ${fs3d.family}`;
         lastFs = scene.fontSize;
       }
       ctx.fillText(g.ch, 0, 0);
     } else {
-      // Billboard: translate (+ optional horizontal mirror) and scale font.
+      // Billboard: translate (+ optional mirror + skew) and scale font.
+      const sk = g.skew || 0;
       ctx.setTransform(
-        d * (g.mirrored ? -1 : 1), 0, 0, d, d * g.X, d * g.Y,
+        d * (g.mirrored ? -1 : 1), 0, d * sk * 0.3, d, d * g.X, d * g.Y,
       );
-      // Billboard font size varies per glyph; set every time (cheap enough,
-      // and the value genuinely changes under perspective).
-      ctx.font = `${fs3d.weight} ${g.fontSize}px ${fs3d.family}`;
-      lastFs = g.fontSize;
+      // Billboard font size varies per glyph; apply sizeMul on top.
+      const fs = g.fontSize * sm;
+      ctx.font = `${fs3d.weight} ${fs}px ${fs3d.family}`;
+      lastFs = fs;
       ctx.fillText(g.ch, 0, 0);
     }
   }

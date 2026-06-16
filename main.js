@@ -29,6 +29,9 @@ const SLIDERS = {
   maskRadius: { label: 'Mida de la màscara', def: 0.75 },
   // --- Color gradient ---
   colorRamp: { label: 'Gradient de color', def: 0 },
+  // --- Accent color ---
+  accentProb: { label: 'Probabilitat d\'accent', def: 0.15 },
+  accentEvery: { label: 'Freqüència d\'alternança', def: 2 },
   // --- 3D: Form ---
   formSize: { label: 'Mida de forma', def: 413 },
   aspect: { label: 'Proporció', def: 2.6 },
@@ -118,6 +121,8 @@ const state = {
   guideMeta: false,
   maskShape: 'none',
   colorRampTo: '#111111',
+  accentMode: 'none',
+  accentColor: '#e8400a',
   fps: 0,
   // Custom drawing data (input data, never randomness). Plain arrays so they
   // pass straight into the engine. Default = engine defaults.
@@ -134,7 +139,7 @@ function formatSliderValue(key, value) {
   const n = Number(value);
   if (!Number.isFinite(n)) return String(value);
   if (['dropProb', 'yJitterAffect', 'depthFade', 'pulse', 'rainProb', 'wordRamp',
-       'charOpacity', 'charSkew', 'sizeRamp', 'densityMap', 'colorRamp', 'maskRadius'].includes(key)) {
+       'charOpacity', 'charSkew', 'sizeRamp', 'densityMap', 'colorRamp', 'maskRadius', 'accentProb'].includes(key)) {
     return n.toFixed(2).replace(/\.?0+$/, '');
   }
   if (['frequency'].includes(key)) return n.toFixed(3).replace(/\.?0+$/, '');
@@ -748,6 +753,21 @@ function wireControls() {
     });
   }
 
+  const accentModeEl = $('accentMode');
+  if (accentModeEl) {
+    accentModeEl.addEventListener('change', (e) => {
+      state.accentMode = e.target.value;
+      scheduleRender();
+    });
+  }
+  const accentColorEl = $('accentColor');
+  if (accentColorEl) {
+    accentColorEl.addEventListener('input', (e) => {
+      state.accentColor = e.target.value;
+      scheduleRender();
+    });
+  }
+
   $('hardWrap').addEventListener('change', (e) => {
     state.hardWrap = e.target.checked;
     scheduleRender();
@@ -1129,7 +1149,7 @@ function capturePreset() {
   ['text', 'font', 'shape', 'textColor', 'bgColor', 'hardWrap',
    'motion2d', 'mode', 'form', 'projection', 'guides',
    'backfaceMirror', 'surfaceText', 'wrapMode', 'canvasW', 'canvasH',
-   'maskShape', 'colorRampTo'].forEach((k) => {
+   'maskShape', 'colorRampTo', 'accentMode', 'accentColor'].forEach((k) => {
     snap[k] = state[k];
   });
   return snap;
@@ -1175,6 +1195,16 @@ function applyPreset(p) {
     state.colorRampTo = p.colorRampTo;
     const el = $('colorRampTo');
     if (el) el.value = p.colorRampTo;
+  }
+  if (p.accentMode != null) {
+    state.accentMode = p.accentMode;
+    const el = $('accentMode');
+    if (el) el.value = p.accentMode;
+  }
+  if (p.accentColor != null) {
+    state.accentColor = p.accentColor;
+    const el = $('accentColor');
+    if (el) el.value = p.accentColor;
   }
   scheduleRender();
 }

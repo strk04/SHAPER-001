@@ -222,6 +222,9 @@ export function layout(params, width, height) {
     charSkew = 0,
     sizeRamp = 0,
     densityMap = 0,
+    accentMode = 'none',
+    accentProb = 0.15,
+    accentEvery = 2,
   } = params;
 
   // Time/speed default to 0/1 when absent (static render stays identical).
@@ -276,6 +279,7 @@ export function layout(params, width, height) {
     let x = x0;
 
     for (let w = 0; w < wordsThisLine; w++) {
+      const wordIdxForAccent = wordIndex;
       const word = words[wordIndex % words.length];
       wordIndex++;
 
@@ -287,6 +291,7 @@ export function layout(params, width, height) {
         // Atom PRNG rolls (separate PRNG — always consumed for determinism)
         const atomOp = randAtom();
         const atomSkewRaw = randAtom();
+        const atomAccent = randAtom();
 
         const jitterOn = rand() < yJitterAffect;
         const yOff = jitterOn ? (rand() - 0.5) * 2 * yJitter : 0;
@@ -306,7 +311,15 @@ export function layout(params, width, height) {
           const extraOp = charOpacity > 0 ? Math.max(0.05, 1 - charOpacity * (1 - atomOp)) : 1;
           const skew = (atomSkewRaw - 0.5) * 2 * charSkew;
           const sizeMul = sizeRamp !== 0 ? Math.max(0.1, 1 + sizeRamp * (xNorm * 2 - 1)) : 1;
-          chars.push({ ch, x: x + xChaos, y: baseY + yOff, extraOp, skew, sizeMul, colorT: xNorm });
+          let accentT = 0;
+          if (accentMode === 'seeded') {
+            accentT = atomAccent < accentProb ? 1 : 0;
+          } else if (accentMode === 'alternating-word') {
+            accentT = Math.floor(wordIdxForAccent / Math.max(1, accentEvery)) % 2 === 1 ? 1 : 0;
+          } else if (accentMode === 'first-letter') {
+            accentT = c === 0 ? 1 : 0;
+          }
+          chars.push({ ch, x: x + xChaos, y: baseY + yOff, extraOp, skew, sizeMul, colorT: xNorm, accentT });
         }
         x += cw + charTrack + trackJ + xChaos;
       }
@@ -1952,6 +1965,8 @@ export function buildScene(params, width, height) {
       maskRadius: typeof params.maskRadius === 'number' ? params.maskRadius : 0.75,
       colorRamp: typeof params.colorRamp === 'number' ? params.colorRamp : 0,
       colorRampTo: params.colorRampTo || textColor,
+      accentMode: params.accentMode || 'none',
+      accentColor: params.accentColor || textColor,
     };
   }
 
@@ -2011,6 +2026,8 @@ export function buildScene(params, width, height) {
     maskRadius: typeof params.maskRadius === 'number' ? params.maskRadius : 0.75,
     colorRamp: typeof params.colorRamp === 'number' ? params.colorRamp : 0,
     colorRampTo: params.colorRampTo || textColor,
+    accentMode: params.accentMode || 'none',
+    accentColor: params.accentColor || textColor,
   };
 }
 
@@ -2110,6 +2127,7 @@ export function drawScene(ctx, scene, width, height, dpr) {
     ctx.textBaseline = 'alphabetic';
     const fs2d = scene.fontSpec;
     const hasColorRamp = scene.colorRamp > 0 && scene.colorRampTo;
+    const hasAccent = scene.accentMode && scene.accentMode !== 'none';
     let lastFs2d = -1;
 
     for (const line of scene.lines) {
@@ -2120,9 +2138,13 @@ export function drawScene(ctx, scene, width, height, dpr) {
         const colorT = c.colorT || 0;
 
         ctx.globalAlpha = extraOp;
-        ctx.fillStyle = (hasColorRamp && colorT > 0)
-          ? lerpHex(scene.textColor, scene.colorRampTo, scene.colorRamp * colorT)
-          : scene.textColor;
+        if (hasAccent && c.accentT) {
+          ctx.fillStyle = scene.accentColor;
+        } else if (hasColorRamp && colorT > 0) {
+          ctx.fillStyle = lerpHex(scene.textColor, scene.colorRampTo, scene.colorRamp * colorT);
+        } else {
+          ctx.fillStyle = scene.textColor;
+        }
 
         const fs = scene.fontSize * sizeMul;
         if (fs !== lastFs2d) {

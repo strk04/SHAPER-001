@@ -1187,12 +1187,13 @@ function buildArcLUT(formKey, v, P, inst, width, N = 200) {
   };
 }
 
-function applySurfaceInertia(u, amount) {
+function applySurfaceFlowInertia(linearFlow, time, speed, amount) {
   const a = Math.max(0, Math.min(1, amount));
-  if (a <= 0) return u;
-  const cycles = 4;
-  const k = (a * 0.7) / (cycles * 2 * Math.PI);
-  return u - k * Math.sin(cycles * 2 * Math.PI * u);
+  if (a <= 0 || speed === 0) return linearFlow;
+  const rate = 0.12 * speed;
+  const omega = 2 * Math.PI * 0.65 * Math.max(0.2, Math.abs(speed));
+  const depth = 0.85 * a;
+  return linearFlow + (rate * depth / omega) * Math.sin(omega * time);
 }
 
 // Build the per-glyph 3D draw list. Returns { glyphs, meta }.
@@ -1251,7 +1252,7 @@ function build3D(params, width, height) {
   // Delta in layout pixels used for surface tangent sampling.
   const TANGENT_D = 2;
   const formKey = P.form === 'cluster' ? 'cube' : P.form;
-  const surfaceFlowU = time * spd * 0.12;
+  const surfaceFlowU = applySurfaceFlowInertia(time * spd * 0.12, time, spd, P.surfaceEase);
 
   // Flat forms don't wrap in u: an unbounded surfaceFlowU would move glyphs
   // off the surface (x=(u-0.5)*S grows without limit). Zero it for these.
@@ -1281,28 +1282,20 @@ function build3D(params, width, height) {
       case 'columns':
         return { u: yNorm + flowU, v: xPix / width, tangent: null };
       case 'spiral': {
-        const rawU = xPix / width;
         const motionU = flowU + yNorm * Math.max(1, P.turns);
         const { u, tangent } = getArcLUT(vN)(xPix, motionU);
-        const rawMovedU = rawU + motionU;
-        const inertialU = applySurfaceInertia(rawMovedU, P.surfaceEase);
-        const baseU = u + (inertialU - u) * P.surfaceEase;
         return {
-          u: baseU,
+          u,
           v: vN,
-          tangent: P.surfaceEase > 0 ? null : tangent,
+          tangent,
         };
       }
       case 'panel':
         return { u: 0.25 + (xPix / width) * 0.5 + flowU, v: 0.25 + yNorm * 0.5, tangent: null };
       case 'rings':
       default: {
-        const rawU = xPix / width;
         const { u, tangent } = getArcLUT(vN)(xPix, flowU);
-        const rawMovedU = rawU + flowU;
-        const inertialU = applySurfaceInertia(rawMovedU, P.surfaceEase);
-        const baseU = u + (inertialU - u) * P.surfaceEase;
-        return { u: baseU, v: vN, tangent: P.surfaceEase > 0 ? null : tangent };
+        return { u, v: vN, tangent };
       }
     }
   };

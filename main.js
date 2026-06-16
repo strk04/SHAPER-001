@@ -19,7 +19,16 @@ const SLIDERS = {
   yJitter: { label: 'Tremolor vertical', def: 0 },
   yJitterAffect: { label: 'Abast del tremolor', def: 0 },
   dropProb: { label: 'Amagar caràcters', def: 0 },
+  densityMap: { label: 'Mapa de densitat', def: 0 },
   wordsPerRow: { label: 'Paraules per línia', def: 2 },
+  // --- Per caràcter ---
+  charOpacity: { label: 'Opacitat aleatòria', def: 0 },
+  charSkew: { label: 'Inclinació aleatòria', def: 0 },
+  sizeRamp: { label: 'Rampa de mida', def: 0 },
+  // --- Màscara ---
+  maskRadius: { label: 'Mida de la màscara', def: 0.75 },
+  // --- Color gradient ---
+  colorRamp: { label: 'Gradient de color', def: 0 },
   // --- 3D: Form ---
   formSize: { label: 'Mida de forma', def: 413 },
   aspect: { label: 'Proporció', def: 2.6 },
@@ -106,6 +115,8 @@ const state = {
     angleX: true, angleY: true, depthFade: true,
   },
   guideMeta: false,
+  maskShape: 'none',
+  colorRampTo: '#111111',
   fps: 0,
   // Custom drawing data (input data, never randomness). Plain arrays so they
   // pass straight into the engine. Default = engine defaults.
@@ -121,7 +132,8 @@ const sliderRefs = {}; // key -> { range, number }
 function formatSliderValue(key, value) {
   const n = Number(value);
   if (!Number.isFinite(n)) return String(value);
-  if (['dropProb', 'yJitterAffect', 'depthFade', 'pulse', 'rainProb', 'wordRamp'].includes(key)) {
+  if (['dropProb', 'yJitterAffect', 'depthFade', 'pulse', 'rainProb', 'wordRamp',
+       'charOpacity', 'charSkew', 'sizeRamp', 'densityMap', 'colorRamp', 'maskRadius'].includes(key)) {
     return n.toFixed(2).replace(/\.?0+$/, '');
   }
   if (['frequency'].includes(key)) return n.toFixed(3).replace(/\.?0+$/, '');
@@ -718,6 +730,21 @@ function wireControls() {
     scheduleRender();
   });
 
+  const maskShapeEl = $('maskShape');
+  if (maskShapeEl) {
+    maskShapeEl.addEventListener('change', (e) => {
+      state.maskShape = e.target.value;
+      scheduleRender();
+    });
+  }
+  const colorRampToEl = $('colorRampTo');
+  if (colorRampToEl) {
+    colorRampToEl.addEventListener('input', (e) => {
+      state.colorRampTo = e.target.value;
+      scheduleRender();
+    });
+  }
+
   $('hardWrap').addEventListener('change', (e) => {
     state.hardWrap = e.target.checked;
     scheduleRender();
@@ -1098,7 +1125,8 @@ function capturePreset() {
   Object.keys(SLIDERS).forEach((k) => { snap[k] = state[k]; });
   ['text', 'font', 'shape', 'textColor', 'bgColor', 'hardWrap',
    'motion2d', 'mode', 'form', 'projection', 'guides',
-   'backfaceMirror', 'surfaceText', 'wrapMode', 'canvasW', 'canvasH'].forEach((k) => {
+   'backfaceMirror', 'surfaceText', 'wrapMode', 'canvasW', 'canvasH',
+   'maskShape', 'colorRampTo'].forEach((k) => {
     snap[k] = state[k];
   });
   return snap;
@@ -1135,6 +1163,16 @@ function applyPreset(p) {
   if (p.surfaceText     != null) { state.surfaceText      = p.surfaceText;     $('surfaceText').checked     = p.surfaceText; }
   if (p.wrapMode        != null) { state.wrapMode         = p.wrapMode;        $('wrapMode').value          = p.wrapMode; updateEditorVisibility(); }
   if (p.canvasW && p.canvasH) applyCanvasSize(p.canvasW, p.canvasH);
+  if (p.maskShape != null) {
+    state.maskShape = p.maskShape;
+    const el = $('maskShape');
+    if (el) el.value = p.maskShape;
+  }
+  if (p.colorRampTo != null) {
+    state.colorRampTo = p.colorRampTo;
+    const el = $('colorRampTo');
+    if (el) el.value = p.colorRampTo;
+  }
   scheduleRender();
 }
 

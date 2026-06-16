@@ -1,5 +1,26 @@
 # Decisions — SHAPER 001
 
+## 2026-06-17 (sessió 5) — randAtom: PRNG separat per efectes d'àtom
+
+Els efectes `charOpacity` i `charSkew` necessiten rolls aleatoris per caràcter. Afegir-los a `rand` canviaria l'output de tots els presets existents (el número de rolls per caràcter canviaria).
+
+Solució: `randAtom = mulberry32((seed ^ 0x9e3779b9) >>> 0)` — PRNG independent inicialitzat amb un seed diferent derivat del principal. Sempre consumeix 2 rolls per caràcter (inclús si els params són 0), de manera que la seqüència és determinista i no interfereix amb `rand`. La constant `0x9e3779b9` és el Golden Ratio hash (ben distribuïda, evita col·lisions de seed).
+
+## 2026-06-17 (sessió 5) — maskShape: clip canvas vs filter vs per-caràcter
+
+Tres opcions per implementar `maskShape`:
+1. Per caràcter: calcular si cada caràcter és dins la forma i descartar-lo si no → no dóna tall net als extrems dels glifs.
+2. SVG clipPath en `buildSVG` + canvas clip en `drawScene` → la versió canvas és la correcta per al preview.
+3. **Canvas clip via `ctx.save()/clip()/restore()`**: el background es dibuixa sempre a tota la pantalla (sin clip), el clip s'aplica només als glifs. La guia meta (`guideMeta`) queda fora del clip. **Acceptat.**
+
+SVG export no inclou el clipPath per ara (quedaria fora de l'àmbit de la sessió).
+
+## 2026-06-17 (sessió 5) — sizeRamp: layout vs draw-time
+
+`sizeRamp` podria afectar l'espai entre caràcters (font size diferent → amplades reals diferents). Però recalcular el layout amb mides per caràcter seria complex i lent.
+
+Decisió: `sizeMul` afecta NOMÉS la mida dibuixada, no el layout. Els caràcters es solapen o queden separats quan `sizeRamp` és alt — efecte artístic acceptable i coherent amb l'ethos generatiu de SHAPER.
+
 ## 2026-06-15 (sessió 4) — paramSpeed: warp sinusoïdal vs blend ArcLUT
 
 Primera implementació: `u = uArc*(1-ps) + rawU*ps`. No funcionava per formes circulars perquè `arcLUT(u) ≈ u` quan la curvatura és uniforme → blend ≈ no-op.

@@ -218,6 +218,10 @@ export function layout(params, width, height) {
     t,
     speed,
     customProfile,
+    charOpacity = 0,
+    charSkew = 0,
+    sizeRamp = 0,
+    densityMap = 0,
   } = params;
 
   // Time/speed default to 0/1 when absent (static render stays identical).
@@ -226,6 +230,7 @@ export function layout(params, width, height) {
   const trackRandAmt = typeof trackRand === 'number' ? trackRand : 0;
 
   const rand = mulberry32(seed);
+  const randAtom = mulberry32((seed ^ 0x9e3779b9) >>> 0);
   const marginLeft = 0;
   const words = tokenize(text);
   const profile = shape === 'custom'
@@ -279,14 +284,29 @@ export function layout(params, width, height) {
         const ch = word[c];
         const cw = measureChar(ch, fontSize, font);
 
+        // Atom PRNG rolls (separate PRNG — always consumed for determinism)
+        const atomOp = randAtom();
+        const atomSkewRaw = randAtom();
+
         const jitterOn = rand() < yJitterAffect;
         const yOff = jitterOn ? (rand() - 0.5) * 2 * yJitter : 0;
         const xChaos = (rand() - 0.5) * charChaos;
         const trackJ = rand() * trackRandAmt * fontSize;
-        const drop = rand() < dropProb;
+
+        // densityMap: drop probability increases toward right edge
+        let effectiveDrop = dropProb;
+        if (densityMap > 0) {
+          const xNorm = width > 0 ? Math.max(0, Math.min(1, x / width)) : 0;
+          effectiveDrop = Math.min(1, dropProb + densityMap * xNorm);
+        }
+        const drop = rand() < effectiveDrop;
 
         if (!drop) {
-          chars.push({ ch, x: x + xChaos, y: baseY + yOff });
+          const xNorm = width > 0 ? Math.max(0, Math.min(1, (x + xChaos) / width)) : 0;
+          const extraOp = charOpacity > 0 ? Math.max(0.05, 1 - charOpacity * (1 - atomOp)) : 1;
+          const skew = (atomSkewRaw - 0.5) * 2 * charSkew;
+          const sizeMul = sizeRamp !== 0 ? Math.max(0.1, 1 + sizeRamp * (xNorm * 2 - 1)) : 1;
+          chars.push({ ch, x: x + xChaos, y: baseY + yOff, extraOp, skew, sizeMul, colorT: xNorm });
         }
         x += cw + charTrack + trackJ + xChaos;
       }
@@ -307,7 +327,7 @@ export function layout(params, width, height) {
         for (const c of chars) {
           let px = c.x + s - advance;
           for (; px < width + fontSize; px += advance) {
-            if (px > -fontSize) tiled.push({ ch: c.ch, x: px, y: c.y });
+            if (px > -fontSize) tiled.push({ ...c, x: px });
           }
         }
         lines.push({ y: baseY, chars: tiled });
@@ -370,7 +390,7 @@ export function layout(params, width, height) {
           for (const c of line.chars) {
             let px = c.x + s - advance;
             for (; px < width + fontSize; px += advance) {
-              if (px > -fontSize) tiled.push({ ch: c.ch, x: px, y: c.y });
+              if (px > -fontSize) tiled.push({ ...c, x: px });
             }
           }
           lines[li] = { ...line, chars: tiled };
@@ -490,6 +510,55 @@ function escXML(s) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+// Parse a #rrggbb hex color into [r, g, b] integers.
+function parseHexColor(hex) {
+  const h = String(hex || '#000000').replace('#', '').padEnd(6, '0');
+  return [parseInt(h.slice(0, 2), 16) || 0, parseInt(h.slice(2, 4), 16) || 0, parseInt(h.slice(4, 6), 16) || 0];
+}
+
+// Linear interpolate between two #rrggbb colors; returns rgb() string.
+function lerpHex(a, b, t) {
+  const [ar, ag, ab] = parseHexColor(a);
+  const [br, bg, bb] = parseHexColor(b);
+  return `rgb(${Math.round(ar + (br - ar) * t)},${Math.round(ag + (bg - ag) * t)},${Math.round(ab + (bb - ab) * t)})`;
+}
+
+// Build a canvas clip path for maskShape. Returns true if a path was created.
+function applyMaskClip(ctx, shape, radius, width, height) {
+  const cx = width / 2, cy = height / 2;
+  const r = Math.min(width, height) * (radius || 0.75) * 0.5;
+  const rx = width * (radius || 0.75) * 0.5;
+  const ry = height * (radius || 0.75) * 0.5;
+  ctx.beginPath();
+  switch (shape) {
+    case 'circle':
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      break;
+    case 'ellipse-h':
+      ctx.ellipse(cx, cy, rx, ry * 0.55, 0, 0, Math.PI * 2);
+      break;
+    case 'ellipse-v':
+      ctx.ellipse(cx, cy, rx * 0.55, ry, 0, 0, Math.PI * 2);
+      break;
+    case 'diamond':
+      ctx.moveTo(cx, cy - r);
+      ctx.lineTo(cx + r, cy);
+      ctx.lineTo(cx, cy + r);
+      ctx.lineTo(cx - r, cy);
+      ctx.closePath();
+      break;
+    case 'triangle':
+      ctx.moveTo(cx, cy - r);
+      ctx.lineTo(cx + r, cy + r);
+      ctx.lineTo(cx - r, cy + r);
+      ctx.closePath();
+      break;
+    default:
+      return false;
+  }
+  return true;
 }
 
 // ===========================================================================
@@ -1865,6 +1934,10 @@ export function buildScene(params, width, height) {
       mode: '2d',
       bgColor, textColor, fontSize, fontSpec, width, height,
       lines,
+      maskShape: params.maskShape || 'none',
+      maskRadius: typeof params.maskRadius === 'number' ? params.maskRadius : 0.75,
+      colorRamp: typeof params.colorRamp === 'number' ? params.colorRamp : 0,
+      colorRampTo: params.colorRampTo || textColor,
     };
   }
 
@@ -1920,6 +1993,10 @@ export function buildScene(params, width, height) {
       speed3d: typeof params.speed3d === 'number' ? params.speed3d : 0,
       fps: P.fps,
     } : null,
+    maskShape: params.maskShape || 'none',
+    maskRadius: typeof params.maskRadius === 'number' ? params.maskRadius : 0.75,
+    colorRamp: typeof params.colorRamp === 'number' ? params.colorRamp : 0,
+    colorRampTo: params.colorRampTo || textColor,
   };
 }
 
@@ -2003,21 +2080,71 @@ export function drawScene(ctx, scene, width, height, dpr) {
   ctx.fillRect(0, 0, width, height);
 
   if (scene.mode === '2d') {
-    ctx.fillStyle = scene.textColor;
+    // Mask clip (2D)
+    let maskSaved2d = false;
+    if (scene.maskShape && scene.maskShape !== 'none') {
+      ctx.save();
+      if (applyMaskClip(ctx, scene.maskShape, scene.maskRadius, width, height)) {
+        ctx.clip();
+        maskSaved2d = true;
+      } else {
+        ctx.restore();
+      }
+    }
+
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
     const fs2d = scene.fontSpec;
-    ctx.font = `${fs2d.weight} ${scene.fontSize}px ${fs2d.family}`;
+    const hasColorRamp = scene.colorRamp > 0 && scene.colorRampTo;
+    let lastFs2d = -1;
+
     for (const line of scene.lines) {
       for (const c of line.chars) {
-        ctx.fillText(c.ch, c.x, c.y);
+        const extraOp = c.extraOp !== undefined ? c.extraOp : 1;
+        const sizeMul = c.sizeMul !== undefined ? c.sizeMul : 1;
+        const skew = c.skew || 0;
+        const colorT = c.colorT || 0;
+
+        ctx.globalAlpha = extraOp;
+        ctx.fillStyle = (hasColorRamp && colorT > 0)
+          ? lerpHex(scene.textColor, scene.colorRampTo, scene.colorRamp * colorT)
+          : scene.textColor;
+
+        const fs = scene.fontSize * sizeMul;
+        if (fs !== lastFs2d) {
+          ctx.font = `${fs2d.weight} ${fs}px ${fs2d.family}`;
+          lastFs2d = fs;
+        }
+
+        if (skew !== 0) {
+          ctx.setTransform(d, 0, d * skew * 0.3, d, d * c.x, d * c.y);
+          ctx.fillText(c.ch, 0, 0);
+          ctx.setTransform(d, 0, 0, d, 0, 0);
+        } else {
+          ctx.fillText(c.ch, c.x, c.y);
+        }
       }
     }
+    ctx.globalAlpha = 1;
+
+    if (maskSaved2d) ctx.restore();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     return;
   }
 
   // --- 3D ---
+  // Mask clip (3D)
+  let maskSaved3d = false;
+  if (scene.maskShape && scene.maskShape !== 'none') {
+    ctx.save();
+    if (applyMaskClip(ctx, scene.maskShape, scene.maskRadius, width, height)) {
+      ctx.clip();
+      maskSaved3d = true;
+    } else {
+      ctx.restore();
+    }
+  }
+
   // Guides: dashed strokes under the text.
   if (scene.guides) {
     ctx.save();
@@ -2061,6 +2188,8 @@ export function drawScene(ctx, scene, width, height, dpr) {
     }
   }
   ctx.globalAlpha = 1;
+
+  if (maskSaved3d) ctx.restore();
 
   if (scene.guideMeta && scene.guideMetaData) {
     const md = scene.guideMetaData;

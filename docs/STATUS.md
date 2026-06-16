@@ -1,6 +1,6 @@
 # STATUS — SHAPER 001
 
-_Actualitzat: 2026-06-15_
+_Actualitzat: 2026-06-17_
 
 ## Estat general
 
@@ -17,6 +17,25 @@ Estable. Desplegat a producció dins Pixel Perfect. La URL canònica és `/shape
 Vanilla JS zero-build (index.html, main.js, engine.js, styles.css). Sense bundler ni node_modules. `mp4-muxer.mjs` s'usa per a l'export MP4 via WebCodecs.
 
 ## Darrera sessió
+
+2026-06-17 (sessió 5) — 6 paràmetres d'àtom: charOpacity, charSkew, sizeRamp, colorRamp, densityMap, maskShape.
+
+Fet (sessió 5):
+
+- **`charOpacity`** (Opacitat aleatòria): opacitat per caràcter seeded independent (PRNG `randAtom`); rang 0=off → 1=màxima variació.
+- **`charSkew`** (Inclinació aleatòria): skew horitzontal per caràcter via shear canvas (`ctx.setTransform`); rang 0–1.
+- **`sizeRamp`** (Rampa de mida): `sizeMul` per posició X normalitzada; −1=gran esquerra/petit dreta, +1=l'invers. No afecta l'interletraje, efecte visual pur.
+- **`colorRamp`** + **`colorRampTo`**: gradient A→B esquerra→dreta; `lerpHex` per interpolar HEX; control de color addicional al panel Colors.
+- **`densityMap`** (Mapa de densitat): `dropProb` augmenta linealment cap a la dreta (zona densa esquerra → zona dispersa dreta).
+- **`maskShape`** (Forma màscara): clip canvas a cercle, diamant, el·lipse H/V, triangle; `maskRadius` controla la mida. Funciona tant a 2D com 3D.
+- **PRNGs separats**: `randAtom` (`seed ^ 0x9e3779b9`) és independent de `rand`; no trenca els presets existents.
+- **Tiling fix**: `flow` i `cascade` ara preserven tots els atributs per caràcter (`{ ...c, x: px }`).
+
+Sincronitzat a `02 Pixel Perfect/shaper/` ✓
+
+---
+
+## Darrera sessió (anterior)
 
 2026-06-15 (sessió 4) — Character Map + polits UI + audioreactiu fork.
 

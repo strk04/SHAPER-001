@@ -1,5 +1,23 @@
 # Progress — SHAPER 001
 
+## 2026-06-17 (sessió 5) — 6 paràmetres àtom: charOpacity, charSkew, sizeRamp, colorRamp, densityMap, maskShape
+
+### Fet
+- **`charOpacity`** [0–1]: opacitat aleatòria per caràcter via `randAtom` (PRNG separat de `rand`, seed `seed ^ 0x9e3779b9`).
+- **`charSkew`** [0–1]: inclinació aleatòria per caràcter via `ctx.setTransform` (shear × 0.3).
+- **`sizeRamp`** [−1–1]: rampa de mida per posició X; `sizeMul = 1 + sizeRamp*(xNorm*2−1)`.
+- **`colorRamp`** [0–1] + **`colorRampTo`** (color): gradient esquerra→dreta via `lerpHex`; control al panel Colors.
+- **`densityMap`** [0–1]: `dropProb` augmenta linealment cap a la dreta `(dropProb + densityMap * xNorm)`.
+- **`maskShape`** (select: none/circle/diamond/ellipse-h/ellipse-v/triangle) + **`maskRadius`** [0.1–1]: clip canvas; funciona a 2D i 3D (guideMeta fora del clip).
+- Fix `flow` i `cascade`: ara copien tots els atributs del caràcter (`{ ...c, x: px }`).
+- Sync `02 Pixel Perfect/shaper/` ✓
+
+### Pendent
+- Commit pendent (acumulats des de sessió 3–4–5).
+- Validació navegador.
+
+---
+
 ## 2026-06-15 (sessió 4) — noiseTexture, paramSpeed, Character Map, fork 002
 
 ### Fet

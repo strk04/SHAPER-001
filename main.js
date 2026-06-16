@@ -1362,12 +1362,19 @@ function buildCharMap() {
       btn.append(charSpan, hexSpan);
 
       btn.addEventListener('click', () => {
+        // Append char to Atom text
+        const textEl = $('text');
+        if (textEl) {
+          state.text += ch;
+          textEl.value = state.text;
+          scheduleRender();
+        }
         navigator.clipboard.writeText(ch).then(() => {
           btn.classList.add('is-copied');
-          announce('Copiat U+' + hex);
+          announce('Afegit U+' + hex);
           setTimeout(() => btn.classList.remove('is-copied'), 500);
         }).catch(() => {
-          announce('U+' + hex);
+          announce('Afegit U+' + hex);
         });
       });
 

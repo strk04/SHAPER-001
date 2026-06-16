@@ -1427,6 +1427,7 @@ function build3D(params, width, height) {
         scale: pr.scale,
         back,
         matrixTransform,
+        accentT: c.accentT || 0,
       });
     }
   }
@@ -2003,6 +2004,7 @@ export function buildScene(params, width, height) {
         opacity: op,
         mirrored: false,
         X: g.X, Y: g.Y,
+        accentT: g.accentT || 0,
       });
     } else {
       // Billboard path (surfaceText off, or degenerate fallback).
@@ -2014,6 +2016,7 @@ export function buildScene(params, width, height) {
         opacity: op,
         mirrored: !!(P.backfaceMirror && back),
         X: g.X, Y: g.Y,
+        accentT: g.accentT || 0,
       });
     }
   }
@@ -2205,13 +2208,14 @@ export function drawScene(ctx, scene, width, height, dpr) {
 
   // Glyphs (sorted back-to-front in buildScene). text-anchor:middle in SVG ->
   // textAlign:center here; baseline alphabetic matches SVG's default.
-  ctx.fillStyle = scene.textColor;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
   const fs3d = scene.fontSpec;
+  const hasAccent3d = scene.accentMode && scene.accentMode !== 'none';
   let lastFs = null;
   for (const g of scene.glyphs) {
     ctx.globalAlpha = g.opacity;
+    ctx.fillStyle = (hasAccent3d && g.accentT) ? scene.accentColor : scene.textColor;
     if (g.matrix) {
       const m = g.matrix;
       // setTransform composes with dpr: device = dpr * matrix.

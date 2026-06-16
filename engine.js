@@ -612,6 +612,7 @@ function read3DParams(params) {
     vNorm: !!params.vNorm,
     wrapMode: params.wrapMode || 'rings',
     paramSpeed: num(params.paramSpeed, 0),
+    surfaceEase: Math.max(0, Math.min(1, num(params.surfaceEase, 1))),
     noiseTexture: num(params.noiseTexture, 0),
     guideMeta: !!params.guideMeta,
     fps: num(params.fps, 0),
@@ -1150,7 +1151,7 @@ function buildArcLUT(formKey, v, P, inst, width, N = 200) {
   const ps = P.paramSpeed;
   const _N4 = 4; // corners per revolution for the density warp
   const _K = ps > 0 ? ps * 0.85 / (_N4 * 2 * Math.PI) : 0;
-  return (px) => {
+  return (px, uOffset = 0) => {
     const t01 = px / width;
     // paramSpeed > 0: monotone sinusoidal warp concentrates chars at corner
     // positions (t01 = 0, 0.25, 0.5, 0.75) and thins them at face centres.
@@ -1158,7 +1159,9 @@ function buildArcLUT(formKey, v, P, inst, width, N = 200) {
     const tW = _K > 0
       ? Math.max(0, Math.min(1, t01 - _K * Math.sin(_N4 * 2 * Math.PI * t01)))
       : t01;
-    const target = tW * arc01;
+    const shifted = tW + (((uOffset % 1) + 1) % 1);
+    const shifted01 = shifted <= 1 ? shifted : shifted % 1;
+    const target = shifted01 * arc01;
     let lo = 0;
     if (target <= 0) {
       lo = 0;
@@ -1269,15 +1272,26 @@ function build3D(params, width, height) {
       case 'columns':
         return { u: yNorm + flowU, v: xPix / width, tangent: null };
       case 'spiral': {
-        const { u, tangent } = getArcLUT(vN)(xPix);
-        return { u: u + flowU + yNorm * Math.max(1, P.turns), v: vN, tangent };
+        const rawU = xPix / width;
+        const motionU = flowU + yNorm * Math.max(1, P.turns);
+        const { u, tangent } = getArcLUT(vN)(xPix, motionU);
+        const rawMovedU = rawU + motionU;
+        const baseU = u + (rawMovedU - u) * P.surfaceEase;
+        return {
+          u: baseU,
+          v: vN,
+          tangent: P.surfaceEase > 0 ? null : tangent,
+        };
       }
       case 'panel':
         return { u: 0.25 + (xPix / width) * 0.5 + flowU, v: 0.25 + yNorm * 0.5, tangent: null };
       case 'rings':
       default: {
-        const { u, tangent } = getArcLUT(vN)(xPix);
-        return { u: u + flowU, v: vN, tangent };
+        const rawU = xPix / width;
+        const { u, tangent } = getArcLUT(vN)(xPix, flowU);
+        const rawMovedU = rawU + flowU;
+        const baseU = u + (rawMovedU - u) * P.surfaceEase;
+        return { u: baseU, v: vN, tangent: P.surfaceEase > 0 ? null : tangent };
       }
     }
   };

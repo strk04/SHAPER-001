@@ -52,6 +52,7 @@ const SLIDERS = {
   rainSpeed: { label: 'Velocitat de pluja', def: 0 },
   // --- 3D: Distribució ---
   paramSpeed: { label: 'Easing paramètric', def: 0 },
+  surfaceEase: { label: 'Inèrcia de superfície', def: 1 },
   noiseTexture: { label: 'Buits de textura', def: 0 },
 };
 
@@ -487,6 +488,8 @@ function updateEditorVisibility() {
   }
   const psEl = document.querySelector('.slider[data-key="paramSpeed"]');
   if (psEl) psEl.hidden = state.wrapMode !== 'rings' && state.wrapMode !== 'spiral';
+  const seEl = document.querySelector('.slider[data-key="surfaceEase"]');
+  if (seEl) seEl.hidden = state.wrapMode !== 'rings' && state.wrapMode !== 'spiral';
 }
 
 // --- SVG shape import ---

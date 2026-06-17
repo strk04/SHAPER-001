@@ -1263,7 +1263,12 @@ function projectPersp(p, P, width, height) {
     X: width / 2 + p.x * f,
     Y: height / 2 - p.y * f,
     z: p.z,
-    scale: (focal * P.zoom) / denom / (focal / dist), // ~1 at center plane
+    // Glyph scale: 1 at the center plane (z=0), varying only with depth.
+    // Zoom is intentionally excluded — it scales position spread (via f) but
+    // not glyph size, matching isometric (which renders glyphs at fontSize).
+    // Baking zoom in here made perspective glyphs ~zoom× larger → ~zoom²
+    // more fill area per fillText, the cause of the perspective slowdown.
+    scale: dist / denom,
   };
 }
 

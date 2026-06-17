@@ -335,16 +335,36 @@
 
         <section class="panel" id="panel-presets" hidden>
           <h3 class="panel-title">Presets</h3>
-          <div class="control-row">
-            <label class="sr-only" for="presetName">Nom del preset</label>
-            <input type="text" id="presetName" placeholder="Nom del preset" autocomplete="off" style="flex:1;min-width:0">
-            <button id="savePreset" type="button">Desa</button>
+
+          <!-- Setup: no token yet -->
+          <div id="ghSetup">
+            <p style="font-size:var(--text-xs);color:var(--ink-3);line-height:1.5;margin-bottom:var(--space-2)">
+              Connecta un <a href="https://github.com/settings/tokens" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Personal Access Token</a> de GitHub (permís <code>contents:write</code> al repo SHAPER-001) per guardar presets al núvol.
+            </p>
+            <div class="control-row">
+              <label class="sr-only" for="ghToken">GitHub Personal Access Token</label>
+              <input type="password" id="ghToken" placeholder="ghp_…" autocomplete="off" style="flex:1;min-width:0">
+              <button id="ghConnect" type="button">Connecta</button>
+            </div>
           </div>
-          <ul id="presetList" role="list" aria-label="Presets desats"></ul>
-          <div style="display:flex;gap:var(--space-1);margin-top:var(--space-2)">
-            <button id="exportPresets" type="button" style="flex:1">Export JSON</button>
-            <button id="importPresetsBtn" type="button" style="flex:1" aria-label="Importa presets des de JSON">Import JSON</button>
-            <input type="file" id="importPresets" accept=".json" style="display:none">
+
+          <!-- Main UI: token present -->
+          <div id="ghUI" hidden>
+            <div class="control-row" style="margin-bottom:var(--space-2)">
+              <label class="sr-only" for="ghProject">Projecte</label>
+              <select id="ghProject" style="flex:1"></select>
+              <button id="ghNewProject" type="button" aria-label="Nou projecte">+</button>
+            </div>
+            <div class="control-row">
+              <label class="sr-only" for="presetName">Nom del preset</label>
+              <input type="text" id="presetName" placeholder="Nom del preset" autocomplete="off" style="flex:1;min-width:0">
+              <button id="savePreset" type="button">Desa</button>
+            </div>
+            <ul id="presetList" role="list" aria-label="Presets desats"></ul>
+            <div style="display:flex;gap:var(--space-1);margin-top:var(--space-2)">
+              <button id="ghMigrate" type="button" style="flex:1" title="Importa els presets guardats localment al projecte seleccionat">Importa locals</button>
+              <button id="ghDisconnect" type="button" style="flex:1">Desconnecta</button>
+            </div>
           </div>
         </section>
 

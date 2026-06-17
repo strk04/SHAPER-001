@@ -1560,12 +1560,17 @@ function build3D(params, width, height) {
       if (morphActive && (morphScatter > 0 || morphSpeedVar > 0)) {
         const startOffset = morphScatter > 0 ? phaseRoll * morphScatter : 0;
         const baseSpan = Math.max(0.001, 1 - morphScatter);
-        // Log-normal speed: exp(±1.5 * speedVar) → ÷4.5x … ×4.5x at var=1
-        const spanMul = morphSpeedVar > 0
-          ? Math.exp((speedRoll - 0.5) * morphSpeedVar * 3)
-          : 1;
-        const charSpan = Math.max(0.001, baseSpan * spanMul);
-        localMix = Math.max(0, Math.min(1, (morphMix - startOffset) / charSpan));
+        // rawMix: each char's linear progress within its own [0,1] window.
+        // All chars reach rawMix=1 when morphMix=1, so no unfinished transitions.
+        const rawMix = Math.max(0, Math.min(1, (morphMix - startOffset) / baseSpan));
+        // Speed variation as a power-curve easing: power<1 = fast (concave),
+        // power>1 = slow (convex). Both start at 0 and end at 1. No hard cuts.
+        if (morphSpeedVar > 0 && rawMix > 0) {
+          const power = Math.exp((speedRoll - 0.5) * morphSpeedVar * 3);
+          localMix = Math.pow(rawMix, power);
+        } else {
+          localMix = rawMix;
+        }
       }
 
       let pt = morphSurface(wu, wv, inst, localMix);

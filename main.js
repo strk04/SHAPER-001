@@ -35,11 +35,14 @@ const SLIDERS = {
   sizeProb: { label: 'Probabilitat', def: 0.15 },
   sizeEvery: { label: 'Freqüència', def: 2 },
   // --- Accent colors ---
-  accentProb:  { label: 'Probabilitat 1', def: 0.15 },
-  accentProb2: { label: 'Probabilitat 2', def: 0 },
-  accentProb3: { label: 'Probabilitat 3', def: 0 },
-  accentProb4: { label: 'Probabilitat 4', def: 0 },
-  accentEvery: { label: 'Freqüència d\'alternança', def: 2 },
+  accentProb:   { label: 'Probabilitat 1', def: 0.15 },
+  accentEvery:  { label: 'Freqüència 1', def: 2 },
+  accentProb2:  { label: 'Probabilitat 2', def: 0 },
+  accentEvery2: { label: 'Freqüència 2', def: 2 },
+  accentProb3:  { label: 'Probabilitat 3', def: 0 },
+  accentEvery3: { label: 'Freqüència 3', def: 2 },
+  accentProb4:  { label: 'Probabilitat 4', def: 0 },
+  accentEvery4: { label: 'Freqüència 4', def: 2 },
   // --- 3D: Form ---
   formSize: { label: 'Mida de forma', def: 413 },
   aspect: { label: 'Proporció', def: 2.6 },
@@ -129,7 +132,10 @@ const state = {
   blinkMode: 'none',
   blinkFade: 0,
   sizeMode: 'none',
-  accentMode: 'none',
+  accentMode:  'none',
+  accentMode2: 'none',
+  accentMode3: 'none',
+  accentMode4: 'none',
   accentColor:  '#e8400a',
   accentColor2: '#0055ff',
   accentColor3: '#00aa55',
@@ -522,20 +528,19 @@ function updateSizeVisibility() {
 }
 
 function updateAccentVisibility() {
-  const mode   = state.accentMode;
-  const isNone = mode === 'none';
-  const isSeeded = mode === 'seeded';
-  const isAltWord = mode === 'alternating-word';
   [1, 2, 3, 4].forEach(n => {
-    const key = n === 1 ? 'accentColor' : `accentColor${n}`;
-    const el = document.querySelector(`label[for="${key}"]`);
-    if (el) el.hidden = isNone;
-    const probKey = n === 1 ? 'accentProb' : `accentProb${n}`;
-    const pEl = document.querySelector(`[data-key="${probKey}"]`);
-    if (pEl) pEl.hidden = !isSeeded;
+    const modeKey  = n === 1 ? 'accentMode'  : `accentMode${n}`;
+    const colorKey = n === 1 ? 'accentColor' : `accentColor${n}`;
+    const probKey  = n === 1 ? 'accentProb'  : `accentProb${n}`;
+    const everyKey = n === 1 ? 'accentEvery' : `accentEvery${n}`;
+    const mode = state[modeKey];
+    const colorEl = document.querySelector(`label[for="${colorKey}"]`);
+    const probEl  = document.querySelector(`[data-key="${probKey}"]`);
+    const evEl    = document.querySelector(`[data-key="${everyKey}"]`);
+    if (colorEl) colorEl.hidden = mode === 'none';
+    if (probEl)  probEl.hidden  = mode !== 'seeded';
+    if (evEl)    evEl.hidden    = mode !== 'alternating-word';
   });
-  const everyRow = document.querySelector('[data-key="accentEvery"]');
-  if (everyRow) everyRow.hidden = !isAltWord;
 }
 
 // --- Visibility (reused by select listeners and init) ---
@@ -820,14 +825,9 @@ function wireControls() {
       scheduleRender();
     });
   }
-  const accentModeEl = $('accentMode');
-  if (accentModeEl) {
-    accentModeEl.addEventListener('change', (e) => {
-      state.accentMode = e.target.value;
-      updateAccentVisibility();
-      scheduleRender();
-    });
-  }
+  ['accentMode', 'accentMode2', 'accentMode3', 'accentMode4'].forEach(id => {
+    $(id)?.addEventListener('change', (e) => { state[id] = e.target.value; updateAccentVisibility(); scheduleRender(); });
+  });
   ['accentColor', 'accentColor2', 'accentColor3', 'accentColor4'].forEach(id => {
     $(id)?.addEventListener('input', (e) => { state[id] = e.target.value; scheduleRender(); });
   });
@@ -1214,7 +1214,8 @@ function capturePreset() {
    'motion2d', 'mode', 'form', 'projection', 'guides',
    'backfaceMirror', 'surfaceText', 'wrapMode', 'canvasW', 'canvasH',
    'opacityMode', 'blinkMode', 'blinkFade', 'sizeMode',
-   'accentMode', 'accentColor', 'accentColor2', 'accentColor3', 'accentColor4'].forEach((k) => {
+   'accentMode', 'accentMode2', 'accentMode3', 'accentMode4',
+   'accentColor', 'accentColor2', 'accentColor3', 'accentColor4'].forEach((k) => {
     snap[k] = state[k];
   });
   return snap;
@@ -1274,12 +1275,10 @@ function applyPreset(p) {
     if (el) el.value = p.sizeMode;
     updateSizeVisibility();
   }
-  if (p.accentMode != null) {
-    state.accentMode = p.accentMode;
-    const el = $('accentMode');
-    if (el) el.value = p.accentMode;
-    updateAccentVisibility();
-  }
+  ['accentMode', 'accentMode2', 'accentMode3', 'accentMode4'].forEach(k => {
+    if (p[k] != null) { state[k] = p[k]; const el = $(k); if (el) el.value = p[k]; }
+  });
+  if (['accentMode','accentMode2','accentMode3','accentMode4'].some(k => p[k] != null)) updateAccentVisibility();
   ['accentColor', 'accentColor2', 'accentColor3', 'accentColor4'].forEach(k => {
     if (p[k] != null) { state[k] = p[k]; const el = $(k); if (el) el.value = p[k]; }
   });
@@ -1633,11 +1632,8 @@ function init() {
   updateArtworkLabel();
   render();
 
-  // prefers-reduced-motion: load PAUSED with a static frame. Explicit Play
-  // is still allowed (button never disabled/hidden). If the user enables
-  // reduce mid-session, pause immediately.
+  play();
   const rmq = window.matchMedia('(prefers-reduced-motion: reduce)');
-  if (!rmq.matches) play();
   const onReducedChange = (e) => {
     if (e.matches) pause();
   };

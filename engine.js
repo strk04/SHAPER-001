@@ -232,12 +232,10 @@ export function layout(params, width, height) {
     sizeAmt = 1.5,
     sizeProb = 0.15,
     sizeEvery = 2,
-    accentMode = 'none',
-    accentProb = 0.15,
-    accentProb2 = 0,
-    accentProb3 = 0,
-    accentProb4 = 0,
-    accentEvery = 2,
+    accentMode  = 'none', accentProb  = 0.15, accentEvery  = 2,
+    accentMode2 = 'none', accentProb2 = 0,    accentEvery2 = 2,
+    accentMode3 = 'none', accentProb3 = 0,    accentEvery3 = 2,
+    accentMode4 = 'none', accentProb4 = 0,    accentEvery4 = 2,
   } = params;
 
   // Time/speed default to 0/1 when absent (static render stays identical).
@@ -343,18 +341,21 @@ export function layout(params, width, height) {
           else if (blinkMode === 'alternating-word') blinkT = Math.floor(wordIdxForAccent / Math.max(1, blinkEvery)) % 2 === 1 ? 1 : 0;
           else if (blinkMode === 'first-letter') blinkT = c === 0 ? 1 : 0;
 
-          let accentT = 0;
-          if (accentMode === 'seeded') {
-            const b1 = accentProb, b2 = b1 + accentProb2, b3 = b2 + accentProb3, b4 = b3 + accentProb4;
-            if (atomAccent < b1) accentT = 1;
-            else if (atomAccent < b2) accentT = 2;
-            else if (atomAccent < b3) accentT = 3;
-            else if (atomAccent < b4) accentT = 4;
-          } else if (accentMode === 'alternating-word') {
-            accentT = (Math.floor(wordIdxForAccent / Math.max(1, accentEvery)) % 4) + 1;
-          } else if (accentMode === 'first-letter') {
-            accentT = c === 0 ? (wordIdxForAccent % 4) + 1 : 0;
+          const _a1 = atomAccent;
+          const _a2 = (atomAccent * 1.6180339887) % 1;
+          const _a3 = (atomAccent * 2.2360679774) % 1;
+          const _a4 = (atomAccent * 3.1415926535) % 1;
+          function _evalAM(mode, a, prob, every, wi, ci) {
+            if (mode === 'seeded')           return a < prob;
+            if (mode === 'alternating-word') return Math.floor(wi / Math.max(1, every)) % 2 === 1;
+            if (mode === 'first-letter')     return ci === 0;
+            return false;
           }
+          let accentT = 0;
+          if (_evalAM(accentMode4, _a4, accentProb4, accentEvery4, wordIdxForAccent, c)) accentT = 4;
+          if (_evalAM(accentMode3, _a3, accentProb3, accentEvery3, wordIdxForAccent, c)) accentT = 3;
+          if (_evalAM(accentMode2, _a2, accentProb2, accentEvery2, wordIdxForAccent, c)) accentT = 2;
+          if (_evalAM(accentMode,  _a1, accentProb,  accentEvery,  wordIdxForAccent, c)) accentT = 1;
 
           chars.push({ ch, x: x + xChaos, y: baseY + yOff, extraOp, skew, sizeMul, accentT, blinkT });
         }
@@ -2112,7 +2113,7 @@ export function drawScene(ctx, scene, width, height, dpr) {
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
     const fs2d = scene.fontSpec;
-    const hasAccent = scene.accentMode && scene.accentMode !== 'none';
+    const hasAccent = true;
     const blinkHalfMs2d = scene.blinkRate > 0 ? (500 / scene.blinkRate) : 500;
     const blinkActive2d = scene.blinkFade === 0 && scene.blinkMode !== 'none' && Math.floor(performance.now() / blinkHalfMs2d) % 2 === 0;
     const _cos2d = (Math.cos(performance.now() / (blinkHalfMs2d * 2) * Math.PI * 2) + 1) / 2;
@@ -2171,7 +2172,7 @@ export function drawScene(ctx, scene, width, height, dpr) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
   const fs3d = scene.fontSpec;
-  const hasAccent3d = scene.accentMode && scene.accentMode !== 'none';
+  const hasAccent3d = true;
   const blinkHalfMs3d = scene.blinkRate > 0 ? (500 / scene.blinkRate) : 500;
   const blinkActive3d = scene.blinkFade === 0 && scene.blinkMode !== 'none' && Math.floor(performance.now() / blinkHalfMs3d) % 2 === 0;
   const _cos3d = (Math.cos(performance.now() / (blinkHalfMs3d * 2) * Math.PI * 2) + 1) / 2;

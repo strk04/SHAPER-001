@@ -1,5 +1,17 @@
 # Decisions — SHAPER 001
 
+## 2026-06-17 (sessió 9) — accentT: 4 colors independents sense PRNG extra
+
+Cada color (1–4) té el seu propi mode (none/seeded/alternating-word/first-letter), prob i freq. Per evitar un 4t roll del PRNG `randAtom`, es deriven 4 valors del mateix `atomAccent` via multiplicació per constants irracional (φ=1.618, √5=2.236, π=3.141). Aquests valors cobreixen [0,1) uniformement i estan suficientment decorrelacionats per a ús visual. L'avaluació és per prioritat inversa: colors 4→3→2→1, el més alt en número guanya si hi ha superposició. La guarda `hasAccent` ha estat eliminada: `accentT>0` ja implica que s'ha de usar `accentColors[accentT]`, i `accentColors[0]` és sempre `textColor`.
+
+## 2026-06-17 (sessió 9) — blinkFade: slider 0–1 + blinkRate min 0.05 Hz
+
+`blinkFade` era un boolean (hard blink o fade cosí complet). Convertit a slider 0–1 per control precís de la profunditat del fade. `blinkFade=0` → hard blink (comportament anterior). `blinkFade=1` → fade cosí que arriba a opacitat 0. El cosinus fa que el fade sigui perceptivament suau (no lineal). `blinkRate` min 0.05 Hz permet cicles de 20 segons per fades molt lents i atmosfèrics.
+
+## 2026-06-17 (sessió 9) — Presets: GitHub API en lloc de localStorage
+
+`localStorage` es perd en format d'ordinador. Solució: repo GitHub `strk04/SHAPER-001` com a backend. Cada preset és un fitxer `presets/{projecte}/{nom}.json`. PAT token (personal access token) guardat en localStorage per autenticació. SHA cache (`Map`) per a PUT/DELETE sense GET previ. `TextEncoder`/`TextDecoder` per a base64 unicode-safe.
+
 ## 2026-06-17 (sessió 8) — extraOp/sizeMul/skew: pipeline 3D complet
 
 Igual que `accentT` (sessió 6), els valors per caràcter calculats a `layout()` han de propagar-se per tota la cadena 3D: `build3D` → `buildScene` → `drawScene`. Sense la propagació, qualsevol efecte per caràcter és invisible en mode 3D.

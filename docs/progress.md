@@ -1,18 +1,20 @@
 # Progress — SHAPER 001
 
-## 2026-06-17 (sessió 8) — Fix pipeline 3D: Transparència / Mida / Inclinació
+## 2026-06-17 (sessió 9) — 4 colors accent independents + blinkFade slider + GitHub presets
 
 ### Fet
-- **Fix `extraOp` en 3D**: `build3D` i `buildScene` ara propaguen `extraOp` a cada glif; `drawScene` 3D multiplica `g.extraOp` per l'opacitat de profunditat. La Transparència per caràcter ara funciona en mode 3D (default).
-- **Fix `sizeMul` en 3D**: propagat igual. `drawScene` 3D escala la matriu de superfície per `sizeMul` i multiplica `fontSize` del billboard. La Mida per caràcter ara funciona en 3D.
-- **Fix `skew` en 3D billboard**: propagat. `drawScene` 3D afegeix shear (component `c` del transform) per a glifs billboard. Per a glifs de superfície el skew s'aplica via l'escala de la matriu (no hi ha shear afegit — la matriu de rotació ja porta inclinació pròpia).
-- Sync `02 Pixel Perfect/shaper/engine.js` ✓
-
-### Causa del bug
-`build3D` i `buildScene` propagaven `accentT` i `blinkT` però NO `extraOp`, `skew` ni `sizeMul`. En mode 3D (el default), els tres efectes s'aplicaven correctament en `layout()` però es perdien en entrar al pipeline 3D.
+- **4 colors accent independents**: `engine.js` `layout()` ara calcula `accentT` (0–4) amb 4 valors derivats de `atomAccent` via multiplicació per φ/√5/π (sense rolls extra de PRNG). La funció `_evalAM()` avalua cada color independentment. Prioritat inversa: color 1 guanya (últim `if` en ordre 4→3→2→1). `hasAccent`/`hasAccent3d` eliminats com a guarda — `accentT>0` és suficient.
+- **`main.js`**: `updateAccentVisibility()` reescrita per 4 colors independents. Listeners per `accentMode2/3/4`, `accentColor2/3/4`. `capturePreset`/`applyPreset` inclouen tots els camps del 4 colors.
+- **`index.html`**: 4 blocs de color amb mode select + color picker + prob slider + every slider.
+- **blinkFade slider** (Dissolència 0–1): hard blink → fade cosí complet. `blinkRate` min 0.05 Hz.
+- **GitHub preset storage** (`presets-github.js`): repo `strk04/SHAPER-001`, path `presets/{projecte}/{nom}.json`.
+- **Auto-play a l'inici**: `play()` incondicionalment a `init()`.
+- **Fix pipeline 3D (sessió 8)**: `extraOp`/`sizeMul`/`skew` propagats a 3D.
+- Sync `02 Pixel Perfect/shaper/` ✓
 
 ### Pendent
-- Validació navegador dels tres efectes en mode 3D.
+- Validació visual al navegador: 4 colors accent en mode 3D (el default).
+- Test GitHub presets: conectar token, crear projecte, guardar/carregar/esborrar preset.
 - Commit pendent (acumulats sessions 3–8).
 
 ---

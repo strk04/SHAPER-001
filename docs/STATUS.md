@@ -18,15 +18,16 @@ Vanilla JS zero-build (index.html, main.js, engine.js, styles.css). Sense bundle
 
 ## Darrera sessió
 
-2026-06-17 (sessió 8) — Fix pipeline 3D: Transparència, Mida, Inclinació per caràcter.
+2026-06-17 (sessió 9) — 4 colors accent independents + blinkFade slider + GitHub presets + auto-play
 
-Fet (sessió 8):
+Fet (sessió 9):
 
-- **Fix `extraOp`/`sizeMul`/`skew` en mode 3D**: els tres valors es calculaven correctament a `layout()` però no es propagaven a `build3D` → `buildScene` → `drawScene`. Ara propagats i aplicats.
-- Transparència per caràcter (Transparència/opacityMode) ara visible en 3D.
-- Mida per caràcter (Mida/sizeMode) ara visible en 3D — superfície via escala de matriu, billboard via fontSize × sizeMul.
-- Inclinació aleatòria (charSkew) ara visible en 3D — aplicat com a shear al billboard; superfície usa la rotació pròpia de la matriu.
-- Sync `02 Pixel Perfect/shaper/engine.js` ✓
+- **4 colors accent independents** (`accentMode`/`accentColor` × 4): cada color té el seu propi mode select (none/seeded/alternating-word/first-letter), color picker, prob slider i freq slider. El `accentT` es calcula a `layout()` amb 4 randoms derivats (`atomAccent × φ, √5, π`) — sense PRNG extra. Prioritat: color 1 guanya si coincideixen múltiples. `hasAccent` eliminat com a guarda (ara `accentT>0` és suficient).
+- **blinkFade slider** (Dissolència 0–1): convertit de checkbox a slider. `blinkFade=0` → hard blink, `blinkFade=1` → fade cosí complet. `blinkRate` min ara 0.05 Hz per fades molt lents.
+- **GitHub preset storage** (`presets-github.js`): presets guardats a repo `strk04/SHAPER-001` com a JSON files dins `presets/{projecte}/{nom}.json`. PAT token en localStorage. SHA cache per a PUT/DELETE sense GET extra.
+- **Auto-play a l'inici**: l'animació arrenca en Play (no Pause) en carregar.
+- **Fix pipeline 3D** (sessió 8): `extraOp`/`sizeMul`/`skew` propagats per `build3D` → `buildScene` → `drawScene`.
+- Sync `02 Pixel Perfect/shaper/` (engine.js, main.js, index.html, presets-github.js) ✓
 
 ---
 

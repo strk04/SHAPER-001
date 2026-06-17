@@ -1,6 +1,6 @@
 # STATUS — SHAPER 001
 
-_Actualitzat: 2026-06-17 (sessió 12)_
+_Actualitzat: 2026-06-18 (sessió 13)_
 
 ## Estat general
 
@@ -18,17 +18,22 @@ Vanilla JS zero-build (index.html, main.js, engine.js, styles.css). Sense bundle
 
 ## Darrera sessió
 
-2026-06-17 (sessió 12) — Cadena de morph de 4 formes (base + 3 destins)
+2026-06-18 (sessió 13) — Morph orgànic per caràcter + fix desat de presets
 
-Fet (sessió 12):
+Fet (sessió 13):
 
-- **Cadena 1→2→3→4**: `morphForm2`/`morphForm3` afegits. Auto = bucle tancat amb hold 8s per node; manual = cadena oberta. `morphFrom`/`morphTo`/`morphMix` calculats un cop per frame.
-- **UI**: destins revelats seqüencialment; opcions clonades de destí 1.
-- Sync `02 Pixel Perfect/shaper/` ✓
+- **morphScatter** (0–1): desplaça l'inici de transició per caràcter (dissolució a 1). PRNG separat determinista.
+- **morphSpeedVar** (0–1): velocitat de transició diferent per caràcter via easing per potència (`rawMix ^ power`, power log-normal). Tots arriben a 1, sense talls.
+- **morphSpeed**: rang 0.01–0.3 (era 0.05–2), default 0.05.
+- **Fix presets**: feedback anava a `#exportStatus` (panell ocult) → desar fallava en silenci. Nou `#presetStatus` al panell Presets + `setPresetStatus()`. `validateToken()` verifica accés real al repo. Text repo corregit a `strk04/shaper-presets`.
+- Sync `02 Pixel Perfect/shaper/` ✓ · node --check OK
 
 ## Darrera sessió (anterior)
 
-2026-06-17 (sessió 11) — Sistema de morphing entre formes + fix slowdown perspectiva
+2026-06-17 (sessió 12) — Cadena de morph de 4 formes (base + 3 destins)
+
+- **Cadena 1→2→3→4**: `morphForm2`/`morphForm3` afegits. Auto = bucle tancat amb hold 8s per node; manual = cadena oberta. `morphFrom`/`morphTo`/`morphMix` calculats un cop per frame.
+- **UI**: destins revelats seqüencialment; opcions clonades de destí 1.
 
 Fet (sessió 11):
 

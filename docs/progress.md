@@ -1,5 +1,22 @@
 # Progress — SHAPER 001
 
+## 2026-06-18 (sessió 13) — Morph orgànic per caràcter + fix desat de presets
+
+### Fet
+- **morphScatter** (slider "Dispersió aleatòria", 0–1): desplaça quan comença la transició de cada caràcter. A 0 = blend uniforme; a 1 = dissolució (cada lletra salta en un moment aleatori). PRNG separat (`seed ^ 0xc0ffee77`), 2 rolls sempre consumits → determinista.
+- **morphSpeedVar** (slider "Variació de velocitat", 0–1): cada caràcter té una velocitat de transició diferent. Implementat com **easing per potència** (`localMix = rawMix ^ power`, power log-normal) dins la finestra normalitzada [0,1] — tots arriben a 1, sense talls.
+- **Fix bug tall sec**: la 1a versió de speedVar escalava l'ample de finestra (>1 → caràcters que mai acabaven → salt en reiniciar). Substituït per easing.
+- **morphSpeed**: rang reduït 0.05–2 → **0.01–0.3** (pas 0.01), default 0.2 → 0.05.
+- **Fix desat de presets**: el feedback anava a `#exportStatus` (panell Export, `hidden` des de Presets) → desar fallava en silenci visual. Nou `#presetStatus` al panell Presets + `setPresetStatus()`; tot el feedback de presets hi va.
+- **validateToken()**: ara verifica accés real al repo (push permission) en lloc de només `/user` → "connectat" ja no menteix si el token no pot escriure.
+- **Text UI**: nom del repo corregit (`SHAPER-001` → `strk04/shaper-presets`) + permís correcte.
+- Sync `02 Pixel Perfect/shaper/` ✓ · node --check OK
+
+### Pendent
+- Validació visual navegador: scatter + speedVar combinats; desat real amb token amb permisos.
+
+---
+
 ## 2026-06-17 (sessió 12) — Cadena de morph de 4 formes
 
 ### Fet

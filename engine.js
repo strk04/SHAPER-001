@@ -2613,14 +2613,33 @@ export function drawScene(ctx, scene, width, height, dpr) {
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
     ctx.font = fs.weight + ' 9px ' + fs.family;
-    const rows = [
-      'SIZE ' + md.formSize,
-      'AX ' + md.angleX.toFixed(1) + '  AY ' + md.angleY.toFixed(1),
-      'SPD ' + md.speed3d.toFixed(2),
-      'FPS ' + Math.round(md.fps),
-    ];
-    const lh = 11;
-    rows.forEach((row, i) => ctx.fillText(row, 10, height - 10 - (rows.length - 1 - i) * lh));
+
+    // Single horizontal row, anchored to the guides' bounding box so it sits
+    // along the base of the guide drawing (straight, in screen space).
+    const label =
+      'SIZE ' + md.formSize +
+      '   AX ' + md.angleX.toFixed(1) + '  AY ' + md.angleY.toFixed(1) +
+      '   SPD ' + md.speed3d.toFixed(2) +
+      '   FPS ' + Math.round(md.fps);
+
+    // Bounding box of the guide path (numbers come in X,Y pairs).
+    let gx = 10, gy = height - 10;
+    if (scene.guides) {
+      const nums = scene.guides.match(/-?\d+(?:\.\d+)?/g);
+      if (nums && nums.length >= 2) {
+        let minX = Infinity, maxY = -Infinity;
+        for (let i = 0; i + 1 < nums.length; i += 2) {
+          const x = +nums[i], y = +nums[i + 1];
+          if (x < minX) minX = x;
+          if (y > maxY) maxY = y;
+        }
+        if (isFinite(minX) && isFinite(maxY)) {
+          gx = Math.max(4, minX);
+          gy = Math.min(height - 4, maxY + 14); // just below the guides' base
+        }
+      }
+    }
+    ctx.fillText(label, gx, gy);
     ctx.globalAlpha = 1;
   }
 

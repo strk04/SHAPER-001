@@ -1,5 +1,13 @@
 # Decisions — SHAPER 001
 
+## 2026-06-18 (sessió 13) — speedVar com a easing per potència, no com a ample de finestra
+
+La variació de velocitat per caràcter es va implementar primer escalant l'ample de la finestra de transició (`charSpan = baseSpan * spanMul`). Bug: caràcters "lents" tenien `charSpan > 1` i mai arribaven a `localMix = 1` abans que el cicle reiniciés → salt sec. Decisió: la velocitat és un **easing per potència** dins la finestra normalitzada [0,1] (`localMix = rawMix ^ power`, `power = exp((roll-0.5)·var·3)`). `x^n = 1` quan `x = 1` per qualsevol potència → cap caràcter queda a mig camí, sense talls. scatter i speedVar usen un PRNG separat amb 2 rolls SEMPRE consumits (independentment dels valors) per mantenir el determinisme seed+params.
+
+## 2026-06-18 (sessió 13) — Feedback de presets en panell propi + validació d'accés real
+
+Els missatges de presets escrivien a `#exportStatus`, que viu al panell Export (`hidden` quan s'està al panell Presets) → desar/error invisibles, símptoma "no passa res". Decisió: cada panell amb el seu propi `role="status"`; `#presetStatus` al panell Presets, `setPresetStatus()` dedicat. A més, `validateToken()` validava només `/user`, que passa amb qualsevol token vàlid encara que no tingui accés al repo privat → l'app deia "connectat" i després fallava amb 404 silenciós. Ara `validateToken()` fa també `GET /repos/{REPO}` i comprova `permissions.push`, llançant un error clar i accionable si el token no pot escriure. Principi: l'estat "connectat" no ha de mentir mai sobre la capacitat real.
+
 ## 2026-06-17 (sessió 12) — Morph chain: from/to/mix per frame, no per glif
 
 La cadena de N formes podria interpolar tots els nodes per caràcter, però només calen dos `surfaceMap` per glif (node origen i destí del segment actiu). Per tant `morphFrom`/`morphTo`/`morphMix` es resolen un sol cop per frame (fora del loop de glifs) segons el rellotge auto o el slider manual. Cost idèntic al morph de 2 formes. Auto és bucle **tancat** (l'últim node torna a la base) perquè l'animació no salti; manual és cadena **oberta** (Blend 1 = últim destí) per donar control directe de l'extrem. Els destins es revelen seqüencialment a la UI per evitar configuracions amb forats (destí 3 sense destí 2).

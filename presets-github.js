@@ -1,7 +1,7 @@
 // presets-github.js — GitHub-backed preset storage for SHAPER 001
 // Stores presets as JSON files at presets/{project}/{name}.json in the repo.
 
-const REPO      = 'strk04/SHAPER-001';
+const REPO      = 'strk04/shaper-presets';
 const API       = 'https://api.github.com';
 const TOKEN_KEY = 'shaper-gh-token';
 

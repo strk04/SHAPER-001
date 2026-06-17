@@ -69,7 +69,8 @@ const SLIDERS = {
   // --- Morph ---
   morphT:       { label: 'Blend', def: 0 },
   morphSpeed:   { label: 'Velocitat morph', def: 0.2 },
-  morphScatter: { label: 'Dispersió aleatòria', def: 0 },
+  morphScatter:  { label: 'Dispersió aleatòria', def: 0 },
+  morphSpeedVar: { label: 'Variació de velocitat', def: 0 },
 };
 
 const FORM_3D_CONTROLS = {
@@ -188,7 +189,7 @@ function formatSliderValue(key, value) {
        'charOpacity', 'charSkew', 'densityMap',
        'opacityProb', 'blinkProb', 'sizeProb',
        'accentProb', 'accentProb2', 'accentProb3', 'accentProb4',
-       'morphScatter'].includes(key)) {
+       'morphScatter', 'morphSpeedVar'].includes(key)) {
     return n.toFixed(2).replace(/\.?0+$/, '');
   }
   if (['frequency'].includes(key)) return n.toFixed(3).replace(/\.?0+$/, '');
@@ -588,7 +589,9 @@ function updateMorphVisibility() {
   if (autoRow)    autoRow.hidden    = !active;
   if (blendRow)   blendRow.hidden   = !active || state.morphAuto;
   if (speedRow)   speedRow.hidden   = !active || !state.morphAuto;
-  if (scatterRow) scatterRow.hidden = !active;
+  const speedVarRow = document.querySelector('[data-key="morphSpeedVar"]');
+  if (scatterRow)  scatterRow.hidden  = !active;
+  if (speedVarRow) speedVarRow.hidden = !active;
 }
 
 // --- Visibility (reused by select listeners and init) ---

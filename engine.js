@@ -626,7 +626,8 @@ function read3DParams(params) {
     morphAuto: !!params.morphAuto,
     morphSpeed: num(params.morphSpeed, 0.2),
     morphClock: num(params.morphClock, 0),
-    morphScatter: Math.max(0, Math.min(1, num(params.morphScatter, 0))),
+    morphScatter:  Math.max(0, Math.min(1, num(params.morphScatter, 0))),
+    morphSpeedVar: Math.max(0, Math.min(1, num(params.morphSpeedVar, 0))),
   };
 }
 
@@ -1447,9 +1448,10 @@ function build3D(params, width, height) {
     }
   }
   const morphActive = Nnode > 1 && morphFrom !== morphTo;
-  // Scatter: per-character random phase that staggers each char's transition window.
-  // Separate seeded PRNG so it never interferes with existing rand3 rolls.
-  const morphScatter = P.morphScatter || 0;
+  // Scatter + speed variation: per-character randomness for morph timing.
+  // Uses a separate seeded PRNG so it never interferes with existing rand3 rolls.
+  const morphScatter  = P.morphScatter  || 0;
+  const morphSpeedVar = P.morphSpeedVar || 0;
   const morphScatterRand = mulberry32(((seed ^ 0xc0ffee77) + 1) >>> 0);
   const surfaceFlowU = time * spd * 0.12;
 
@@ -1548,16 +1550,22 @@ function build3D(params, width, height) {
         wv = v + (fbm2D(u * 2 +  3.1, v * 2.5 + 12.7) - 0.5) * str * 0.5;
       }
 
-      // Per-character scatter: each char gets a random phase that offsets when
-      // its local transition window starts. At scatter=0 all chars move together.
-      // At scatter=1 each char snaps at a random moment across the full morphMix range.
+      // Per-character scatter + speed variation.
+      // Two rolls always consumed so char assignments stay deterministic regardless of params.
+      // phaseRoll → when this char's transition window starts (scatter)
+      // speedRoll → how wide (fast/slow) this char's transition window is (speedVar)
+      const phaseRoll = morphScatterRand();
+      const speedRoll = morphScatterRand();
       let localMix = morphMix;
-      if (morphScatter > 0 && morphActive) {
-        const phase = morphScatterRand();
-        const span = Math.max(0.001, 1 - morphScatter);
-        localMix = Math.max(0, Math.min(1, (morphMix - phase * morphScatter) / span));
-      } else {
-        morphScatterRand(); // consume roll to keep PRNG position deterministic
+      if (morphActive && (morphScatter > 0 || morphSpeedVar > 0)) {
+        const startOffset = morphScatter > 0 ? phaseRoll * morphScatter : 0;
+        const baseSpan = Math.max(0.001, 1 - morphScatter);
+        // Log-normal speed: exp(±1.5 * speedVar) → ÷4.5x … ×4.5x at var=1
+        const spanMul = morphSpeedVar > 0
+          ? Math.exp((speedRoll - 0.5) * morphSpeedVar * 3)
+          : 1;
+        const charSpan = Math.max(0.001, baseSpan * spanMul);
+        localMix = Math.max(0, Math.min(1, (morphMix - startOffset) / charSpan));
       }
 
       let pt = morphSurface(wu, wv, inst, localMix);

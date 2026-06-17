@@ -165,6 +165,8 @@ const state = {
   accentColor4: '#ffaa00',
   fps: 0,
   morphForm: '',
+  morphForm2: '',
+  morphForm3: '',
   morphAuto: false,
   morphClock: 0,
   // Custom drawing data (input data, never randomness). Plain arrays so they
@@ -572,6 +574,11 @@ function updateAccentVisibility() {
 
 function updateMorphVisibility() {
   const active = !!state.morphForm;
+  // Reveal destí 2 once destí 1 is set, destí 3 once destí 2 is set.
+  const row2 = document.querySelector('label[for="morphForm2"]');
+  const row3 = document.querySelector('label[for="morphForm3"]');
+  if (row2) row2.hidden = !state.morphForm;
+  if (row3) row3.hidden = !state.morphForm2;
   const autoRow  = document.querySelector('[data-morph="auto-row"]');
   const blendRow = document.querySelector('[data-key="morphT"]');
   const speedRow = document.querySelector('[data-key="morphSpeed"]');
@@ -927,10 +934,17 @@ function wireControls() {
     scheduleRender();
   });
 
-  $('morphForm').addEventListener('change', (e) => {
-    state.morphForm = e.target.value;
-    updateMorphVisibility();
-    scheduleRender();
+  // Clone the destí-1 option list into destí 2 and 3, then sync initial values.
+  ['morphForm2', 'morphForm3'].forEach((id) => {
+    $(id).innerHTML = $('morphForm').innerHTML;
+    $(id).value = state[id];
+  });
+  ['morphForm', 'morphForm2', 'morphForm3'].forEach((id) => {
+    $(id).addEventListener('change', (e) => {
+      state[id] = e.target.value;
+      updateMorphVisibility();
+      scheduleRender();
+    });
   });
 
   $('morphAuto').addEventListener('change', (e) => {
@@ -1266,7 +1280,7 @@ function capturePreset() {
    'opacityMode', 'blinkMode', 'blinkFade', 'sizeMode',
    'accentMode', 'accentMode2', 'accentMode3', 'accentMode4',
    'accentColor', 'accentColor2', 'accentColor3', 'accentColor4',
-   'morphForm', 'morphAuto'].forEach((k) => {
+   'morphForm', 'morphForm2', 'morphForm3', 'morphAuto'].forEach((k) => {
     snap[k] = state[k];
   });
   return snap;
@@ -1333,17 +1347,15 @@ function applyPreset(p) {
   ['accentColor', 'accentColor2', 'accentColor3', 'accentColor4'].forEach(k => {
     if (p[k] != null) { state[k] = p[k]; const el = $(k); if (el) el.value = p[k]; }
   });
-  if (p.morphForm != null) {
-    state.morphForm = p.morphForm;
-    const el = $('morphForm');
-    if (el) el.value = p.morphForm;
-  }
+  ['morphForm', 'morphForm2', 'morphForm3'].forEach((k) => {
+    if (p[k] != null) { state[k] = p[k]; const el = $(k); if (el) el.value = p[k]; }
+  });
   if (p.morphAuto != null) {
     state.morphAuto = p.morphAuto;
     const el = $('morphAuto');
     if (el) el.checked = p.morphAuto;
   }
-  if (p.morphForm != null || p.morphAuto != null) updateMorphVisibility();
+  if (['morphForm','morphForm2','morphForm3','morphAuto'].some(k => p[k] != null)) updateMorphVisibility();
   scheduleRender();
 }
 

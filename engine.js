@@ -620,6 +620,8 @@ function read3DParams(params) {
     guideMeta: !!params.guideMeta,
     fps: num(params.fps, 0),
     morphForm: params.morphForm || '',
+    morphForm2: params.morphForm2 || '',
+    morphForm3: params.morphForm3 || '',
     morphT: num(params.morphT, 0),
     morphAuto: !!params.morphAuto,
     morphSpeed: num(params.morphSpeed, 0.2),
@@ -1412,27 +1414,38 @@ function build3D(params, width, height) {
   // Delta in layout pixels used for surface tangent sampling.
   const TANGENT_D = 2;
   const formKey = P.form === 'cluster' ? 'cube' : P.form;
-  const morphFormKey = P.morphForm || '';
-  let morphTeff;
-  if (P.morphAuto && morphFormKey) {
-    // Cycle (real seconds): transition 0→1, hold 8s, transition 1→0, hold 8s.
-    // Transition duration scales inversely with morphSpeed (≈5s at 0.2).
-    const HOLD = 8;
-    const Ttr = 1 / Math.max(0.01, P.morphSpeed);
-    const period = 2 * Ttr + 2 * HOLD;
-    const ph = ((P.morphClock % period) + period) % period;
-    if (ph < Ttr) {
-      morphTeff = (1 - Math.cos((ph / Ttr) * Math.PI)) / 2;       // 0→1 eased
-    } else if (ph < Ttr + HOLD) {
-      morphTeff = 1;                                               // hold at B
-    } else if (ph < 2 * Ttr + HOLD) {
-      morphTeff = (1 + Math.cos(((ph - Ttr - HOLD) / Ttr) * Math.PI)) / 2; // 1→0 eased
+
+  // Morph chain: base form (node 1) → destí 1/2/3 (nodes 2,3,4), in order.
+  // Only non-empty destinations are included, sequentially after the base.
+  const chainForms = [formKey];
+  [P.morphForm, P.morphForm2, P.morphForm3].forEach((f) => { if (f) chainForms.push(f); });
+  const Nnode = chainForms.length;       // total forms in the chain
+  let morphFrom = formKey, morphTo = formKey, morphMix = 0;
+  if (Nnode > 1) {
+    if (P.morphAuto) {
+      // Closed loop: 0→1→2→…→last→0, each transition eased then held 8s.
+      // Transition duration scales inversely with morphSpeed (≈5s at 0.2).
+      const HOLD = 8;
+      const Ttr = 1 / Math.max(0.01, P.morphSpeed);
+      const segDur = Ttr + HOLD;
+      const period = Nnode * segDur;     // Nnode transitions (last wraps to base)
+      const ph = ((P.morphClock % period) + period) % period;
+      const seg = Math.min(Nnode - 1, Math.floor(ph / segDur));
+      const local = ph - seg * segDur;
+      morphFrom = chainForms[seg];
+      morphTo = chainForms[(seg + 1) % Nnode];
+      morphMix = local < Ttr ? (1 - Math.cos((local / Ttr) * Math.PI)) / 2 : 1;
     } else {
-      morphTeff = 0;                                              // hold at A
+      // Manual Blend 0→1 maps across the open chain (no wrap back to base).
+      const segs = Nnode - 1;
+      const x = Math.max(0, Math.min(1, P.morphT || 0)) * segs;
+      const seg = Math.min(segs - 1, Math.floor(x));
+      morphFrom = chainForms[seg];
+      morphTo = chainForms[seg + 1];
+      morphMix = x - seg;
     }
-  } else {
-    morphTeff = Math.max(0, Math.min(1, P.morphT || 0));
   }
+  const morphActive = Nnode > 1 && morphFrom !== morphTo;
   const surfaceFlowU = time * spd * 0.12;
 
   // Flat forms don't wrap in u: an unbounded surfaceFlowU would move glyphs
@@ -1485,16 +1498,15 @@ function build3D(params, width, height) {
   // Helper: apply the full transform chain to a (u,v) point given a fixed
   // instance offset and a fixed rain fall offset (dy). Returns projected point.
   const morphSurface = (u, v, inst) => {
-    if (morphTeff > 0 && morphFormKey) {
-      const ptA = surfaceMap(formKey, u, v, P, inst);
-      const ptB = surfaceMap(morphFormKey, u, v, P, inst);
-      const t = morphTeff;
-      return {
-        x: ptA.x + (ptB.x - ptA.x) * t, y: ptA.y + (ptB.y - ptA.y) * t, z: ptA.z + (ptB.z - ptA.z) * t,
-        nx: ptA.nx + (ptB.nx - ptA.nx) * t, ny: ptA.ny + (ptB.ny - ptA.ny) * t, nz: ptA.nz + (ptB.nz - ptA.nz) * t,
-      };
-    }
-    return surfaceMap(formKey, u, v, P, inst);
+    if (!morphActive) return surfaceMap(formKey, u, v, P, inst);
+    const ptA = surfaceMap(morphFrom, u, v, P, inst);
+    if (morphMix <= 0) return ptA;
+    const ptB = surfaceMap(morphTo, u, v, P, inst);
+    const t = morphMix;
+    return {
+      x: ptA.x + (ptB.x - ptA.x) * t, y: ptA.y + (ptB.y - ptA.y) * t, z: ptA.z + (ptB.z - ptA.z) * t,
+      nx: ptA.nx + (ptB.nx - ptA.nx) * t, ny: ptA.ny + (ptB.ny - ptA.ny) * t, nz: ptA.nz + (ptB.nz - ptA.nz) * t,
+    };
   };
 
   const transformPoint = (u, v, inst, rainDY) => {

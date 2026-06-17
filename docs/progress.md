@@ -1,5 +1,19 @@
 # Progress — SHAPER 001
 
+## 2026-06-17 (sessió 12) — Cadena de morph de 4 formes
+
+### Fet
+- **Cadena de morph 1→2→3→4**: afegits `morphForm2`, `morphForm3`. La forma base és el node 1; els 3 destins són nodes 2,3,4 (en ordre).
+- **build3D**: `chainForms` filtra els destins no buits seqüencialment. Càlcul per frame (un cop) de `morphFrom`/`morphTo`/`morphMix`. **Auto** = bucle tancat (base→d1→d2→d3→base), transició eased + hold 8s a cada node. **Manual** (Blend 0–1) = cadena oberta sense tornar a base.
+- **UI**: destí 2 apareix en omplir destí 1, destí 3 en omplir destí 2 (`updateMorphVisibility`). Opcions de destí 2/3 clonades de destí 1 via JS (sense triplicar HTML).
+- **Presets**: `morphForm2`/`morphForm3` a capture/apply.
+- Sync `02 Pixel Perfect/shaper/` ✓ · node --check OK
+
+### Pendent
+- Validació visual navegador: cadena 4 formes auto + manual.
+
+---
+
 ## 2026-06-17 (sessió 11) — Sistema de morphing entre formes + fix perspectiva
 
 ### Fet

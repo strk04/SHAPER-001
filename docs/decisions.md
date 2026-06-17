@@ -1,5 +1,11 @@
 # Decisions — SHAPER 001
 
+## 2026-06-17 (sessió 12) — Morph chain: from/to/mix per frame, no per glif
+
+La cadena de N formes podria interpolar tots els nodes per caràcter, però només calen dos `surfaceMap` per glif (node origen i destí del segment actiu). Per tant `morphFrom`/`morphTo`/`morphMix` es resolen un sol cop per frame (fora del loop de glifs) segons el rellotge auto o el slider manual. Cost idèntic al morph de 2 formes. Auto és bucle **tancat** (l'últim node torna a la base) perquè l'animació no salti; manual és cadena **oberta** (Blend 1 = últim destí) per donar control directe de l'extrem. Els destins es revelen seqüencialment a la UI per evitar configuracions amb forats (destí 3 sense destí 2).
+
+
+
 ## 2026-06-17 (sessió 11) — Morph: lerp UV en lloc de morph topològic
 
 El morphing entre formes es fa interpolant linealment els punts 3D que `surfaceMap` retorna per al mateix `(u,v)` a forma A i forma B (`morphSurface`). Avantatge: zero estructura nova — reutilitza tot el pipeline existent (rotació, projecció, surfaceText, pulse, rain s'apliquen al punt ja interpolat). Cada caràcter conserva el seu `(u,v)`, així es mou pel camí 3D més curt entre la seva posició a A i a B. No és un morph topològic real (no re-malla), però visualment és fluid per a tipografia generativa. La normal també s'interpola per mantenir l'orientació de surfaceText coherent.

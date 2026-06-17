@@ -1,6 +1,6 @@
 # STATUS — SHAPER 001
 
-_Actualitzat: 2026-06-17 (sessió 11)_
+_Actualitzat: 2026-06-17 (sessió 12)_
 
 ## Estat general
 
@@ -17,6 +17,16 @@ Estable. Desplegat a producció dins Pixel Perfect. La URL canònica és `/shape
 Vanilla JS zero-build (index.html, main.js, engine.js, styles.css). Sense bundler ni node_modules. `mp4-muxer.mjs` s'usa per a l'export MP4 via WebCodecs.
 
 ## Darrera sessió
+
+2026-06-17 (sessió 12) — Cadena de morph de 4 formes (base + 3 destins)
+
+Fet (sessió 12):
+
+- **Cadena 1→2→3→4**: `morphForm2`/`morphForm3` afegits. Auto = bucle tancat amb hold 8s per node; manual = cadena oberta. `morphFrom`/`morphTo`/`morphMix` calculats un cop per frame.
+- **UI**: destins revelats seqüencialment; opcions clonades de destí 1.
+- Sync `02 Pixel Perfect/shaper/` ✓
+
+## Darrera sessió (anterior)
 
 2026-06-17 (sessió 11) — Sistema de morphing entre formes + fix slowdown perspectiva
 

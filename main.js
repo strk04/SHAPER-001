@@ -66,6 +66,9 @@ const SLIDERS = {
   rainSpeed: { label: 'Velocitat de pluja', def: 0 },
   // --- 3D: Distribució ---
   noiseTexture: { label: 'Buits de textura', def: 0 },
+  // --- Morph ---
+  morphT:     { label: 'Blend', def: 0 },
+  morphSpeed: { label: 'Velocitat morph', def: 0.2 },
 };
 
 const FORM_3D_CONTROLS = {
@@ -161,6 +164,8 @@ const state = {
   accentColor3: '#00aa55',
   accentColor4: '#ffaa00',
   fps: 0,
+  morphForm: '',
+  morphAuto: false,
   // Custom drawing data (input data, never randomness). Plain arrays so they
   // pass straight into the engine. Default = engine defaults.
   customProfile: DEFAULT_CUSTOM_PROFILE.slice(),
@@ -563,6 +568,16 @@ function updateAccentVisibility() {
   });
 }
 
+function updateMorphVisibility() {
+  const active = !!state.morphForm;
+  const autoRow  = document.querySelector('[data-morph="auto-row"]');
+  const blendRow = document.querySelector('[data-key="morphT"]');
+  const speedRow = document.querySelector('[data-key="morphSpeed"]');
+  if (autoRow)  autoRow.hidden  = !active;
+  if (blendRow) blendRow.hidden = !active || state.morphAuto;
+  if (speedRow) speedRow.hidden = !active || !state.morphAuto;
+}
+
 // --- Visibility (reused by select listeners and init) ---
 function updateEditorVisibility() {
   const su2d = $('svgUpload2d');
@@ -910,6 +925,18 @@ function wireControls() {
     scheduleRender();
   });
 
+  $('morphForm').addEventListener('change', (e) => {
+    state.morphForm = e.target.value;
+    updateMorphVisibility();
+    scheduleRender();
+  });
+
+  $('morphAuto').addEventListener('change', (e) => {
+    state.morphAuto = e.target.checked;
+    updateMorphVisibility();
+    scheduleRender();
+  });
+
   $('recordVideo').addEventListener('click', toggleRecord);
   $('saveSvg').addEventListener('click', saveSVG);
   $('savePng72').addEventListener('click', () => savePNG(72));
@@ -1235,7 +1262,8 @@ function capturePreset() {
    'backfaceMirror', 'surfaceText', 'wrapMode', 'canvasW', 'canvasH',
    'opacityMode', 'blinkMode', 'blinkFade', 'sizeMode',
    'accentMode', 'accentMode2', 'accentMode3', 'accentMode4',
-   'accentColor', 'accentColor2', 'accentColor3', 'accentColor4'].forEach((k) => {
+   'accentColor', 'accentColor2', 'accentColor3', 'accentColor4',
+   'morphForm', 'morphAuto'].forEach((k) => {
     snap[k] = state[k];
   });
   return snap;
@@ -1302,6 +1330,17 @@ function applyPreset(p) {
   ['accentColor', 'accentColor2', 'accentColor3', 'accentColor4'].forEach(k => {
     if (p[k] != null) { state[k] = p[k]; const el = $(k); if (el) el.value = p[k]; }
   });
+  if (p.morphForm != null) {
+    state.morphForm = p.morphForm;
+    const el = $('morphForm');
+    if (el) el.value = p.morphForm;
+  }
+  if (p.morphAuto != null) {
+    state.morphAuto = p.morphAuto;
+    const el = $('morphAuto');
+    if (el) el.checked = p.morphAuto;
+  }
+  if (p.morphForm != null || p.morphAuto != null) updateMorphVisibility();
   scheduleRender();
 }
 
@@ -1648,6 +1687,7 @@ function init() {
   updateBlinkVisibility();
   updateSizeVisibility();
   updateAccentVisibility();
+  updateMorphVisibility();
   updatePlayPauseUI();
   updateArtworkLabel();
   render();

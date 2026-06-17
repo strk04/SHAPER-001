@@ -619,6 +619,10 @@ function read3DParams(params) {
     noiseTexture: num(params.noiseTexture, 0),
     guideMeta: !!params.guideMeta,
     fps: num(params.fps, 0),
+    morphForm: params.morphForm || '',
+    morphT: num(params.morphT, 0),
+    morphAuto: !!params.morphAuto,
+    morphSpeed: num(params.morphSpeed, 0.2),
   };
 }
 
@@ -1402,6 +1406,10 @@ function build3D(params, width, height) {
   // Delta in layout pixels used for surface tangent sampling.
   const TANGENT_D = 2;
   const formKey = P.form === 'cluster' ? 'cube' : P.form;
+  const morphFormKey = P.morphForm || '';
+  const morphTeff = P.morphAuto && morphFormKey
+    ? (1 - Math.cos(time * P.morphSpeed * 2 * Math.PI)) / 2
+    : Math.max(0, Math.min(1, P.morphT || 0));
   const surfaceFlowU = time * spd * 0.12;
 
   // Flat forms don't wrap in u: an unbounded surfaceFlowU would move glyphs
@@ -1453,8 +1461,21 @@ function build3D(params, width, height) {
 
   // Helper: apply the full transform chain to a (u,v) point given a fixed
   // instance offset and a fixed rain fall offset (dy). Returns projected point.
+  const morphSurface = (u, v, inst) => {
+    if (morphTeff > 0 && morphFormKey) {
+      const ptA = surfaceMap(formKey, u, v, P, inst);
+      const ptB = surfaceMap(morphFormKey, u, v, P, inst);
+      const t = morphTeff;
+      return {
+        x: ptA.x + (ptB.x - ptA.x) * t, y: ptA.y + (ptB.y - ptA.y) * t, z: ptA.z + (ptB.z - ptA.z) * t,
+        nx: ptA.nx + (ptB.nx - ptA.nx) * t, ny: ptA.ny + (ptB.ny - ptA.ny) * t, nz: ptA.nz + (ptB.nz - ptA.nz) * t,
+      };
+    }
+    return surfaceMap(formKey, u, v, P, inst);
+  };
+
   const transformPoint = (u, v, inst, rainDY) => {
-    let pt = surfaceMap(formKey, u, v, P, inst);
+    let pt = morphSurface(u, v, inst);
     if (P.pulse > 0) {
       pt = { ...pt, x: pt.x * pulseScale, y: pt.y * pulseScale, z: pt.z * pulseScale };
     }
@@ -1487,7 +1508,7 @@ function build3D(params, width, height) {
         wv = v + (fbm2D(u * 2 +  3.1, v * 2.5 + 12.7) - 0.5) * str * 0.5;
       }
 
-      let pt = surfaceMap(formKey, wu, wv, P, inst);
+      let pt = morphSurface(wu, wv, inst);
 
       // Pulse (radial scale about origin).
       if (P.pulse > 0) {

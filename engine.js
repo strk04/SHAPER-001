@@ -626,6 +626,7 @@ function read3DParams(params) {
     morphAuto: !!params.morphAuto,
     morphSpeed: num(params.morphSpeed, 0.2),
     morphClock: num(params.morphClock, 0),
+    morphScatter: Math.max(0, Math.min(1, num(params.morphScatter, 0))),
   };
 }
 
@@ -1446,6 +1447,10 @@ function build3D(params, width, height) {
     }
   }
   const morphActive = Nnode > 1 && morphFrom !== morphTo;
+  // Scatter: per-character random phase that staggers each char's transition window.
+  // Separate seeded PRNG so it never interferes with existing rand3 rolls.
+  const morphScatter = P.morphScatter || 0;
+  const morphScatterRand = mulberry32(((seed ^ 0xc0ffee77) + 1) >>> 0);
   const surfaceFlowU = time * spd * 0.12;
 
   // Flat forms don't wrap in u: an unbounded surfaceFlowU would move glyphs
@@ -1497,20 +1502,20 @@ function build3D(params, width, height) {
 
   // Helper: apply the full transform chain to a (u,v) point given a fixed
   // instance offset and a fixed rain fall offset (dy). Returns projected point.
-  const morphSurface = (u, v, inst) => {
+  const morphSurface = (u, v, inst, localMix) => {
     if (!morphActive) return surfaceMap(formKey, u, v, P, inst);
     const ptA = surfaceMap(morphFrom, u, v, P, inst);
-    if (morphMix <= 0) return ptA;
+    const t = localMix !== undefined ? localMix : morphMix;
+    if (t <= 0) return ptA;
     const ptB = surfaceMap(morphTo, u, v, P, inst);
-    const t = morphMix;
     return {
       x: ptA.x + (ptB.x - ptA.x) * t, y: ptA.y + (ptB.y - ptA.y) * t, z: ptA.z + (ptB.z - ptA.z) * t,
       nx: ptA.nx + (ptB.nx - ptA.nx) * t, ny: ptA.ny + (ptB.ny - ptA.ny) * t, nz: ptA.nz + (ptB.nz - ptA.nz) * t,
     };
   };
 
-  const transformPoint = (u, v, inst, rainDY) => {
-    let pt = morphSurface(u, v, inst);
+  const transformPoint = (u, v, inst, rainDY, localMix) => {
+    let pt = morphSurface(u, v, inst, localMix);
     if (P.pulse > 0) {
       pt = { ...pt, x: pt.x * pulseScale, y: pt.y * pulseScale, z: pt.z * pulseScale };
     }
@@ -1543,7 +1548,19 @@ function build3D(params, width, height) {
         wv = v + (fbm2D(u * 2 +  3.1, v * 2.5 + 12.7) - 0.5) * str * 0.5;
       }
 
-      let pt = morphSurface(wu, wv, inst);
+      // Per-character scatter: each char gets a random phase that offsets when
+      // its local transition window starts. At scatter=0 all chars move together.
+      // At scatter=1 each char snaps at a random moment across the full morphMix range.
+      let localMix = morphMix;
+      if (morphScatter > 0 && morphActive) {
+        const phase = morphScatterRand();
+        const span = Math.max(0.001, 1 - morphScatter);
+        localMix = Math.max(0, Math.min(1, (morphMix - phase * morphScatter) / span));
+      } else {
+        morphScatterRand(); // consume roll to keep PRNG position deterministic
+      }
+
+      let pt = morphSurface(wu, wv, inst, localMix);
 
       // Pulse (radial scale about origin).
       if (P.pulse > 0) {
@@ -1586,7 +1603,7 @@ function build3D(params, width, height) {
         } else {
           // Fallback (panel / columns): compute tangent by sampling the surface.
           const mT = mapUV(c.x + TANGENT_D, yNorm);
-          const prSu = transformPoint(mT.u, mT.v, inst, rainDY);
+          const prSu = transformPoint(mT.u, mT.v, inst, rainDY, localMix);
           tx = prSu.X - pr.X;
           ty = prSu.Y - pr.Y;
         }

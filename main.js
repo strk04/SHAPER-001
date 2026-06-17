@@ -67,8 +67,9 @@ const SLIDERS = {
   // --- 3D: Distribució ---
   noiseTexture: { label: 'Buits de textura', def: 0 },
   // --- Morph ---
-  morphT:     { label: 'Blend', def: 0 },
-  morphSpeed: { label: 'Velocitat morph', def: 0.2 },
+  morphT:       { label: 'Blend', def: 0 },
+  morphSpeed:   { label: 'Velocitat morph', def: 0.2 },
+  morphScatter: { label: 'Dispersió aleatòria', def: 0 },
 };
 
 const FORM_3D_CONTROLS = {
@@ -186,7 +187,8 @@ function formatSliderValue(key, value) {
   if (['dropProb', 'yJitterAffect', 'depthFade', 'pulse', 'rainProb', 'wordRamp',
        'charOpacity', 'charSkew', 'densityMap',
        'opacityProb', 'blinkProb', 'sizeProb',
-       'accentProb', 'accentProb2', 'accentProb3', 'accentProb4'].includes(key)) {
+       'accentProb', 'accentProb2', 'accentProb3', 'accentProb4',
+       'morphScatter'].includes(key)) {
     return n.toFixed(2).replace(/\.?0+$/, '');
   }
   if (['frequency'].includes(key)) return n.toFixed(3).replace(/\.?0+$/, '');
@@ -579,12 +581,14 @@ function updateMorphVisibility() {
   const row3 = document.querySelector('label[for="morphForm3"]');
   if (row2) row2.hidden = !state.morphForm;
   if (row3) row3.hidden = !state.morphForm2;
-  const autoRow  = document.querySelector('[data-morph="auto-row"]');
-  const blendRow = document.querySelector('[data-key="morphT"]');
-  const speedRow = document.querySelector('[data-key="morphSpeed"]');
-  if (autoRow)  autoRow.hidden  = !active;
-  if (blendRow) blendRow.hidden = !active || state.morphAuto;
-  if (speedRow) speedRow.hidden = !active || !state.morphAuto;
+  const autoRow    = document.querySelector('[data-morph="auto-row"]');
+  const blendRow   = document.querySelector('[data-key="morphT"]');
+  const speedRow   = document.querySelector('[data-key="morphSpeed"]');
+  const scatterRow = document.querySelector('[data-key="morphScatter"]');
+  if (autoRow)    autoRow.hidden    = !active;
+  if (blendRow)   blendRow.hidden   = !active || state.morphAuto;
+  if (speedRow)   speedRow.hidden   = !active || !state.morphAuto;
+  if (scatterRow) scatterRow.hidden = !active;
 }
 
 // --- Visibility (reused by select listeners and init) ---
@@ -1319,8 +1323,7 @@ function applyPreset(p) {
   if (p.canvasW && p.canvasH) applyCanvasSize(p.canvasW, p.canvasH);
   if (p.blinkFade != null) {
     state.blinkFade = typeof p.blinkFade === 'number' ? p.blinkFade : (p.blinkFade ? 1 : 0);
-    const ref = sliderRefs['blinkFade'];
-    if (ref) { ref.range.value = state.blinkFade; ref.number.value = state.blinkFade; }
+    syncSliderUI('blinkFade');
   }
   if (p.opacityMode != null) {
     state.opacityMode = p.opacityMode;
@@ -1675,7 +1678,6 @@ function init() {
   bindNavigation();
   wireControls();
   wirePresets();
-  renderPresetList();
   // Sync select / checkbox UI to state defaults
   $('text').value = state.text;
   $('font').value = state.font;

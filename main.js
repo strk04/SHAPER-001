@@ -34,8 +34,11 @@ const SLIDERS = {
   sizeAmt: { label: 'Quantitat', def: 1.5 },
   sizeProb: { label: 'Probabilitat', def: 0.15 },
   sizeEvery: { label: 'Freqüència', def: 2 },
-  // --- Accent color ---
-  accentProb: { label: 'Probabilitat d\'accent', def: 0.15 },
+  // --- Accent colors ---
+  accentProb:  { label: 'Probabilitat 1', def: 0.15 },
+  accentProb2: { label: 'Probabilitat 2', def: 0 },
+  accentProb3: { label: 'Probabilitat 3', def: 0 },
+  accentProb4: { label: 'Probabilitat 4', def: 0 },
   accentEvery: { label: 'Freqüència d\'alternança', def: 2 },
   // --- 3D: Form ---
   formSize: { label: 'Mida de forma', def: 413 },
@@ -127,7 +130,10 @@ const state = {
   blinkFade: 0,
   sizeMode: 'none',
   accentMode: 'none',
-  accentColor: '#e8400a',
+  accentColor:  '#e8400a',
+  accentColor2: '#0055ff',
+  accentColor3: '#00aa55',
+  accentColor4: '#ffaa00',
   fps: 0,
   // Custom drawing data (input data, never randomness). Plain arrays so they
   // pass straight into the engine. Default = engine defaults.
@@ -145,7 +151,8 @@ function formatSliderValue(key, value) {
   if (!Number.isFinite(n)) return String(value);
   if (['dropProb', 'yJitterAffect', 'depthFade', 'pulse', 'rainProb', 'wordRamp',
        'charOpacity', 'charSkew', 'densityMap',
-       'opacityProb', 'blinkProb', 'sizeProb', 'accentProb'].includes(key)) {
+       'opacityProb', 'blinkProb', 'sizeProb',
+       'accentProb', 'accentProb2', 'accentProb3', 'accentProb4'].includes(key)) {
     return n.toFixed(2).replace(/\.?0+$/, '');
   }
   if (['frequency'].includes(key)) return n.toFixed(3).replace(/\.?0+$/, '');
@@ -515,13 +522,20 @@ function updateSizeVisibility() {
 }
 
 function updateAccentVisibility() {
-  const mode = state.accentMode;
-  const colorRow = document.querySelector('label[for="accentColor"]');
-  const probRow  = document.querySelector('[data-key="accentProb"]');
+  const mode   = state.accentMode;
+  const isNone = mode === 'none';
+  const isSeeded = mode === 'seeded';
+  const isAltWord = mode === 'alternating-word';
+  [1, 2, 3, 4].forEach(n => {
+    const key = n === 1 ? 'accentColor' : `accentColor${n}`;
+    const el = document.querySelector(`label[for="${key}"]`);
+    if (el) el.hidden = isNone;
+    const probKey = n === 1 ? 'accentProb' : `accentProb${n}`;
+    const pEl = document.querySelector(`[data-key="${probKey}"]`);
+    if (pEl) pEl.hidden = !isSeeded;
+  });
   const everyRow = document.querySelector('[data-key="accentEvery"]');
-  if (colorRow) colorRow.hidden = mode === 'none';
-  if (probRow)  probRow.hidden  = mode !== 'seeded';
-  if (everyRow) everyRow.hidden = mode !== 'alternating-word';
+  if (everyRow) everyRow.hidden = !isAltWord;
 }
 
 // --- Visibility (reused by select listeners and init) ---
@@ -814,13 +828,9 @@ function wireControls() {
       scheduleRender();
     });
   }
-  const accentColorEl = $('accentColor');
-  if (accentColorEl) {
-    accentColorEl.addEventListener('input', (e) => {
-      state.accentColor = e.target.value;
-      scheduleRender();
-    });
-  }
+  ['accentColor', 'accentColor2', 'accentColor3', 'accentColor4'].forEach(id => {
+    $(id)?.addEventListener('input', (e) => { state[id] = e.target.value; scheduleRender(); });
+  });
 
   $('hardWrap').addEventListener('change', (e) => {
     state.hardWrap = e.target.checked;
@@ -1203,7 +1213,8 @@ function capturePreset() {
   ['text', 'font', 'shape', 'textColor', 'bgColor', 'hardWrap',
    'motion2d', 'mode', 'form', 'projection', 'guides',
    'backfaceMirror', 'surfaceText', 'wrapMode', 'canvasW', 'canvasH',
-   'opacityMode', 'blinkMode', 'blinkFade', 'sizeMode', 'accentMode', 'accentColor'].forEach((k) => {
+   'opacityMode', 'blinkMode', 'blinkFade', 'sizeMode',
+   'accentMode', 'accentColor', 'accentColor2', 'accentColor3', 'accentColor4'].forEach((k) => {
     snap[k] = state[k];
   });
   return snap;
@@ -1269,11 +1280,9 @@ function applyPreset(p) {
     if (el) el.value = p.accentMode;
     updateAccentVisibility();
   }
-  if (p.accentColor != null) {
-    state.accentColor = p.accentColor;
-    const el = $('accentColor');
-    if (el) el.value = p.accentColor;
-  }
+  ['accentColor', 'accentColor2', 'accentColor3', 'accentColor4'].forEach(k => {
+    if (p[k] != null) { state[k] = p[k]; const el = $(k); if (el) el.value = p[k]; }
+  });
   scheduleRender();
 }
 

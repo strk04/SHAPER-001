@@ -234,6 +234,9 @@ export function layout(params, width, height) {
     sizeEvery = 2,
     accentMode = 'none',
     accentProb = 0.15,
+    accentProb2 = 0,
+    accentProb3 = 0,
+    accentProb4 = 0,
     accentEvery = 2,
   } = params;
 
@@ -341,9 +344,17 @@ export function layout(params, width, height) {
           else if (blinkMode === 'first-letter') blinkT = c === 0 ? 1 : 0;
 
           let accentT = 0;
-          if (accentMode === 'seeded') accentT = atomAccent < accentProb ? 1 : 0;
-          else if (accentMode === 'alternating-word') accentT = Math.floor(wordIdxForAccent / Math.max(1, accentEvery)) % 2 === 1 ? 1 : 0;
-          else if (accentMode === 'first-letter') accentT = c === 0 ? 1 : 0;
+          if (accentMode === 'seeded') {
+            const b1 = accentProb, b2 = b1 + accentProb2, b3 = b2 + accentProb3, b4 = b3 + accentProb4;
+            if (atomAccent < b1) accentT = 1;
+            else if (atomAccent < b2) accentT = 2;
+            else if (atomAccent < b3) accentT = 3;
+            else if (atomAccent < b4) accentT = 4;
+          } else if (accentMode === 'alternating-word') {
+            accentT = (Math.floor(wordIdxForAccent / Math.max(1, accentEvery)) % 4) + 1;
+          } else if (accentMode === 'first-letter') {
+            accentT = c === 0 ? (wordIdxForAccent % 4) + 1 : 0;
+          }
 
           chars.push({ ch, x: x + xChaos, y: baseY + yOff, extraOp, skew, sizeMul, accentT, blinkT });
         }
@@ -1933,7 +1944,13 @@ export function buildScene(params, width, height) {
       blinkRate: typeof params.blinkRate === 'number' ? params.blinkRate : 2,
       blinkFade: typeof params.blinkFade === 'number' ? params.blinkFade : (params.blinkFade ? 1 : 0),
       accentMode: params.accentMode || 'none',
-      accentColor: params.accentColor || textColor,
+      accentColors: [
+        textColor,
+        params.accentColor  || textColor,
+        params.accentColor2 || params.accentColor || textColor,
+        params.accentColor3 || params.accentColor || textColor,
+        params.accentColor4 || params.accentColor || textColor,
+      ],
     };
   }
 
@@ -2000,9 +2017,15 @@ export function buildScene(params, width, height) {
     } : null,
     blinkMode: params.blinkMode || 'none',
     blinkRate: typeof params.blinkRate === 'number' ? params.blinkRate : 2,
-    blinkFade: !!params.blinkFade,
+    blinkFade: typeof params.blinkFade === 'number' ? params.blinkFade : (params.blinkFade ? 1 : 0),
     accentMode: params.accentMode || 'none',
-    accentColor: params.accentColor || textColor,
+    accentColors: [
+      textColor,
+      params.accentColor  || textColor,
+      params.accentColor2 || params.accentColor || textColor,
+      params.accentColor3 || params.accentColor || textColor,
+      params.accentColor4 || params.accentColor || textColor,
+    ],
   };
 }
 
@@ -2106,11 +2129,7 @@ export function drawScene(ctx, scene, width, height, dpr) {
         const skew = c.skew || 0;
 
         ctx.globalAlpha = extraOp;
-        if (hasAccent && c.accentT) {
-          ctx.fillStyle = scene.accentColor;
-        } else {
-          ctx.fillStyle = scene.textColor;
-        }
+        ctx.fillStyle = (hasAccent && c.accentT) ? scene.accentColors[c.accentT] : scene.textColor;
 
         const fs = scene.fontSize * sizeMul;
         if (fs !== lastFs2d) {
@@ -2163,7 +2182,7 @@ export function drawScene(ctx, scene, width, height, dpr) {
     if (g.blinkT && blinkActive3d) continue;
     const baseOp = (g.blinkT && scene.blinkFade > 0) ? g.opacity * blinkFadeFactor3d : g.opacity;
     ctx.globalAlpha = baseOp * (g.extraOp !== undefined ? g.extraOp : 1);
-    ctx.fillStyle = (hasAccent3d && g.accentT) ? scene.accentColor : scene.textColor;
+    ctx.fillStyle = (hasAccent3d && g.accentT) ? scene.accentColors[g.accentT] : scene.textColor;
     const sm = g.sizeMul !== undefined ? g.sizeMul : 1;
     if (g.matrix) {
       const m = g.matrix;

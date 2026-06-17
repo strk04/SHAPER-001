@@ -24,7 +24,20 @@ async function ghFetch(path, opts = {}) {
   });
   if (!r.ok) {
     const j = await r.json().catch(() => ({}));
-    const err = new Error(j.message || `GitHub ${r.status}`);
+    // Translate the common auth/access failures into actionable messages.
+    // GitHub returns 404 (not 403) for private repos a token can't see, so a
+    // 404 on a write almost always means the token lacks access to the repo.
+    let msg = j.message || `GitHub ${r.status}`;
+    if (r.status === 401) {
+      msg = `Token invàlid o caducat (401). Reconnecta amb un token nou.`;
+    } else if (r.status === 403) {
+      msg = `Sense permís (403). El token necessita escriptura de continguts a ${REPO}.`;
+    } else if (r.status === 404) {
+      msg = `El token no té accés a ${REPO} (404). Si és un token fine-grained, ` +
+            `dóna-li accés a aquest repo amb permís Contents: Read and write. ` +
+            `Si és clàssic, marca l'scope "repo".`;
+    }
+    const err = new Error(msg);
     err.status = r.status;
     throw err;
   }

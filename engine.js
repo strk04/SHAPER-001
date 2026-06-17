@@ -623,6 +623,7 @@ function read3DParams(params) {
     morphT: num(params.morphT, 0),
     morphAuto: !!params.morphAuto,
     morphSpeed: num(params.morphSpeed, 0.2),
+    morphClock: num(params.morphClock, 0),
   };
 }
 
@@ -1412,9 +1413,26 @@ function build3D(params, width, height) {
   const TANGENT_D = 2;
   const formKey = P.form === 'cluster' ? 'cube' : P.form;
   const morphFormKey = P.morphForm || '';
-  const morphTeff = P.morphAuto && morphFormKey
-    ? (1 - Math.cos(time * P.morphSpeed * 2 * Math.PI)) / 2
-    : Math.max(0, Math.min(1, P.morphT || 0));
+  let morphTeff;
+  if (P.morphAuto && morphFormKey) {
+    // Cycle (real seconds): transition 0→1, hold 8s, transition 1→0, hold 8s.
+    // Transition duration scales inversely with morphSpeed (≈5s at 0.2).
+    const HOLD = 8;
+    const Ttr = 1 / Math.max(0.01, P.morphSpeed);
+    const period = 2 * Ttr + 2 * HOLD;
+    const ph = ((P.morphClock % period) + period) % period;
+    if (ph < Ttr) {
+      morphTeff = (1 - Math.cos((ph / Ttr) * Math.PI)) / 2;       // 0→1 eased
+    } else if (ph < Ttr + HOLD) {
+      morphTeff = 1;                                               // hold at B
+    } else if (ph < 2 * Ttr + HOLD) {
+      morphTeff = (1 + Math.cos(((ph - Ttr - HOLD) / Ttr) * Math.PI)) / 2; // 1→0 eased
+    } else {
+      morphTeff = 0;                                              // hold at A
+    }
+  } else {
+    morphTeff = Math.max(0, Math.min(1, P.morphT || 0));
+  }
   const surfaceFlowU = time * spd * 0.12;
 
   // Flat forms don't wrap in u: an unbounded surfaceFlowU would move glyphs

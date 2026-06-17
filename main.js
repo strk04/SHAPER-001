@@ -166,6 +166,7 @@ const state = {
   fps: 0,
   morphForm: '',
   morphAuto: false,
+  morphClock: 0,
   // Custom drawing data (input data, never randomness). Plain arrays so they
   // pass straight into the engine. Default = engine defaults.
   customProfile: DEFAULT_CUSTOM_PROFILE.slice(),
@@ -354,6 +355,7 @@ function frame(ts) {
     const dt = (ts - lastTs) / 1000;
     const speed = state.mode === '2d' ? state.speed2d : state.speed3d;
     state.t += dt * speed;
+    state.morphClock = (state.morphClock || 0) + dt; // real seconds, for morph hold
     if (dt > 0) state.fps = state.fps * 0.85 + (1 / dt) * 0.15;
     if (recState.isRecording) {
       const fps = getRecordFps();
@@ -933,6 +935,7 @@ function wireControls() {
 
   $('morphAuto').addEventListener('change', (e) => {
     state.morphAuto = e.target.checked;
+    if (state.morphAuto) state.morphClock = 0;
     updateMorphVisibility();
     scheduleRender();
   });

@@ -1,6 +1,6 @@
 # STATUS — SHAPER 001
 
-_Actualitzat: 2026-06-17 (sessió 10)_
+_Actualitzat: 2026-06-17 (sessió 11)_
 
 ## Estat general
 
@@ -17,6 +17,18 @@ Estable. Desplegat a producció dins Pixel Perfect. La URL canònica és `/shape
 Vanilla JS zero-build (index.html, main.js, engine.js, styles.css). Sense bundler ni node_modules. `mp4-muxer.mjs` s'usa per a l'export MP4 via WebCodecs.
 
 ## Darrera sessió
+
+2026-06-17 (sessió 11) — Sistema de morphing entre formes + fix slowdown perspectiva
+
+Fet (sessió 11):
+
+- **Morph UV entre dues formes** (`morphSurface` a `build3D`): interpola `surfaceMap(A)`→`surfaceMap(B)` per caràcter (posició + normal), UV fix. Secció "Morph" al panell 3D.
+- **Controls**: `morphForm` (forma destí), `morphT` (Blend manual 0–1), `morphAuto` + `morphSpeed` (durada transició).
+- **Cicle auto amb hold 8s**: A→B eased, hold 8s, B→A, hold 8s, loop. Via `morphClock` (segons reals, independent de `speed3d`).
+- **Fix perspectiva lenta**: `projectPersp` treia escala per glif de `zoom·dist/denom` (≈2.3× al centre) → ara `dist/denom` (=1 al centre). ~5× menys àrea de fill, fluïdesa = isomètrica.
+- Sync `02 Pixel Perfect/shaper/` ✓
+
+## Darrera sessió (anterior)
 
 2026-06-17 (sessió 10) — Guies wireframe per les 20 formes noves
 

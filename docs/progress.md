@@ -1,5 +1,20 @@
 # Progress — SHAPER 001
 
+## 2026-06-17 (sessió 11) — Sistema de morphing entre formes + fix perspectiva
+
+### Fet
+- **Morph UV entre dues formes**: `morphSurface()` a `build3D` interpola `surfaceMap(formA)` → `surfaceMap(formB)` per caràcter (posició + normal). El UV de cada caràcter es manté fix. Nova secció "Morph" al panell 3D (entre Forma 3D i Càmera).
+- **Controls**: `morphForm` (select forma destí, 45 opcions + "cap"), `morphT` (slider Blend 0–1 manual), `morphAuto` (checkbox), `morphSpeed` (durada transició).
+- **Cicle auto amb hold**: transició A→B eased (≈`1/morphSpeed`s), hold 8s a B, transició B→A, hold 8s a A, loop. Usa `morphClock` (segons reals, acumulat a `frame()`, independent de `speed3d`). Reset a 0 en activar Auto.
+- **Fix slowdown perspectiva**: `projectPersp` coïa el `zoom` dins `scale` per glif (≈2.3× al centre) → glifs ~5× més àrea de fill. Ara `scale: dist/denom` → 1 al pla central, només variant per profunditat. Consistent amb isomètrica. Glifs en perspectiva ara més petits (mida real `fontSize`).
+- Sync `02 Pixel Perfect/shaper/` (engine.js, main.js, index.html) ✓
+
+### Pendent
+- Validació visual navegador: morph entre formes diverses, cicle hold 8s, perspectiva fluida.
+- Commit pendent (acumulat sessions 3–11).
+
+---
+
 ## 2026-06-17 (sessió 10) — Guies wireframe per les 20 formes noves
 
 ### Fet

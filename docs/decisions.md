@@ -1,5 +1,19 @@
 # Decisions — SHAPER 001
 
+## 2026-06-17 (sessió 11) — Morph: lerp UV en lloc de morph topològic
+
+El morphing entre formes es fa interpolant linealment els punts 3D que `surfaceMap` retorna per al mateix `(u,v)` a forma A i forma B (`morphSurface`). Avantatge: zero estructura nova — reutilitza tot el pipeline existent (rotació, projecció, surfaceText, pulse, rain s'apliquen al punt ja interpolat). Cada caràcter conserva el seu `(u,v)`, així es mou pel camí 3D més curt entre la seva posició a A i a B. No és un morph topològic real (no re-malla), però visualment és fluid per a tipografia generativa. La normal també s'interpola per mantenir l'orientació de surfaceText coherent.
+
+## 2026-06-17 (sessió 11) — morphClock: rellotge en segons reals separat de state.t
+
+El hold de 8s ha de ser literal. `state.t` s'acumula com `dt * speed3d` (default 0.1) → no són segons reals. Solució: `state.morphClock` acumula `dt` cru (segons reals) a `frame()`, només mentre està en Play. El cicle auto-morph (transició + hold) opera sobre `morphClock`, així el hold és exactament 8s independentment de `speed3d` o `morphSpeed`. Es reseteja a 0 en activar Auto per arrencar des de forma A. No trenca determinisme d'export perquè el morph és animació temporal (l'export captura el frame segons el clock actual).
+
+## 2026-06-17 (sessió 11) — projectPersp: treure zoom de l'escala per glif
+
+`scale: (focal·zoom)/denom / (focal/dist)` = `zoom·dist/denom` → al pla central (z=0) donava `zoom` (≈2.3), no 1 com deia el comentari. Resultat: glifs en perspectiva renderitzats a `fontSize×2.3` → ~5× àrea de `fillText` → causa del slowdown. Fix: `scale: dist/denom` → 1 al centre, només variació per profunditat (0.83–1.25). El zoom segueix controlant l'extensió de posicions via `f`. Consistència amb isomètrica (que renderitza glifs a `fontSize`, scale=1). Trade-off acceptat: presets vells en perspectiva tindran glifs més petits.
+
+
+
 ## 2026-06-17 (sessió 10) — buildGuidesData: helpers trace/isoGrid per a formes noves
 
 Les 20 formes noves no tenien cap cas a `buildGuidesData()` (switch → `default: break`) → cap guia wireframe. Solució: dos helpers interns `trace(fixed, isV, steps)` i `isoGrid(n, steps)` que criden `surfaceMap` directament. Aixi les guies reutilitzen la mateixa fórmula que la superfície real i mai es desincronitzen. Formes amb discontinuïtats (lemniscate, dupin-cyclide degenerat) generen punts a (0,0,0) que creen artefactes menors — acceptable per a guies. Formes amb geometria característica clara (knots, Lissajous, oloid, seifert) usen corbes custom codificades directament (el spine o les circumferències definidores) perquè l'`isoGrid` mostraria el tub exterior, no la línia característica.

@@ -1097,6 +1097,13 @@ function setExportStatus(msg) {
   if (el) el.textContent = msg;
 }
 
+// Preset feedback lives in its own panel — exportStatus is in a different,
+// often-hidden panel, so preset save/load/delete messages must go here.
+function setPresetStatus(msg) {
+  const el = $('presetStatus');
+  if (el) el.textContent = msg;
+}
+
 function saveSVG() {
   const width = Math.max(1, Math.round(state.canvasW));
   const height = Math.max(1, Math.round(state.canvasH));
@@ -1412,7 +1419,7 @@ function _ghRenderList() {
 function wirePresets() {
   _ghUpdateView();
   if (getToken()) {
-    _ghLoadProjects().then(() => _ghLoadPresets()).catch(e => setExportStatus('Error GitHub: ' + e.message));
+    _ghLoadProjects().then(() => _ghLoadPresets()).catch(e => setPresetStatus('Error GitHub: ' + e.message));
   }
 
   // Connect
@@ -1427,10 +1434,11 @@ function wirePresets() {
       _ghUpdateView();
       await _ghLoadProjects();
       await _ghLoadPresets();
-      setExportStatus(`Connectat com a @${login}`);
+      setPresetStatus(`Connectat com a @${login}`);
     } catch (e) {
       clearToken();
-      setExportStatus('Token invàlid: ' + e.message);
+      _ghUpdateView();
+      setPresetStatus('Token invàlid: ' + e.message);
     }
   });
 
@@ -1438,12 +1446,12 @@ function wirePresets() {
   $('ghDisconnect')?.addEventListener('click', () => {
     clearToken();
     _ghUpdateView();
-    setExportStatus('Desconnectat de GitHub.');
+    setPresetStatus('Desconnectat de GitHub.');
   });
 
   // Project change
   $('ghProject')?.addEventListener('change', () => {
-    _ghLoadPresets().catch(e => setExportStatus('Error: ' + e.message));
+    _ghLoadPresets().catch(e => setPresetStatus('Error: ' + e.message));
   });
 
   // New project
@@ -1466,14 +1474,14 @@ function wirePresets() {
     const nameEl  = $('presetName');
     const project = $('ghProject')?.value;
     const name    = nameEl?.value.trim() || `preset-${new Date().toLocaleTimeString()}`;
-    if (!project) { setExportStatus('Selecciona un projecte.'); return; }
+    if (!project) { setPresetStatus('Selecciona un projecte.'); return; }
     try {
-      setExportStatus('Desant…');
+      setPresetStatus('Desant…');
       await savePreset(project, name, capturePreset());
       if (nameEl) nameEl.value = '';
       await _ghLoadPresets();
-      setExportStatus(`Desat: "${name}"`);
-    } catch (e) { setExportStatus('Error desant: ' + e.message); }
+      setPresetStatus(`Desat: "${name}"`);
+    } catch (e) { setPresetStatus('Error desant: ' + e.message); }
   });
 
   // Load / Delete
@@ -1485,10 +1493,10 @@ function wirePresets() {
       const p = _ghPresets[parseInt(loadBtn.dataset.idx)];
       if (!p) return;
       try {
-        setExportStatus('Carregant…');
+        setPresetStatus('Carregant…');
         applyPreset(await loadPreset(p.path));
-        setExportStatus(`Carregat: "${p.name}"`);
-      } catch (e) { setExportStatus('Error carregant: ' + e.message); }
+        setPresetStatus(`Carregat: "${p.name}"`);
+      } catch (e) { setPresetStatus('Error carregant: ' + e.message); }
     }
 
     if (delBtn) {
@@ -1499,8 +1507,8 @@ function wirePresets() {
         try {
           await deletePreset(p.path);
           await _ghLoadPresets();
-          setExportStatus(`Eliminat: "${p.name}"`);
-        } catch (e) { setExportStatus('Error eliminant: ' + e.message); }
+          setPresetStatus(`Eliminat: "${p.name}"`);
+        } catch (e) { setPresetStatus('Error eliminant: ' + e.message); }
       } else {
         const name = delBtn.getAttribute('aria-label').replace('Elimina el preset ', '');
         delBtn.dataset.confirming = '1';
@@ -1520,15 +1528,15 @@ function wirePresets() {
   $('ghMigrate')?.addEventListener('click', async () => {
     const locals  = loadPresets();
     const project = $('ghProject')?.value;
-    if (!locals.length) { setExportStatus('Cap preset local a importar.'); return; }
-    if (!project)       { setExportStatus('Selecciona un projecte.'); return; }
+    if (!locals.length) { setPresetStatus('Cap preset local a importar.'); return; }
+    if (!project)       { setPresetStatus('Selecciona un projecte.'); return; }
     let ok = 0;
-    setExportStatus(`Important ${locals.length} presets…`);
+    setPresetStatus(`Important ${locals.length} presets…`);
     for (const p of locals) {
       try { await savePreset(project, p.name, p.data); ok++; } catch { /* skip */ }
     }
     await _ghLoadPresets();
-    setExportStatus(`Importats ${ok}/${locals.length} presets a "${project}".`);
+    setPresetStatus(`Importats ${ok}/${locals.length} presets a "${project}".`);
   });
 }
 

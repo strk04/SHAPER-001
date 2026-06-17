@@ -478,7 +478,7 @@
           <!-- Setup: no token yet -->
           <div id="ghSetup">
             <p style="font-size:var(--text-xs);color:var(--ink-3);line-height:1.5;margin-bottom:var(--space-2)">
-              Connecta un <a href="https://github.com/settings/tokens" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Personal Access Token</a> de GitHub (permís <code>contents:write</code> al repo SHAPER-001) per guardar presets al núvol.
+              Connecta un <a href="https://github.com/settings/tokens" target="_blank" rel="noopener" style="color:inherit;text-decoration:underline">Personal Access Token</a> de GitHub amb accés al repo <code>strk04/shaper-presets</code> i permís <code>Contents: Read and write</code> per guardar presets al núvol.
             </p>
             <div class="control-row">
               <label class="sr-only" for="ghToken">GitHub Personal Access Token</label>
@@ -504,6 +504,7 @@
               <button id="ghMigrate" type="button" style="flex:1" title="Importa els presets guardats localment al projecte seleccionat">Importa locals</button>
               <button id="ghDisconnect" type="button" style="flex:1">Desconnecta</button>
             </div>
+            <p id="presetStatus" class="hint" role="status" aria-live="polite" aria-atomic="true"></p>
           </div>
         </section>
 

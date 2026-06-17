@@ -45,7 +45,28 @@ async function ghFetch(path, opts = {}) {
 }
 
 export async function validateToken() {
+  // 1) Token must be valid at all (any GitHub token can read /user).
   const d = await ghFetch('/user');
+  // 2) Token must actually reach the presets repo — /user passing does NOT
+  //    imply repo access. Verify write permission so "connected" never lies.
+  let repo;
+  try {
+    repo = await ghFetch(`/repos/${REPO}`);
+  } catch (e) {
+    if (e.status === 404) {
+      throw new Error(
+        `Connectat com a @${d.login}, però el token no veu ${REPO}. ` +
+        `Dóna-li accés a aquest repo (Contents: Read and write).`,
+      );
+    }
+    throw e;
+  }
+  if (repo.permissions && repo.permissions.push === false) {
+    throw new Error(
+      `Connectat com a @${d.login}, però el token només té lectura a ${REPO}. ` +
+      `Cal permís Contents: Read and write per desar presets.`,
+    );
+  }
   return d.login;
 }
 

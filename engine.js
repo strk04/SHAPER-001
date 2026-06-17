@@ -1614,6 +1614,25 @@ function buildGuidesData(ctx) {
     const a = pj(x0, y0, z0), b = pj(x1, y1, z1);
     return `M${a.X.toFixed(2)} ${a.Y.toFixed(2)}L${b.X.toFixed(2)} ${b.Y.toFixed(2)} `;
   };
+  const trace = (fixed, isV, steps = 48) => {
+    let p = '';
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const sm = surfaceMap(P.form, isV ? fixed : t, isV ? t : fixed, P, null);
+      const pr = pj(sm.x, sm.y, sm.z);
+      p += (i === 0 ? 'M' : 'L') + pr.X.toFixed(2) + ' ' + pr.Y.toFixed(2);
+    }
+    return p + ' ';
+  };
+  const isoGrid = (n, steps = 48) => {
+    let s = '';
+    for (let i = 1; i < n; i++) {
+      const f = i / n;
+      s += trace(f, false, steps);
+      s += trace(f, true, steps);
+    }
+    return s;
+  };
 
   const form = P.form === 'cluster' ? 'cube' : P.form;
   switch (form) {
@@ -2075,6 +2094,129 @@ function buildGuidesData(ctx) {
       }
       // Axis line
       d += seg(0, -h / 2, 0, 0, h / 2, 0);
+      break;
+    }
+    case 'enneper':
+    case 'pseudosphere':
+    case 'roman-surface':
+    case 'boy-surface':
+    case 'superformula':
+    case 'cardioid-rev':
+    case 'lemniscate-rev':
+    case 'dupin-cyclide':
+    case 'gyroid':
+    case 'scherk':
+    case 'riemann-minimal':
+    case 'swallowtail':
+    case 'klein-bottle': {
+      d += isoGrid(4, 48);
+      break;
+    }
+    case 'knot-35': {
+      const k35R = r * 0.56, k35r2 = r * 0.24;
+      let pk35 = '';
+      for (let i = 0; i <= 180; i++) {
+        const t = (i / 180) * 2 * Math.PI;
+        const pr = pj(
+          (k35R + k35r2 * Math.cos(5 * t)) * Math.cos(3 * t),
+          k35r2 * Math.sin(5 * t),
+          (k35R + k35r2 * Math.cos(5 * t)) * Math.sin(3 * t),
+        );
+        pk35 += (i === 0 ? 'M' : 'L') + pr.X.toFixed(2) + ' ' + pr.Y.toFixed(2);
+      }
+      d += pk35 + ' ';
+      break;
+    }
+    case 'knot-27': {
+      const k27R = r * 0.56, k27r2 = r * 0.22;
+      let pk27 = '';
+      for (let i = 0; i <= 200; i++) {
+        const t = (i / 200) * 2 * Math.PI;
+        const pr = pj(
+          (k27R + k27r2 * Math.cos(7 * t)) * Math.cos(2 * t),
+          k27r2 * Math.sin(7 * t),
+          (k27R + k27r2 * Math.cos(7 * t)) * Math.sin(2 * t),
+        );
+        pk27 += (i === 0 ? 'M' : 'L') + pr.X.toFixed(2) + ' ' + pr.Y.toFixed(2);
+      }
+      d += pk27 + ' ';
+      break;
+    }
+    case 'lissajous-3d': {
+      const la = Math.max(1, Math.round(P.facets));
+      const lb = Math.max(1, Math.round(P.turns));
+      const lc = Math.max(1, Math.round(P.aspect * 2 + 1));
+      const lR = r * 0.65;
+      const liSteps = Math.min(480, la * lb * lc * 30);
+      let pli = '';
+      for (let i = 0; i <= liSteps; i++) {
+        const t = (i / liSteps) * 2 * Math.PI;
+        const pr = pj(lR * Math.cos(la * t + 0.4), lR * Math.sin(lb * t), lR * Math.cos(lc * t + 0.7));
+        pli += (i === 0 ? 'M' : 'L') + pr.X.toFixed(2) + ' ' + pr.Y.toFixed(2);
+      }
+      d += pli + ' ';
+      break;
+    }
+    case 'helicoid': {
+      const hTurns = Math.max(1, P.turns);
+      for (let side = -1; side <= 1; side += 2) {
+        let ph = '';
+        for (let i = 0; i <= 96; i++) {
+          const u2 = i / 96;
+          const ang = u2 * 2 * Math.PI * hTurns;
+          const pr = pj(side * r * Math.cos(ang), (u2 - 0.5) * h, side * r * Math.sin(ang));
+          ph += (i === 0 ? 'M' : 'L') + pr.X.toFixed(2) + ' ' + pr.Y.toFixed(2);
+        }
+        d += ph + ' ';
+      }
+      d += seg(0, -h / 2, 0, 0, h / 2, 0);
+      break;
+    }
+    case 'hyperboloid-2': {
+      const kA2 = Math.max(0.5, P.aspect) * 1.8;
+      const rH = r * 0.42;
+      for (let sheet = -1; sheet <= 1; sheet += 2) {
+        d += ellipse(rH * sheet, rH * Math.sinh(kA2));
+        for (let q = 0; q < 4; q++) {
+          const ang = (q / 4) * 2 * Math.PI;
+          let ph = '';
+          for (let i = 0; i <= 32; i++) {
+            const t2 = (i / 32) * kA2;
+            const pr = pj(rH * Math.sinh(t2) * Math.cos(ang), rH * Math.cosh(t2) * sheet, rH * Math.sinh(t2) * Math.sin(ang));
+            ph += (i === 0 ? 'M' : 'L') + pr.X.toFixed(2) + ' ' + pr.Y.toFixed(2);
+          }
+          d += ph + ' ';
+        }
+      }
+      break;
+    }
+    case 'oloid': {
+      const olD = r * 0.5, olRc = r * 0.55;
+      let pc1 = '', pc2 = '';
+      for (let i = 0; i <= 48; i++) {
+        const t = (i / 48) * 2 * Math.PI;
+        const p1 = pj(olD + olRc * Math.cos(t), 0, olRc * Math.sin(t));
+        pc1 += (i === 0 ? 'M' : 'L') + p1.X.toFixed(2) + ' ' + p1.Y.toFixed(2);
+        const p2 = pj(-olD + olRc * Math.cos(t), olRc * Math.sin(t), 0);
+        pc2 += (i === 0 ? 'M' : 'L') + p2.X.toFixed(2) + ' ' + p2.Y.toFixed(2);
+      }
+      d += pc1 + ' ' + pc2 + ' ';
+      break;
+    }
+    case 'seifert': {
+      const sfSc2 = r * 0.135;
+      let ps = '';
+      for (let i = 0; i <= 120; i++) {
+        const t = (i / 120) * 2 * Math.PI;
+        const pr = pj(
+          (Math.sin(t) + 2 * Math.sin(2 * t)) * sfSc2,
+          (Math.cos(t) - 2 * Math.cos(2 * t)) * sfSc2,
+          -Math.sin(3 * t) * sfSc2,
+        );
+        ps += (i === 0 ? 'M' : 'L') + pr.X.toFixed(2) + ' ' + pr.Y.toFixed(2);
+      }
+      d += ps + ' ';
+      d += trace(0.2, false, 32) + trace(0.5, false, 32) + trace(0.8, false, 32);
       break;
     }
     default:

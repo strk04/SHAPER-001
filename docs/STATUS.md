@@ -1,6 +1,6 @@
 # STATUS — SHAPER 001
 
-_Actualitzat: 2026-06-17 (sessió 8)_
+_Actualitzat: 2026-06-17 (sessió 10)_
 
 ## Estat general
 
@@ -17,6 +17,18 @@ Estable. Desplegat a producció dins Pixel Perfect. La URL canònica és `/shape
 Vanilla JS zero-build (index.html, main.js, engine.js, styles.css). Sense bundler ni node_modules. `mp4-muxer.mjs` s'usa per a l'export MP4 via WebCodecs.
 
 ## Darrera sessió
+
+2026-06-17 (sessió 10) — Guies wireframe per les 20 formes noves
+
+Fet (sessió 10):
+
+- **Guies per les 20 formes noves**: `buildGuidesData()` a `engine.js` ara té casos per a totes les formes afegides a la sessió 9 (enneper, pseudosphere, gyroid, scherk, boy-surface, roman-surface, klein-bottle, knot-35, knot-27, lissajous-3d, cardioid-rev, helicoid, hyperboloid-2, lemniscate-rev, dupin-cyclide, superformula, oloid, swallowtail, seifert, riemann-minimal).
+- **Helpers `trace`/`isoGrid`**: dues funcions auxiliars afegides dins `buildGuidesData` per traçar corbes iso-paràmetre via `surfaceMap`. `isoGrid(n)` dibuixa `n-1` corbes en cada direcció UV. Ús intern del switch.
+- **Formes amb guia customitzada**: knot-35 i knot-27 (línia de node central), lissajous-3d (corba de Lissajous), helicoid (dues arestes helicoïdals + eix), hyperboloid-2 (dos fulls: anell de vorera + 4 meridians), oloid (dues circumferències perpendiculars), seifert (nus trefoil central + 3 talls de strip).
+- **Formes amb `isoGrid(4, 48)`**: enneper, pseudosphere, roman-surface, boy-surface, superformula, cardioid-rev, lemniscate-rev, dupin-cyclide, gyroid, scherk, riemann-minimal, swallowtail, klein-bottle.
+- Sync `02 Pixel Perfect/shaper/engine.js` ✓
+
+## Darrera sessió (anterior)
 
 2026-06-17 (sessió 9) — 4 colors accent independents + blinkFade slider + GitHub presets + auto-play
 

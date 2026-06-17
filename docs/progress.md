@@ -1,5 +1,21 @@
 # Progress — SHAPER 001
 
+## 2026-06-17 (sessió 10) — Guies wireframe per les 20 formes noves
+
+### Fet
+- **`buildGuidesData()` — 20 nous casos** a `engine.js`: totes les formes afegides a la sessió 9 ara mostren guia wireframe quan `P.guides=true`.
+- **Helpers `trace(fixed, isV, steps)`** i **`isoGrid(n, steps)`**: afegits dins `buildGuidesData`. `trace` traça una corba iso-paràmetre (u o v fixat) via `surfaceMap`. `isoGrid` en fa una graella de n−1 × 2 corbes.
+- **Guies customitzades** per a: knot-35/knot-27 (línia central del nus), lissajous-3d (corba de Lissajous), helicoid (2 arestes + eix), hyperboloid-2 (2 fulls: anell + 4 meridians cada full), oloid (2 circumferències perpendiculars), seifert (nus trefoil + 3 talls de strip).
+- **`isoGrid(4, 48)`** per a: enneper, pseudosphere, roman-surface, boy-surface, superformula, cardioid-rev, lemniscate-rev, dupin-cyclide, gyroid, scherk, riemann-minimal, swallowtail, klein-bottle.
+- Sync `02 Pixel Perfect/shaper/engine.js` ✓
+
+### Pendent
+- Validació visual al navegador: guies de les 20 formes noves.
+- Commit pendent (acumulat sessions 3–10).
+- Test GitHub presets amb token real.
+
+---
+
 ## 2026-06-17 (sessió 9) — 4 colors accent independents + blinkFade slider + GitHub presets
 
 ### Fet

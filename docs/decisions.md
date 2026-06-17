@@ -1,5 +1,11 @@
 # Decisions — SHAPER 001
 
+## 2026-06-17 (sessió 10) — buildGuidesData: helpers trace/isoGrid per a formes noves
+
+Les 20 formes noves no tenien cap cas a `buildGuidesData()` (switch → `default: break`) → cap guia wireframe. Solució: dos helpers interns `trace(fixed, isV, steps)` i `isoGrid(n, steps)` que criden `surfaceMap` directament. Aixi les guies reutilitzen la mateixa fórmula que la superfície real i mai es desincronitzen. Formes amb discontinuïtats (lemniscate, dupin-cyclide degenerat) generen punts a (0,0,0) que creen artefactes menors — acceptable per a guies. Formes amb geometria característica clara (knots, Lissajous, oloid, seifert) usen corbes custom codificades directament (el spine o les circumferències definidores) perquè l'`isoGrid` mostraria el tub exterior, no la línia característica.
+
+
+
 ## 2026-06-17 (sessió 9) — accentT: 4 colors independents sense PRNG extra
 
 Cada color (1–4) té el seu propi mode (none/seeded/alternating-word/first-letter), prob i freq. Per evitar un 4t roll del PRNG `randAtom`, es deriven 4 valors del mateix `atomAccent` via multiplicació per constants irracional (φ=1.618, √5=2.236, π=3.141). Aquests valors cobreixen [0,1) uniformement i estan suficientment decorrelacionats per a ús visual. L'avaluació és per prioritat inversa: colors 4→3→2→1, el més alt en número guanya si hi ha superposició. La guarda `hasAccent` ha estat eliminada: `accentT>0` ja implica que s'ha de usar `accentColors[accentT]`, i `accentColors[0]` és sempre `textColor`.

@@ -68,7 +68,7 @@ const SLIDERS = {
   noiseTexture: { label: 'Buits de textura', def: 0 },
   // --- Morph ---
   morphT:       { label: 'Blend', def: 0 },
-  morphSpeed:   { label: 'Velocitat morph', def: 0.2 },
+  morphSpeed:   { label: 'Velocitat morph', def: 0.05 },
   morphScatter:  { label: 'Dispersió aleatòria', def: 0 },
   morphSpeedVar: { label: 'Variació de velocitat', def: 0 },
 };

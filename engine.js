@@ -686,6 +686,20 @@ function readOutlinePoints(outline) {
 
 // surfaceMap: map a glyph's normalized (u,v) in [0,1] onto a 3D point + normal.
 // inst = optional cluster instance offset {x,y,z}. Returns {x,y,z, nx,ny,nz}.
+function _tubePt(px,py,pz,qx,qy,qz,tr,phi){
+  const dx=qx-px,dy=qy-py,dz=qz-pz,tl=Math.hypot(dx,dy,dz)||1;
+  const Tx=dx/tl,Ty=dy/tl,Tz=dz/tl;
+  const uA=Math.abs(Ty)<.9,rx=uA?0:1,ry=uA?1:0;
+  const dot=rx*Tx+ry*Ty;
+  const n0x=rx-dot*Tx,n0y=ry-dot*Ty,n0z=-dot*Tz;
+  const nl=Math.hypot(n0x,n0y,n0z)||1;
+  const Nx=n0x/nl,Ny=n0y/nl,Nz=n0z/nl;
+  const Bx=Ty*Nz-Tz*Ny,By=Tz*Nx-Tx*Nz,Bz=Tx*Ny-Ty*Nx;
+  const cp=Math.cos(phi),sp=Math.sin(phi);
+  const nx=cp*Nx+sp*Bx,ny=cp*Ny+sp*By,nz=cp*Nz+sp*Bz;
+  return[px+tr*nx,py+tr*ny,pz+tr*nz,nx,ny,nz];
+}
+
 function surfaceMap(form, u, v, P, inst) {
   const S = P.formSize;
   const r = S / 2;
@@ -1052,6 +1066,158 @@ function surfaceMap(form, u, v, P, inst) {
       nx = dzdt / nlen5; ny = 0; nz = -dxdt / nlen5;
       break;
     }
+    case 'enneper': {
+      const eu=(u-.5)*3,ev=(v-.5)*3,esc=r*.27;
+      x=(eu-eu**3/3+eu*ev*ev)*esc; z=(ev-ev**3/3+ev*eu*eu)*esc;
+      y=(eu*eu-ev*ev)*esc*.55;
+      nx=0;ny=1;nz=0; break;
+    }
+    case 'pseudosphere': {
+      const pLat=v*(Math.PI-.4)+.2,pLon=u*2*Math.PI,pSl=Math.sin(pLat);
+      x=r*.52*pSl*Math.cos(pLon); z=r*.52*pSl*Math.sin(pLon);
+      y=r*.52*(Math.cos(pLat)+Math.log(Math.tan(pLat/2)));
+      nx=Math.cos(pLon);ny=0;nz=Math.sin(pLon); break;
+    }
+    case 'gyroid': {
+      const gx=(u-.5)*Math.PI*2.4,gy=(v-.5)*Math.PI*2.4;
+      let gz=0;
+      for(let _i=0;_i<6;_i++){
+        const _f=Math.sin(gx)*Math.cos(gy)+Math.sin(gy)*Math.cos(gz)+Math.sin(gz)*Math.cos(gx);
+        const _d=-Math.sin(gy)*Math.sin(gz)+Math.cos(gz)*Math.cos(gx);
+        gz-=_f/(Math.abs(_d)>1e-5?_d:1e-5);
+        gz=Math.max(-Math.PI,Math.min(Math.PI,gz));
+      }
+      const gsc=r*.26; x=gx*gsc;z=gy*gsc;y=gz*gsc;
+      nx=0;ny=1;nz=0; break;
+    }
+    case 'scherk': {
+      const skx=(u-.5)*Math.PI*.88,sky=(v-.5)*Math.PI*.88;
+      const ckx=Math.cos(skx),cky=Math.cos(sky),skSc=r*.36;
+      x=skx*skSc;z=sky*skSc;
+      y=(Math.abs(ckx)>.04&&Math.abs(cky)>.04)?Math.log(Math.abs(cky/ckx))*skSc*.85:0;
+      nx=0;ny=1;nz=0; break;
+    }
+    case 'boy-surface': {
+      const bTh=u*Math.PI/2,bPh=v*2*Math.PI,bCT=Math.cos(bTh);
+      const bD=2-Math.SQRT2*Math.sin(3*bTh)*Math.sin(2*bPh);
+      if(Math.abs(bD)<.08){x=0;y=0;z=0;nx=0;ny=1;nz=0;break;}
+      const bSc=r*.46;
+      x=(Math.SQRT2*bCT*bCT*Math.cos(2*bPh)+bCT*Math.sin(2*bTh)*Math.cos(bPh))/bD*bSc;
+      z=(Math.SQRT2*bCT*bCT*Math.sin(2*bPh)-bCT*Math.sin(2*bTh)*Math.sin(bPh))/bD*bSc;
+      y=3*bCT*bCT/bD*bSc-bSc;
+      nx=0;ny=1;nz=0; break;
+    }
+    case 'roman-surface': {
+      const ra=u*Math.PI,rb=v*Math.PI,rSc=r*.6;
+      x=.5*Math.sin(2*ra)*Math.cos(rb)**2*rSc;
+      z=.5*Math.sin(ra)*Math.sin(2*rb)*rSc;
+      y=.5*Math.cos(ra)*Math.sin(2*rb)*rSc;
+      nx=0;ny=1;nz=0; break;
+    }
+    case 'klein-bottle': {
+      const ka=u*2*Math.PI,kb=v*2*Math.PI,kRv=4*(1-Math.cos(ka)/2),kSc=r*.055;
+      let kx2,ky2;
+      if(ka<Math.PI){kx2=6*Math.cos(ka)*(1+Math.sin(ka))+kRv*Math.cos(kb)*Math.cos(ka);ky2=16*Math.sin(ka)+kRv*Math.sin(ka)*Math.cos(kb);}
+      else{kx2=6*Math.cos(ka)*(1+Math.sin(ka))+kRv*Math.cos(kb+Math.PI);ky2=16*Math.sin(ka);}
+      x=kx2*kSc;y=ky2*kSc;z=kRv*Math.sin(kb)*kSc;
+      nx=0;ny=1;nz=0; break;
+    }
+    case 'knot-35': {
+      const k35t=u*2*Math.PI,k35R=r*.56,k35r2=r*.24,k35tr=r*Math.max(.05,P.aspect*.1);
+      const _k35=(t)=>[(k35R+k35r2*Math.cos(5*t))*Math.cos(3*t),k35r2*Math.sin(5*t),(k35R+k35r2*Math.cos(5*t))*Math.sin(3*t)];
+      const _kp=_k35(k35t),_kq=_k35(k35t+1e-4);
+      const _kr=_tubePt(_kp[0],_kp[1],_kp[2],_kq[0],_kq[1],_kq[2],k35tr,v*2*Math.PI);
+      x=_kr[0];y=_kr[1];z=_kr[2];nx=_kr[3];ny=_kr[4];nz=_kr[5]; break;
+    }
+    case 'knot-27': {
+      const k27t=u*2*Math.PI,k27R=r*.56,k27r2=r*.22,k27tr=r*Math.max(.05,P.aspect*.1);
+      const _k27=(t)=>[(k27R+k27r2*Math.cos(7*t))*Math.cos(2*t),k27r2*Math.sin(7*t),(k27R+k27r2*Math.cos(7*t))*Math.sin(2*t)];
+      const _kp2=_k27(k27t),_kq2=_k27(k27t+1e-4);
+      const _kr2=_tubePt(_kp2[0],_kp2[1],_kp2[2],_kq2[0],_kq2[1],_kq2[2],k27tr,v*2*Math.PI);
+      x=_kr2[0];y=_kr2[1];z=_kr2[2];nx=_kr2[3];ny=_kr2[4];nz=_kr2[5]; break;
+    }
+    case 'lissajous-3d': {
+      const la=Math.max(1,Math.round(P.facets)),lb=Math.max(1,Math.round(P.turns));
+      const lc=Math.max(1,Math.round(P.aspect*2+1)),lR=r*.65,lTr=r*Math.max(.04,P.aspect*.06);
+      const lt=u*2*Math.PI;
+      const _lc=(t)=>[lR*Math.cos(la*t+.4),lR*Math.sin(lb*t),lR*Math.cos(lc*t+.7)];
+      const _lp=_lc(lt),_lq=_lc(lt+1e-4);
+      const _lr=_tubePt(_lp[0],_lp[1],_lp[2],_lq[0],_lq[1],_lq[2],lTr,v*2*Math.PI);
+      x=_lr[0];y=_lr[1];z=_lr[2];nx=_lr[3];ny=_lr[4];nz=_lr[5]; break;
+    }
+    case 'cardioid-rev': {
+      const ct=u*2*Math.PI,cphi=v*2*Math.PI,crp=1-Math.cos(ct),cSc=r*.38;
+      x=crp*Math.cos(ct)*cSc-r*.18;
+      y=crp*Math.sin(ct)*Math.cos(cphi)*cSc;
+      z=crp*Math.sin(ct)*Math.sin(cphi)*cSc;
+      nx=0;ny=Math.cos(cphi);nz=Math.sin(cphi); break;
+    }
+    case 'helicoid': {
+      const hTurns=Math.max(1,P.turns),hAng=u*2*Math.PI*hTurns,hVr=v*2-1;
+      x=hVr*r*Math.cos(hAng);z=hVr*r*Math.sin(hAng);y=(u-.5)*h;
+      nx=Math.cos(hAng);ny=0;nz=Math.sin(hAng); break;
+    }
+    case 'hyperboloid-2': {
+      const h2Lon=u*2*Math.PI,h2Sign=v<.5?1:-1;
+      const h2T=(v<.5?v*2:(v-.5)*2)*Math.max(.5,P.aspect)*1.8;
+      x=r*.42*Math.sinh(h2T)*Math.cos(h2Lon);z=r*.42*Math.sinh(h2T)*Math.sin(h2Lon);
+      y=r*.42*Math.cosh(h2T)*h2Sign;
+      nx=Math.cos(h2Lon);ny=0;nz=Math.sin(h2Lon); break;
+    }
+    case 'lemniscate-rev': {
+      const lmt=u<.5?u*Math.PI-Math.PI/4:(u-.5)*Math.PI+3*Math.PI/4;
+      const lmphi=v*2*Math.PI,lmc2=Math.cos(2*lmt);
+      if(lmc2<=.005){x=0;y=0;z=0;nx=0;ny=1;nz=0;break;}
+      const lmr=Math.sqrt(lmc2),lmSc=r*.62;
+      const lmx2=lmr*Math.cos(lmt),lmy2=Math.abs(lmr*Math.sin(lmt));
+      x=lmx2*lmSc;y=lmy2*Math.cos(lmphi)*lmSc;z=lmy2*Math.sin(lmphi)*lmSc;
+      nx=0;ny=Math.cos(lmphi);nz=Math.sin(lmphi); break;
+    }
+    case 'dupin-cyclide': {
+      const dcA=r*.6,dcB=r*.4,dcC=Math.sqrt(dcA*dcA-dcB*dcB),dcD=dcA*.3;
+      const dcU=u*2*Math.PI,dcV=v*2*Math.PI,dcDen=dcA-dcC*Math.cos(dcU)*Math.cos(dcV);
+      if(Math.abs(dcDen)<.04){x=0;y=0;z=0;nx=0;ny=1;nz=0;break;}
+      x=(dcD*(dcC-dcA*Math.cos(dcU)*Math.cos(dcV))+dcB*dcB*Math.cos(dcU))/dcDen;
+      y=dcB*Math.sin(dcU)*(dcA-dcD*Math.cos(dcV))/dcDen;
+      z=dcB*Math.sin(dcV)*(dcC*Math.cos(dcU)-dcD)/dcDen;
+      nx=Math.cos(dcU);ny=0;nz=Math.sin(dcV); break;
+    }
+    case 'superformula': {
+      const sfM1=Math.max(1,Math.round(P.facets)),sfM2=Math.max(1,Math.round(P.turns));
+      const sfN=Math.max(.1,P.aspect);
+      const sfFn=(a,m)=>{const v1=Math.abs(Math.cos(m*a/4))**2+Math.abs(Math.sin(m*a/4))**2;return v1>0?v1**(-1/sfN):0;};
+      const sfLon=u*2*Math.PI,sfLat=(v-.5)*Math.PI;
+      const sfR1=sfFn(sfLon,sfM1),sfR2=sfFn(sfLat,sfM2),sfCl=Math.cos(sfLat);
+      x=r*sfR1*Math.cos(sfLon)*sfR2*sfCl;y=r*sfR2*Math.sin(sfLat);z=r*sfR1*Math.sin(sfLon)*sfR2*sfCl;
+      const sfL=Math.hypot(x,y,z)||1;nx=x/sfL;ny=y/sfL;nz=z/sfL; break;
+    }
+    case 'oloid': {
+      const olt=u*2*Math.PI,olD=r*.5,olRc=r*.55;
+      const olP1=[olD+olRc*Math.cos(olt),0,olRc*Math.sin(olt)];
+      const olP2=[-olD+olRc*Math.cos(olt),olRc*Math.sin(olt),0];
+      x=olP1[0]*(1-v)+olP2[0]*v;y=olP1[1]*(1-v)+olP2[1]*v;z=olP1[2]*(1-v)+olP2[2]*v;
+      nx=0;ny=1;nz=0; break;
+    }
+    case 'swallowtail': {
+      const swT=u*2.4-1.2,swA=(v-.5)*3.5;
+      x=swA*r*.19;z=(-4*swT**3-2*swA*swT)*r*.065;y=(3*swT**4+swA*swT*swT)*r*.095;
+      nx=0;ny=1;nz=0; break;
+    }
+    case 'seifert': {
+      const sfT2=u*2*Math.PI,sfSc=r*.135;
+      const _sfS=(t)=>[(Math.sin(t)+2*Math.sin(2*t))*sfSc,(Math.cos(t)-2*Math.cos(2*t))*sfSc,-Math.sin(3*t)*sfSc];
+      const _sfP=_sfS(sfT2),_sfQ=_sfS(sfT2+1e-4);
+      const _sfN=_tubePt(_sfP[0],_sfP[1],_sfP[2],_sfQ[0],_sfQ[1],_sfQ[2],0,1.5*sfT2);
+      const sfW=(v-.5)*r*.20;
+      x=_sfP[0]+_sfN[3]*sfW;y=_sfP[1]+_sfN[4]*sfW;z=_sfP[2]+_sfN[5]*sfW;
+      nx=_sfN[3];ny=_sfN[4];nz=_sfN[5]; break;
+    }
+    case 'riemann-minimal': {
+      const rmx=(u-.5)*Math.PI*2.6,rmy=(v-.5)*Math.PI*2.6,rmSc=r*.27;
+      x=rmx*rmSc;z=rmy*rmSc;
+      y=(Math.sin(rmx)*Math.cos(rmy)+.5*Math.sin(2*rmx)*Math.cos(2*rmy)+.25*Math.sin(3*rmx)*Math.cos(3*rmy))*rmSc*.85;
+      nx=0;ny=1;nz=0; break;
+    }
     case 'cluster': // handled per-instance with cube mapping
     case 'plane':
     default: {
@@ -1240,7 +1406,8 @@ function build3D(params, width, height) {
 
   // Flat forms don't wrap in u: an unbounded surfaceFlowU would move glyphs
   // off the surface (x=(u-0.5)*S grows without limit). Zero it for these.
-  const IS_FLAT = P.form === 'plane' || P.form === 'wave-plane' || P.form === 'saddle';
+  const IS_FLAT = P.form === 'plane' || P.form === 'wave-plane' || P.form === 'saddle'
+    || P.form === 'enneper' || P.form === 'scherk' || P.form === 'swallowtail' || P.form === 'riemann-minimal';
   const flowU = IS_FLAT ? 0 : surfaceFlowU;
 
   // Arc-length LUTs: one per unique v (line), built lazily.

@@ -2410,7 +2410,7 @@ export function buildScene(params, width, height) {
       angleY: P.angleY,
       speed3d: typeof params.speed3d === 'number' ? params.speed3d : 0,
       fps: P.fps,
-      t: time,
+      t: typeof params.t === 'number' ? params.t : 0,
     } : null,
     blinkMode: params.blinkMode || 'none',
     blinkRate: typeof params.blinkRate === 'number' ? params.blinkRate : 2,

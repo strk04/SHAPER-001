@@ -94,8 +94,14 @@ export async function listPresets(project) {
   }
 }
 
+// Encode each path segment for the URL while keeping '/' separators.
+// GitHub content paths can contain spaces/accents (preset & project names);
+// an unencoded path breaks the URL and GitHub answers 404 (mistaken for a
+// permission problem). Cache keys (shas) stay on the original path.
+const encPath = (p) => p.split('/').map(encodeURIComponent).join('/');
+
 export async function loadPreset(path) {
-  const d = await ghFetch(`/repos/${REPO}/contents/${path}`);
+  const d = await ghFetch(`/repos/${REPO}/contents/${encPath(path)}`);
   shas.set(d.path, d.sha);
   const bytes = Uint8Array.from(atob(d.content.replace(/\s/g, '')), c => c.charCodeAt(0));
   return JSON.parse(new TextDecoder().decode(bytes));
@@ -117,7 +123,7 @@ export async function savePreset(project, name, data) {
   const body = { message: `preset: "${safe}"`, content: toBase64(data) };
   const sha = shas.get(path);
   if (sha) body.sha = sha;
-  const res = await ghFetch(`/repos/${REPO}/contents/${path}`, {
+  const res = await ghFetch(`/repos/${REPO}/contents/${encPath(path)}`, {
     method: 'PUT',
     body: JSON.stringify(body),
   });
@@ -128,7 +134,7 @@ export async function savePreset(project, name, data) {
 export async function deletePreset(path) {
   const sha = shas.get(path);
   if (!sha) throw new Error('SHA desconegut — recarrega la llista primer');
-  await ghFetch(`/repos/${REPO}/contents/${path}`, {
+  await ghFetch(`/repos/${REPO}/contents/${encPath(path)}`, {
     method: 'DELETE',
     body: JSON.stringify({ message: `preset: delete "${path}"`, sha }),
   });

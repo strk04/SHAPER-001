@@ -2410,6 +2410,7 @@ export function buildScene(params, width, height) {
       angleY: P.angleY,
       speed3d: typeof params.speed3d === 'number' ? params.speed3d : 0,
       fps: P.fps,
+      t: time,
     } : null,
     blinkMode: params.blinkMode || 'none',
     blinkRate: typeof params.blinkRate === 'number' ? params.blinkRate : 2,
@@ -2612,32 +2613,22 @@ export function drawScene(ctx, scene, width, height, dpr) {
     ctx.globalAlpha = 0.55;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
-    const fsize = 18; // 2× the old 9px
+    const fsize = 18;
     ctx.font = fs.weight + ' ' + fsize + 'px ' + fs.family;
 
-    const label =
-      'SIZE ' + md.formSize +
-      '   AX ' + md.angleX.toFixed(1) + '  AY ' + md.angleY.toFixed(1) +
-      '   SPD ' + md.speed3d.toFixed(2) +
-      '   FPS ' + Math.round(md.fps);
-
-    // Stick to a STABLE point on the guides: the very first vertex of the
-    // path. Recomputing a "best" segment every frame made it jump between
-    // edges → flicker. The text stays straight (horizontal) so it's always
-    // legible, but rides with the form because the anchor is on a guide.
-    let ax2 = 10, ay2 = height - 10;
-    if (scene.guides) {
-      const nums = scene.guides.match(/-?\d+(?:\.\d+)?/g);
-      if (nums && nums.length >= 2) {
-        ax2 = +nums[0];
-        ay2 = +nums[1];
-      }
-    }
-    // Keep the whole row on-canvas.
-    const tw = ctx.measureText(label).width;
-    ax2 = Math.max(4, Math.min(width - tw - 4, ax2));
-    ay2 = Math.max(fsize + 2, Math.min(height - 4, ay2));
-    ctx.fillText(label, ax2, ay2);
+    // Bottom-left, stacked rows. Includes a live clock (T) that advances every
+    // frame so the readout visibly changes in real time during playback.
+    const t = md.t || 0;
+    const rows = [
+      'SIZE ' + md.formSize,
+      'AX ' + md.angleX.toFixed(1) + '  AY ' + md.angleY.toFixed(1),
+      'SPD ' + md.speed3d.toFixed(2) + '  T ' + t.toFixed(2),
+      'FPS ' + Math.round(md.fps),
+    ];
+    const lh = 22;
+    rows.forEach((row, i) =>
+      ctx.fillText(row, 10, height - 12 - (rows.length - 1 - i) * lh),
+    );
     ctx.globalAlpha = 1;
   }
 

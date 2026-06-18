@@ -2612,7 +2612,8 @@ export function drawScene(ctx, scene, width, height, dpr) {
     ctx.globalAlpha = 0.55;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
-    ctx.font = fs.weight + ' 9px ' + fs.family;
+    const fsize = 18; // 2× the old 9px
+    ctx.font = fs.weight + ' ' + fsize + 'px ' + fs.family;
 
     const label =
       'SIZE ' + md.formSize +
@@ -2620,50 +2621,23 @@ export function drawScene(ctx, scene, width, height, dpr) {
       '   SPD ' + md.speed3d.toFixed(2) +
       '   FPS ' + Math.round(md.fps);
 
-    // Pick a guide segment to stick the label onto: scan all subpaths, choose
-    // the longest near-horizontal edge so the text reads along a real guide
-    // line and follows its on-screen orientation.
-    let anchor = null;
+    // Stick to a STABLE point on the guides: the very first vertex of the
+    // path. Recomputing a "best" segment every frame made it jump between
+    // edges → flicker. The text stays straight (horizontal) so it's always
+    // legible, but rides with the form because the anchor is on a guide.
+    let ax2 = 10, ay2 = height - 10;
     if (scene.guides) {
-      const subpaths = scene.guides.split('M').filter(Boolean);
-      let bestLen = 0;
-      for (const sub of subpaths) {
-        const nums = sub.match(/-?\d+(?:\.\d+)?/g);
-        if (!nums || nums.length < 4) continue;
-        for (let i = 0; i + 3 < nums.length; i += 2) {
-          const x0 = +nums[i], y0 = +nums[i + 1];
-          const x1 = +nums[i + 2], y1 = +nums[i + 3];
-          const dx = x1 - x0, dy = y1 - y0;
-          const len = Math.hypot(dx, dy);
-          if (len < 12) continue;
-          // Prefer horizontal-ish edges: weight length by |cos(angle)|.
-          const horiz = Math.abs(dx) / len;
-          const score = len * (0.3 + 0.7 * horiz);
-          if (score > bestLen) {
-            bestLen = score;
-            anchor = { x0, y0, x1, y1, dx, dy, len };
-          }
-        }
+      const nums = scene.guides.match(/-?\d+(?:\.\d+)?/g);
+      if (nums && nums.length >= 2) {
+        ax2 = +nums[0];
+        ay2 = +nums[1];
       }
     }
-
-    if (anchor) {
-      let ang = Math.atan2(anchor.dy, anchor.dx);
-      // Keep text upright: flip 180° if it would render upside-down.
-      let fx = anchor.x0, fy = anchor.y0;
-      if (ang > Math.PI / 2 || ang < -Math.PI / 2) {
-        ang -= Math.PI;
-        fx = anchor.x1; fy = anchor.y1; // start from the other end after flip
-      }
-      ctx.save();
-      ctx.translate(fx, fy);
-      ctx.rotate(ang);
-      ctx.fillText(label, 4, -4); // slight offset off the line
-      ctx.restore();
-    } else {
-      // No usable guide segment — fall back to bottom-left, straight.
-      ctx.fillText(label, 10, height - 10);
-    }
+    // Keep the whole row on-canvas.
+    const tw = ctx.measureText(label).width;
+    ax2 = Math.max(4, Math.min(width - tw - 4, ax2));
+    ay2 = Math.max(fsize + 2, Math.min(height - 4, ay2));
+    ctx.fillText(label, ax2, ay2);
     ctx.globalAlpha = 1;
   }
 

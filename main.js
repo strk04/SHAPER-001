@@ -1,5 +1,6 @@
 // main.js — UI wiring for SHAPER 001
 import { buildSVG, buildScene, drawScene, DEFAULT_CUSTOM_PROFILE, DEFAULT_CUSTOM_OUTLINE } from './engine.js';
+import { encodeDirectorFrames } from './export-video.js';
 import { getToken, setToken, clearToken, validateToken, listProjects, listPresets, loadPreset, savePreset, deletePreset } from './presets-github.js';
 import { DEFAULT_DIRECTOR, advanceDirectorTime, evaluateDirector, normalizeDirector, normalizeScene, totalDuration, addScene, duplicateScene, moveScene, removeScene, upsertBehavior, updateBehavior, removeBehavior, upsertKeyframe, AUTOMATABLE_PARAMS, simplifySamples } from './director.js';
 import { mountDirectorUI, mountLivePads, AUTOMATION_CONTROL_IDS } from './director-ui.js';
@@ -1159,7 +1160,8 @@ function setPresetStatus(msg) {
 function saveSVG() {
   const width = Math.max(1, Math.round(state.canvasW));
   const height = Math.max(1, Math.round(state.canvasH));
-  const svg = buildSVG(state, width, height);
+  const exportState = resolveRenderState(state.directorTime);
+  const svg = buildSVG(exportState, width, height);
   const blob = new Blob([svg], { type: 'image/svg+xml' });
   const url = URL.createObjectURL(blob);
   const a = Object.assign(document.createElement('a'), { href: url, download: `shaper-${state.seed}.svg` });
@@ -1175,7 +1177,8 @@ function savePNG(dpi) {
   const oc = document.createElement('canvas');
   oc.width = w; oc.height = h;
   const octx = oc.getContext('2d');
-  const scene = buildScene(state, w, h);
+  const exportState = resolveRenderState(state.directorTime);
+  const scene = buildScene(exportState, w, h);
   drawScene(octx, scene, w, h, 1);
   setExportStatus('Exportant PNG…');
   oc.toBlob((blob) => {
@@ -1206,13 +1209,17 @@ function getRecordFps() {
   return parseInt($('recordFps')?.value ?? '30');
 }
 
+function encodeCurrentCanvas(frameIndex, fps) {
+  const ts = Math.round(frameIndex * (1_000_000 / fps));
+  const videoFrame = new VideoFrame(displayCanvas, { timestamp: ts });
+  recState.videoEncoder.encode(videoFrame, { keyFrame: frameIndex % (fps * 2) === 0 });
+  videoFrame.close();
+}
+
 function captureFrame() {
   if (!recState.isRecording || !recState.videoEncoder || !displayCanvas) return;
   const fps = getRecordFps();
-  const ts = Math.round(recState.frameN * (1_000_000 / fps));
-  const videoFrame = new VideoFrame(displayCanvas, { timestamp: ts });
-  recState.videoEncoder.encode(videoFrame, { keyFrame: recState.frameN % (fps * 2) === 0 });
-  videoFrame.close();
+  encodeCurrentCanvas(recState.frameN, fps);
   recState.frameN++;
 
   if (recState.frameN % fps === 0) {
@@ -1266,6 +1273,26 @@ async function startRecord() {
     recState._accumTime = 0;
     recState.loopTotal = isNaN(dur) ? 0 : dur * fps;
     recState.isRecording = true;
+
+    if (state.director.enabled) {
+      const duration = totalDuration(state.director);
+      const wasPlaying = playing;
+      pause();
+      try {
+        await encodeDirectorFrames({
+          duration, fps,
+          renderAt: (time) => render(time),
+          encodeCanvas: (index, exportFps) => encodeCurrentCanvas(index, exportFps),
+          onProgress: (done, total) => setExportStatus(`Exportant Director… ${done}/${total}`),
+        });
+        await stopRecord();
+      } finally {
+        state.directorTime = 0;
+        render(0);
+        if (wasPlaying) play();
+      }
+      return;
+    }
 
     const btn = $('recordVideo');
     if (btn) {
@@ -1349,11 +1376,19 @@ function capturePreset() {
    'morphForm', 'morphForm2', 'morphForm3', 'morphAuto'].forEach((k) => {
     snap[k] = state[k];
   });
+  snap.director = structuredClone(state.director);
   return snap;
 }
 
 function applyPreset(p) {
   if (!p || p.v !== 1) return;
+  state.director = normalizeDirector(p.director);
+  state.directorTime = 0;
+  state.selectedDirectorSceneId = state.director.scenes[0].id;
+  state.directorLiveOverrides = {};
+  if (state.director.unsupportedVersion) {
+    setPresetStatus('Aquest preset usa una versió més nova del Director; es carrega la composició base amb Director desactivat.');
+  }
   Object.keys(SLIDERS).forEach((k) => {
     if (p[k] != null) { state[k] = p[k]; syncSliderUI(k); }
   });
@@ -1422,6 +1457,7 @@ function applyPreset(p) {
   }
   if (['morphForm','morphForm2','morphForm3','morphAuto'].some(k => p[k] != null)) updateMorphVisibility();
   scheduleRender();
+  directorUI?.render();
 }
 
 // --- GitHub preset state ---

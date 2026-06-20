@@ -1,8 +1,8 @@
 // main.js — UI wiring for SHAPER 001
 import { buildSVG, buildScene, drawScene, DEFAULT_CUSTOM_PROFILE, DEFAULT_CUSTOM_OUTLINE } from './engine.js';
 import { getToken, setToken, clearToken, validateToken, listProjects, listPresets, loadPreset, savePreset, deletePreset } from './presets-github.js';
-import { DEFAULT_DIRECTOR, advanceDirectorTime, evaluateDirector, normalizeDirector, totalDuration } from './director.js';
-import { mountDirectorUI } from './director-ui.js';
+import { DEFAULT_DIRECTOR, advanceDirectorTime, evaluateDirector, normalizeDirector, normalizeScene, totalDuration, addScene, duplicateScene, moveScene, removeScene, upsertBehavior, updateBehavior, removeBehavior, upsertKeyframe, AUTOMATABLE_PARAMS } from './director.js';
+import { mountDirectorUI, AUTOMATION_CONTROL_IDS } from './director-ui.js';
 
 // Slider definitions: key -> { label, default }
 const SLIDERS = {
@@ -1589,6 +1589,57 @@ function wirePresets() {
   });
 }
 
+// --- Director scene editing helpers ---
+function replaceDirectorScene(nextScene) {
+  state.director = { ...state.director, scenes: state.director.scenes.map((scene) => scene.id === nextScene.id ? nextScene : scene) };
+  directorUI.render(); scheduleRender();
+}
+function selectedDirectorScene() {
+  return state.director.scenes.find((scene) => scene.id === state.selectedDirectorSceneId) || state.director.scenes[0];
+}
+function handleDirectorSceneAction(action) {
+  const scene = selectedDirectorScene();
+  const index = state.director.scenes.findIndex((item) => item.id === scene.id);
+  if (action === 'add') state.director = addScene(state.director, { name: `Escena ${state.director.scenes.length + 1}` });
+  if (action === 'duplicate') state.director = duplicateScene(state.director, scene.id);
+  if (action === 'left') state.director = moveScene(state.director, index, index - 1);
+  if (action === 'right') state.director = moveScene(state.director, index, index + 1);
+  if (action === 'delete') state.director = removeScene(state.director, scene.id);
+  if (!state.director.scenes.some((item) => item.id === state.selectedDirectorSceneId)) {
+    state.selectedDirectorSceneId = state.director.scenes[Math.min(index, state.director.scenes.length - 1)].id;
+  }
+  directorUI.render(); scheduleRender();
+}
+function updateSelectedSceneDuration(duration) { replaceDirectorScene(normalizeScene({ ...selectedDirectorScene(), duration })); }
+function updateSelectedTransition(patch) { const s = selectedDirectorScene(); replaceDirectorScene(normalizeScene({ ...s, transition: { ...s.transition, ...patch } })); }
+function addSelectedBehavior(type) { replaceDirectorScene(upsertBehavior(selectedDirectorScene(), type)); }
+function updateSelectedBehavior(id, patch) { replaceDirectorScene(updateBehavior(selectedDirectorScene(), id, patch)); }
+function removeSelectedBehavior(id) { replaceDirectorScene(removeBehavior(selectedDirectorScene(), id)); }
+
+function installAutomationButtons() {
+  for (const [name, id] of Object.entries(AUTOMATION_CONTROL_IDS)) {
+    const control = $(id);
+    if (!control || document.querySelector(`[data-automation-path="${name}"]`)) continue;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'automation-key-button';
+    button.dataset.automationPath = name;
+    button.setAttribute('aria-label', `Afegeix keyframe a ${name}`);
+    const glyph = document.createElement('span');
+    glyph.setAttribute('aria-hidden', 'true');
+    glyph.textContent = '◇';
+    button.appendChild(glyph);
+    control.insertAdjacentElement('afterend', button);
+    button.addEventListener('click', () => {
+      const kind = AUTOMATABLE_PARAMS[name];
+      const value = kind === 'number' ? Number(control.value) : control.value;
+      const { localTime } = evaluateDirector(state.director, state.directorTime, state);
+      const scene = selectedDirectorScene();
+      replaceDirectorScene(upsertKeyframe(scene, `param:${name}`, { time: localTime, value, easing: kind === 'hold' ? 'hold' : 'linear' }));
+    });
+  }
+}
+
 // --- Director wiring ---
 function wireDirector() {
   directorUI = mountDirectorUI({
@@ -1598,6 +1649,18 @@ function wireDirector() {
     onSelectScene: (id) => { state.selectedDirectorSceneId = id; directorUI.render(); },
     onSeek: (time) => { state.directorTime = time; render(time); directorUI.render(); },
     onToggleEnabled: (enabled) => { state.director = { ...state.director, enabled }; scheduleRender(); directorUI.render(); },
+    onSceneAction: handleDirectorSceneAction,
+    onSceneDuration: updateSelectedSceneDuration,
+    onTransitionChange: updateSelectedTransition,
+    onAddBehavior: addSelectedBehavior,
+    onUpdateBehavior: updateSelectedBehavior,
+    onRemoveBehavior: removeSelectedBehavior,
+    onAddKeyframe: (path, _field) => {
+      const { localTime } = evaluateDirector(state.director, state.directorTime, state);
+      const scene = selectedDirectorScene();
+      const kind = path.startsWith('param:') ? (AUTOMATABLE_PARAMS[path.slice(6)] || 'number') : 'number';
+      replaceDirectorScene(upsertKeyframe(scene, path, { time: localTime, value: 0, easing: kind === 'hold' ? 'hold' : 'linear' }));
+    },
   });
 
   const resizeHandle = $('directorResize');
@@ -1651,6 +1714,29 @@ function wireDirector() {
       state.directorTime = 0;
       render(0);
       directorUI.render();
+    });
+  }
+
+  // Hold (play/pause) toggle
+  const holdBtn = $('directorHold');
+  if (holdBtn) {
+    holdBtn.addEventListener('click', () => {
+      if (playing) {
+        pause();
+        holdBtn.setAttribute('aria-pressed', 'true');
+      } else {
+        play();
+        holdBtn.setAttribute('aria-pressed', 'false');
+      }
+    });
+  }
+
+  // Reverse direction toggle
+  const reverseBtn = $('directorReverse');
+  if (reverseBtn) {
+    reverseBtn.addEventListener('click', () => {
+      state.directorRate = (state.directorRate ?? 1) * -1;
+      reverseBtn.setAttribute('aria-pressed', String(state.directorRate < 0));
     });
   }
 
@@ -1811,6 +1897,7 @@ function buildCharMap() {
 function init() {
   restoreCustomData();
   buildSliders();
+  installAutomationButtons();
   bindNavigation();
   wireControls();
   wirePresets();

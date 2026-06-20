@@ -2,6 +2,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DEFAULT_DIRECTOR, normalizeDirector } from '../director.js';
+import {
+  addScene, duplicateScene, moveScene, removeScene, upsertKeyframe,
+  upsertBehavior, updateBehavior, removeBehavior, isAutomatablePath,
+} from '../director.js';
 
 test('normalizeDirector returns a safe disabled config for missing input', () => {
   const result = normalizeDirector(null);
@@ -116,4 +120,44 @@ test('disabled director returns the original base object', () => {
   const result = evaluateDirector({ version: 1, enabled: false, scenes: [] }, 10, base);
   assert.equal(result.params, base);
   assert.deepEqual(result.behaviors, []);
+});
+
+test('scene editing is immutable and never removes the final scene', () => {
+  const base = normalizeDirector(null);
+  const added = addScene(base, { name: 'Òrbita', duration: 3 });
+  const duplicated = duplicateScene(added, added.scenes[1].id);
+  const moved = moveScene(duplicated, 2, 0);
+  const removed = removeScene(moved, moved.scenes[1].id);
+  assert.equal(base.scenes.length, 1);
+  assert.equal(added.scenes.length, 2);
+  assert.equal(duplicated.scenes.length, 3);
+  assert.equal(removed.scenes.length, 2);
+  assert.equal(removeScene(base, base.scenes[0].id).scenes.length, 1);
+});
+
+test('upsertKeyframe clamps time and replaces same-time values', () => {
+  const scene = normalizeDirector(null).scenes[0];
+  const once = upsertKeyframe(scene, 'param:morphT', { time: 8, value: 0.4, easing: 'linear' });
+  const twice = upsertKeyframe(once, 'param:morphT', { time: 5, value: 0.8, easing: 'ease-out' });
+  assert.deepEqual(twice.automations['param:morphT'], [{ time: 5, value: 0.8, easing: 'ease-out' }]);
+});
+
+test('behavior editing creates supported defaults and stays immutable', () => {
+  const scene = normalizeDirector(null).scenes[0];
+  const withOrbit = upsertBehavior(scene, 'orbit');
+  const id = withOrbit.behaviors[0].id;
+  const updated = updateBehavior(withOrbit, id, { intensity: 0.75, params: { radius: 240 } });
+  const removed = removeBehavior(updated, id);
+  assert.equal(scene.behaviors.length, 0);
+  assert.equal(withOrbit.behaviors[0].type, 'orbit');
+  assert.equal(updated.behaviors[0].intensity, 0.75);
+  assert.equal(updated.behaviors[0].params.radius, 240);
+  assert.equal(removed.behaviors.length, 0);
+});
+
+test('automation allowlist accepts known paths and rejects arbitrary state', () => {
+  assert.equal(isAutomatablePath('param:morphT'), true);
+  assert.equal(isAutomatablePath('param:textColor'), true);
+  assert.equal(isAutomatablePath('param:director'), false);
+  assert.equal(isAutomatablePath('behavior:orbit-1:intensity'), true);
 });

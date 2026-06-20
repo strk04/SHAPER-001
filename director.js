@@ -145,6 +145,109 @@ function blendNumberRecords(from, to, mix) {
   return result;
 }
 
+// ── Immutable scene-editing helpers (Task 7) ────────────────────────────────
+
+const uniqueId = (prefix, scenes) => {
+  let index = scenes.length + 1;
+  while (scenes.some((scene) => scene.id === `${prefix}-${index}`)) index++;
+  return `${prefix}-${index}`;
+};
+
+export function addScene(input, partial = {}) {
+  const director = normalizeDirector(input);
+  const scene = normalizeScene({ ...partial, id: partial.id || uniqueId('scene', director.scenes) }, director.scenes.length);
+  return { ...director, scenes: [...director.scenes, scene] };
+}
+
+export function duplicateScene(input, id) {
+  const director = normalizeDirector(input);
+  const index = director.scenes.findIndex((scene) => scene.id === id);
+  if (index < 0) return director;
+  const copy = structuredClone(director.scenes[index]);
+  copy.id = uniqueId('scene', director.scenes);
+  copy.name = `${copy.name} còpia`;
+  const scenes = director.scenes.slice();
+  scenes.splice(index + 1, 0, copy);
+  return { ...director, scenes };
+}
+
+export function moveScene(input, fromIndex, toIndex) {
+  const director = normalizeDirector(input);
+  const scenes = director.scenes.slice();
+  const from = clamp(Math.trunc(fromIndex), 0, scenes.length - 1);
+  const to = clamp(Math.trunc(toIndex), 0, scenes.length - 1);
+  const [scene] = scenes.splice(from, 1);
+  scenes.splice(to, 0, scene);
+  return { ...director, scenes };
+}
+
+export function removeScene(input, id) {
+  const director = normalizeDirector(input);
+  if (director.scenes.length === 1) return director;
+  return { ...director, scenes: director.scenes.filter((scene) => scene.id !== id) };
+}
+
+export const AUTOMATABLE_PARAMS = Object.freeze({
+  morphT: 'number', morphSpeed: 'number', morphScatter: 'number', morphSpeedVar: 'number',
+  zoom: 'number', angleX: 'number', angleY: 'number', depthFade: 'number',
+  formSize: 'number', pulse: 'number', noiseTexture: 'number',
+  textColor: 'hold', bgColor: 'hold', form: 'hold', projection: 'hold',
+});
+
+export const BEHAVIOR_DEFAULTS = Object.freeze({
+  drift: Object.freeze({ angle: 0, elevation: 0, distance: 100, speed: 0.1, phase: 0 }),
+  orbit: Object.freeze({ centerX: 0, centerY: 0, centerZ: 0, radius: 180, speed: 0.1, phase: 0, depth: 0, spread: 0 }),
+  attract: Object.freeze({ targetX: 0, targetY: 0, targetZ: 0, strength: 100, radius: 400, falloff: 1 }),
+  explode: Object.freeze({ centerX: 0, centerY: 0, centerZ: 0, distance: 240, spread: 0.5, progress: 0 }),
+});
+
+export function isAutomatablePath(path) {
+  const parts = String(path).split(':');
+  if (parts[0] === 'param' && parts.length === 2) return parts[1] in AUTOMATABLE_PARAMS;
+  return parts[0] === 'behavior' && parts.length === 3;
+}
+
+export function upsertKeyframe(sceneInput, path, frameInput) {
+  const scene = normalizeScene(sceneInput);
+  if (!isAutomatablePath(path)) return scene;
+  const time = clamp(finite(frameInput?.time, 0), 0, scene.duration);
+  const easing = EASINGS.has(frameInput?.easing) ? frameInput.easing : 'linear';
+  const frame = { time, value: frameInput?.value, easing };
+  const existing = Array.isArray(scene.automations[path]) ? scene.automations[path] : [];
+  const frames = [...existing.filter((item) => Math.abs(item.time - time) > 0.0001), frame].sort((a, b) => a.time - b.time);
+  return { ...scene, automations: { ...scene.automations, [path]: frames } };
+}
+
+export function upsertBehavior(sceneInput, type) {
+  const scene = normalizeScene(sceneInput);
+  if (!(type in BEHAVIOR_DEFAULTS)) return scene;
+  if (scene.behaviors.some((behavior) => behavior.type === type)) return scene;
+  const behavior = normalizeBehavior({
+    id: `${type}-${scene.behaviors.length + 1}`,
+    type, enabled: true, intensity: 1, cohesion: 1,
+    seedOffset: scene.behaviors.length + 1,
+    params: BEHAVIOR_DEFAULTS[type],
+  }, scene.behaviors.length);
+  return { ...scene, behaviors: [...scene.behaviors, behavior] };
+}
+
+export function updateBehavior(sceneInput, id, patch) {
+  const scene = normalizeScene(sceneInput);
+  return {
+    ...scene,
+    behaviors: scene.behaviors.map((behavior) => behavior.id === id
+      ? normalizeBehavior({ ...behavior, ...patch, params: { ...behavior.params, ...(patch.params || {}) } })
+      : behavior),
+  };
+}
+
+export function removeBehavior(sceneInput, id) {
+  const scene = normalizeScene(sceneInput);
+  return { ...scene, behaviors: scene.behaviors.filter((behavior) => behavior.id !== id) };
+}
+
+// ── Evaluation ───────────────────────────────────────────────────────────────
+
 export function evaluateDirector(input, absoluteTime, baseState = {}, liveOverrides = {}) {
   const config = normalizeDirector(input);
   if (!config.enabled) return { sceneId: null, localTime: 0, params: baseState, behaviors: [] };

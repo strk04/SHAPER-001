@@ -20,6 +20,34 @@ export function directorViewModel(input, selectedSceneId, time) {
   };
 }
 
+// ── Behavior fields map ──────────────────────────────────────────────────────
+
+const BEHAVIOR_FIELDS = Object.freeze({
+  drift: ['angle', 'elevation', 'distance', 'speed', 'phase'],
+  orbit: ['centerX', 'centerY', 'centerZ', 'radius', 'speed', 'phase', 'depth', 'spread'],
+  attract: ['targetX', 'targetY', 'targetZ', 'strength', 'radius', 'falloff'],
+  explode: ['centerX', 'centerY', 'centerZ', 'distance', 'spread', 'progress'],
+});
+
+// Maps AUTOMATABLE_PARAMS key → actual element id in index.html / built by buildSliders()
+export const AUTOMATION_CONTROL_IDS = Object.freeze({
+  morphT: 'rng-morphT',
+  morphSpeed: 'rng-morphSpeed',
+  morphScatter: 'rng-morphScatter',
+  morphSpeedVar: 'rng-morphSpeedVar',
+  zoom: 'rng-zoom',
+  angleX: 'rng-angleX',
+  angleY: 'rng-angleY',
+  depthFade: 'rng-depthFade',
+  formSize: 'rng-formSize',
+  pulse: 'rng-pulse',
+  noiseTexture: 'rng-noiseTexture',
+  textColor: 'textColor',
+  bgColor: 'bgColor',
+  form: 'form',
+  projection: 'projection',
+});
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({
@@ -29,10 +57,20 @@ const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({
 // ── DOM Mount ────────────────────────────────────────────────────────────────
 
 /**
- * mountDirectorUI({ inspector, timeline, getState, onSelectScene, onSeek, onToggleEnabled })
+ * mountDirectorUI({
+ *   inspector, timeline, getState,
+ *   onSelectScene, onSeek, onToggleEnabled,
+ *   onSceneAction, onSceneDuration, onTransitionChange,
+ *   onAddBehavior, onUpdateBehavior, onRemoveBehavior, onAddKeyframe,
+ * })
  * Returns { render, setTime }
  */
-export function mountDirectorUI({ inspector, timeline, getState, onSelectScene, onSeek, onToggleEnabled }) {
+export function mountDirectorUI({
+  inspector, timeline, getState,
+  onSelectScene, onSeek, onToggleEnabled,
+  onSceneAction, onSceneDuration, onTransitionChange,
+  onAddBehavior, onUpdateBehavior, onRemoveBehavior, onAddKeyframe,
+}) {
   if (!inspector || !timeline) return { render: () => {}, setTime: () => {} };
 
   // ── Inspector ──────────────────────────────────────────────────────────────
@@ -46,11 +84,13 @@ export function mountDirectorUI({ inspector, timeline, getState, onSelectScene, 
     <output id="directorTimeOutput" aria-live="off"></output>
     <label class="sr-only" for="directorPlayhead">Temps del Director</label>
     <input id="directorPlayhead" type="range" min="0" max="0" step="0.01" value="0" aria-valuetext="0.00 s de 0.00 s">
+    <div id="directorSceneEditArea"></div>
   `;
 
   // ── Timeline ───────────────────────────────────────────────────────────────
   timeline.innerHTML = `
     <div class="director-scenes" role="radiogroup" aria-label="Escenes" id="directorScenes"></div>
+    <div id="directorLanes" class="director-lanes"></div>
   `;
 
   // Element refs
@@ -58,7 +98,9 @@ export function mountDirectorUI({ inspector, timeline, getState, onSelectScene, 
   const sceneNameEl = inspector.querySelector('#directorSceneName');
   const timeOutput  = inspector.querySelector('#directorTimeOutput');
   const playhead    = inspector.querySelector('#directorPlayhead');
+  const sceneEditEl = inspector.querySelector('#directorSceneEditArea');
   const scenesEl    = timeline.querySelector('#directorScenes');
+  const lanesEl     = timeline.querySelector('#directorLanes');
 
   // ── Listener: enabled checkbox ─────────────────────────────────────────────
   enabledCb.addEventListener('change', () => {
@@ -70,18 +112,67 @@ export function mountDirectorUI({ inspector, timeline, getState, onSelectScene, 
     onSeek(Number(playhead.value));
   });
 
+  // ── Inspector: scene action buttons + properties (delegated) ─────────────
+  inspector.addEventListener('click', (event) => {
+    const actionBtn = event.target.closest('[data-director-action]');
+    if (actionBtn && onSceneAction) {
+      onSceneAction(actionBtn.dataset.directorAction);
+      return;
+    }
+    const addBehaviorBtn = event.target.closest('[data-add-behavior]');
+    if (addBehaviorBtn && onAddBehavior) {
+      onAddBehavior(addBehaviorBtn.dataset.addBehavior);
+      return;
+    }
+    const removeBehaviorBtn = event.target.closest('[data-remove-behavior]');
+    if (removeBehaviorBtn && onRemoveBehavior) {
+      onRemoveBehavior(removeBehaviorBtn.dataset.removeBehavior);
+      return;
+    }
+    const addKeyframeBtn = event.target.closest('[data-keyframe-path]');
+    if (addKeyframeBtn && onAddKeyframe) {
+      onAddKeyframe(addKeyframeBtn.dataset.keyframePath, addKeyframeBtn.dataset.keyframeField);
+    }
+  });
+
+  inspector.addEventListener('change', (event) => {
+    const { target } = event;
+    if (target.id === 'directorSceneDuration' && onSceneDuration) {
+      onSceneDuration(Number(target.value));
+      return;
+    }
+    if (target.id === 'directorTransitionDuration' && onTransitionChange) {
+      onTransitionChange({ duration: Number(target.value) });
+      return;
+    }
+    if (target.id === 'directorTransitionEasing' && onTransitionChange) {
+      onTransitionChange({ easing: target.value });
+      return;
+    }
+    const behaviorIntensity = target.closest('[data-behavior-id]');
+    if (behaviorIntensity && target.dataset.behaviorField && onUpdateBehavior) {
+      const id = behaviorIntensity.dataset.behaviorId;
+      if (target.dataset.behaviorField === 'intensity') {
+        onUpdateBehavior(id, { intensity: Number(target.value) });
+      } else if (target.dataset.behaviorField === 'cohesion') {
+        onUpdateBehavior(id, { cohesion: Number(target.value) });
+      } else if (target.dataset.behaviorField) {
+        onUpdateBehavior(id, { params: { [target.dataset.behaviorField]: Number(target.value) } });
+      }
+    }
+  });
+
   // ── Scene radiogroup: build + roving tabindex + keyboard ──────────────────
   function buildScenes(vm) {
     const { scenes, activeScene, duration } = vm;
     scenesEl.innerHTML = '';
 
-    scenes.forEach((scene, idx) => {
+    scenes.forEach((scene) => {
       const isChecked = scene.id === activeScene.id;
       const pct = duration > 0 ? (scene.duration / duration) * 100 : (100 / scenes.length);
 
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.role = 'radio';
       btn.setAttribute('role', 'radio');
       btn.className = 'director-scene' + (isChecked ? ' is-active' : '');
       btn.dataset.sceneId = scene.id;
@@ -96,16 +187,12 @@ export function mountDirectorUI({ inspector, timeline, getState, onSelectScene, 
         btn.textContent = scene.name;
       }
 
-      // Click → select
       btn.addEventListener('click', () => {
         onSelectScene(scene.id);
       });
 
       scenesEl.appendChild(btn);
     });
-
-    // Keyboard roving: ArrowRight/Down, ArrowLeft/Up, Home, End
-    // Attach once on the container (event delegation)
   }
 
   // Arrow-key navigation on the radiogroup container
@@ -131,9 +218,103 @@ export function mountDirectorUI({ inspector, timeline, getState, onSelectScene, 
     const nextScene = radios[nextIdx];
     const sceneId = nextScene.dataset.sceneId;
     onSelectScene(sceneId);
-    // Focus will be moved after render rebuilds the buttons; to be safe, focus immediately
     nextScene.focus();
   });
+
+  // ── Build scene inspector panel ────────────────────────────────────────────
+  function buildSceneInspector(active) {
+    if (!active) { sceneEditEl.innerHTML = ''; return; }
+
+    const behaviorRows = active.behaviors.map((behavior) => {
+      if (behavior.unsupported) {
+        return `<div class="director-behavior-item" role="group" aria-label="Comportament ${escapeHtml(behavior.type)}">
+          <span>${escapeHtml(behavior.type)} — <em>no compatible</em></span>
+        </div>`;
+      }
+      const fields = BEHAVIOR_FIELDS[behavior.type] || [];
+      const fieldInputs = fields.map((field) => `
+        <label class="control-row" for="bfield-${escapeHtml(behavior.id)}-${field}">
+          <span>${escapeHtml(field)}</span>
+          <input id="bfield-${escapeHtml(behavior.id)}-${field}"
+            type="number" step="any"
+            value="${Number.isFinite(behavior.params[field]) ? behavior.params[field] : 0}"
+            data-behavior-field="${escapeHtml(field)}">
+          <button type="button" class="automation-key-button"
+            data-keyframe-path="behavior:${escapeHtml(behavior.id)}:${escapeHtml(field)}"
+            data-keyframe-field="${escapeHtml(field)}"
+            aria-label="Afegeix keyframe a ${escapeHtml(field)}">
+            <span aria-hidden="true">◇</span>
+          </button>
+        </label>`).join('');
+      return `<div class="director-behavior-item" role="group" aria-label="Comportament ${escapeHtml(behavior.type)}" data-behavior-id="${escapeHtml(behavior.id)}">
+        <div class="director-behavior-header">
+          <strong>${escapeHtml(behavior.type)}</strong>
+          <button type="button" data-remove-behavior="${escapeHtml(behavior.id)}"
+            aria-label="Elimina comportament ${escapeHtml(behavior.type)}">Elimina</button>
+        </div>
+        <label class="control-row" for="bintensity-${escapeHtml(behavior.id)}">
+          <span>intensity</span>
+          <input id="bintensity-${escapeHtml(behavior.id)}" type="range" min="0" max="1" step="0.01"
+            value="${behavior.intensity}" data-behavior-field="intensity">
+        </label>
+        <label class="control-row" for="bcohesion-${escapeHtml(behavior.id)}">
+          <span>cohesion</span>
+          <input id="bcohesion-${escapeHtml(behavior.id)}" type="range" min="0" max="1" step="0.01"
+            value="${behavior.cohesion}" data-behavior-field="cohesion">
+        </label>
+        ${fieldInputs}
+      </div>`;
+    }).join('');
+
+    sceneEditEl.innerHTML = `
+      <div class="director-scene-actions" role="group" aria-label="Accions d'escena">
+        <button type="button" data-director-action="add" aria-label="Afegeix escena"><span aria-hidden="true">+</span> Afegeix</button>
+        <button type="button" data-director-action="duplicate" aria-label="Duplica escena">Duplica</button>
+        <button type="button" data-director-action="left" aria-label="Mou escena a l'esquerra"><span aria-hidden="true">←</span></button>
+        <button type="button" data-director-action="right" aria-label="Mou escena a la dreta"><span aria-hidden="true">→</span></button>
+        <button type="button" data-director-action="delete" aria-label="Elimina escena">Elimina</button>
+      </div>
+      <div role="group" aria-label="Propietats de l'escena">
+        <label class="control-row" for="directorSceneDuration"><span>Durada</span>
+          <input id="directorSceneDuration" type="number" min="0.1" max="3600" step="0.1" inputmode="decimal"
+            value="${active.duration}" aria-describedby="directorDurationUnit">
+        </label>
+        <span id="directorDurationUnit" class="control-unit">segons</span>
+        <label class="control-row" for="directorTransitionDuration"><span>Transició</span>
+          <input id="directorTransitionDuration" type="number" min="0" max="${active.duration}" step="0.1" inputmode="decimal"
+            value="${active.transition.duration}" aria-describedby="directorTransitionUnit">
+        </label>
+        <span id="directorTransitionUnit" class="control-unit">segons</span>
+        <label class="control-row" for="directorTransitionEasing"><span>Easing</span>
+          <select id="directorTransitionEasing">
+            <option value="linear"${active.transition.easing === 'linear' ? ' selected' : ''}>linear</option>
+            <option value="ease-in"${active.transition.easing === 'ease-in' ? ' selected' : ''}>ease-in</option>
+            <option value="ease-out"${active.transition.easing === 'ease-out' ? ' selected' : ''}>ease-out</option>
+            <option value="ease-in-out"${active.transition.easing === 'ease-in-out' ? ' selected' : ''}>ease-in-out</option>
+          </select>
+        </label>
+      </div>
+      <div class="director-behavior-palette" role="group" aria-label="Afegeix comportament">
+        <button type="button" data-add-behavior="drift">Deriva</button>
+        <button type="button" data-add-behavior="orbit">Òrbita</button>
+        <button type="button" data-add-behavior="attract">Atracció</button>
+        <button type="button" data-add-behavior="explode">Explosió</button>
+      </div>
+      ${behaviorRows}
+    `;
+  }
+
+  // ── Build automation lanes in timeline ────────────────────────────────────
+  function buildLanes(active) {
+    if (!active || !lanesEl) return;
+    const lanes = Object.entries(active.automations).map(([path, frames]) => `
+      <div class="director-lane" data-lane-path="${escapeHtml(path)}">
+        <span>${escapeHtml(path)}</span>
+        <div class="director-keyframes">${frames.map((frame) => `<button type="button" class="director-keyframe" style="left:${(frame.time / active.duration) * 100}%" aria-label="${escapeHtml(path)} a ${frame.time.toFixed(2)} segons"></button>`).join('')}</div>
+      </div>
+    `).join('');
+    lanesEl.innerHTML = lanes;
+  }
 
   // ── render() ──────────────────────────────────────────────────────────────
   function render() {
@@ -164,6 +345,12 @@ export function mountDirectorUI({ inspector, timeline, getState, onSelectScene, 
 
     // Rebuild scene radiogroup
     buildScenes(vm);
+
+    // Rebuild scene inspector
+    buildSceneInspector(vm.activeScene);
+
+    // Rebuild automation lanes
+    buildLanes(vm.activeScene);
   }
 
   // ── setTime(time, sceneId) ─────────────────────────────────────────────────

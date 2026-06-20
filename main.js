@@ -1,6 +1,7 @@
 // main.js — UI wiring for SHAPER 001
 import { buildSVG, buildScene, drawScene, DEFAULT_CUSTOM_PROFILE, DEFAULT_CUSTOM_OUTLINE } from './engine.js';
 import { getToken, setToken, clearToken, validateToken, listProjects, listPresets, loadPreset, savePreset, deletePreset } from './presets-github.js';
+import { DEFAULT_DIRECTOR, advanceDirectorTime, evaluateDirector, normalizeDirector, totalDuration } from './director.js';
 
 // Slider definitions: key -> { label, default }
 const SLIDERS = {
@@ -165,6 +166,11 @@ const state = {
   morphForm3: '',
   morphAuto: false,
   morphClock: 0,
+  // Director state
+  director: structuredClone(DEFAULT_DIRECTOR),
+  directorTime: 0,
+  directorRate: 1,
+  directorLiveOverrides: {},
   // Custom drawing data (input data, never randomness). Plain arrays so they
   // pass straight into the engine. Default = engine defaults.
   customProfile: DEFAULT_CUSTOM_PROFILE.slice(),
@@ -337,9 +343,28 @@ function scheduleRender() {
   });
 }
 
-function render() {
+function resolveRenderState(atTime = state.directorTime) {
+  if (!state.director.enabled) return state;
+  const resolved = evaluateDirector(state.director, atTime, state, state.directorLiveOverrides);
+  const mode = resolved.params.mode || state.mode;
+  const animationSpeed = mode === '2d'
+    ? Number(resolved.params.speed2d ?? state.speed2d)
+    : Number(resolved.params.speed3d ?? state.speed3d);
+  return {
+    ...state,
+    ...resolved.params,
+    t: atTime * (Number.isFinite(animationSpeed) ? animationSpeed : 1),
+    morphClock: atTime,
+    directorTime: atTime,
+    motionBehaviors: resolved.behaviors,
+    activeDirectorSceneId: resolved.sceneId,
+  };
+}
+
+function render(atTime = state.directorTime) {
   ensureCanvas();
-  const scene = buildScene(state, displayW, displayH);
+  const renderState = resolveRenderState(atTime);
+  const scene = buildScene(renderState, displayW, displayH);
   drawScene(displayCtx, scene, displayW, displayH, displayDpr);
 }
 
@@ -355,6 +380,14 @@ function frame(ts) {
     const speed = state.mode === '2d' ? state.speed2d : state.speed3d;
     state.t += dt * speed;
     state.morphClock = (state.morphClock || 0) + dt; // real seconds, for morph hold
+    if (state.director.enabled) {
+      state.directorTime = advanceDirectorTime(
+        state.directorTime,
+        dt * state.directorRate,
+        totalDuration(state.director),
+        state.director.loop,
+      );
+    }
     if (dt > 0) state.fps = state.fps * 0.85 + (1 / dt) * 0.15;
     if (recState.isRecording) {
       const fps = getRecordFps();

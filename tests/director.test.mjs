@@ -110,3 +110,10 @@ test('the first scene transitions from the base preset', () => {
   assert.equal(result.params.zoom, 2);
   assert.equal(result.params.bgColor, '#000000');
 });
+
+test('disabled director returns the original base object', () => {
+  const base = { morphT: 0.25 };
+  const result = evaluateDirector({ version: 1, enabled: false, scenes: [] }, 10, base);
+  assert.equal(result.params, base);
+  assert.deepEqual(result.behaviors, []);
+});

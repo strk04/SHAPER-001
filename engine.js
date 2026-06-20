@@ -2399,6 +2399,7 @@ export function buildScene(params, width, height) {
         params.accentColor3 || params.accentColor || textColor,
         params.accentColor4 || params.accentColor || textColor,
       ],
+      clockMs: Number.isFinite(params.directorTime) ? params.directorTime * 1000 : null,
     };
   }
 
@@ -2475,6 +2476,7 @@ export function buildScene(params, width, height) {
       params.accentColor3 || params.accentColor || textColor,
       params.accentColor4 || params.accentColor || textColor,
     ],
+    clockMs: Number.isFinite(params.directorTime) ? params.directorTime * 1000 : null,
   };
 }
 
@@ -2557,14 +2559,16 @@ export function drawScene(ctx, scene, width, height, dpr) {
   ctx.fillStyle = scene.bgColor;
   ctx.fillRect(0, 0, width, height);
 
+  const clockMs = Number.isFinite(scene.clockMs) ? scene.clockMs : performance.now();
+
   if (scene.mode === '2d') {
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
     const fs2d = scene.fontSpec;
     const hasAccent = true;
     const blinkHalfMs2d = scene.blinkRate > 0 ? (500 / scene.blinkRate) : 500;
-    const blinkActive2d = scene.blinkFade === 0 && scene.blinkMode !== 'none' && Math.floor(performance.now() / blinkHalfMs2d) % 2 === 0;
-    const _cos2d = (Math.cos(performance.now() / (blinkHalfMs2d * 2) * Math.PI * 2) + 1) / 2;
+    const blinkActive2d = scene.blinkFade === 0 && scene.blinkMode !== 'none' && Math.floor(clockMs / blinkHalfMs2d) % 2 === 0;
+    const _cos2d = (Math.cos(clockMs / (blinkHalfMs2d * 2) * Math.PI * 2) + 1) / 2;
     const blinkFadeFactor2d = scene.blinkFade > 0 && scene.blinkMode !== 'none'
       ? 1 - scene.blinkFade * (1 - _cos2d) : 1;
     let lastFs2d = -1;
@@ -2622,8 +2626,8 @@ export function drawScene(ctx, scene, width, height, dpr) {
   const fs3d = scene.fontSpec;
   const hasAccent3d = true;
   const blinkHalfMs3d = scene.blinkRate > 0 ? (500 / scene.blinkRate) : 500;
-  const blinkActive3d = scene.blinkFade === 0 && scene.blinkMode !== 'none' && Math.floor(performance.now() / blinkHalfMs3d) % 2 === 0;
-  const _cos3d = (Math.cos(performance.now() / (blinkHalfMs3d * 2) * Math.PI * 2) + 1) / 2;
+  const blinkActive3d = scene.blinkFade === 0 && scene.blinkMode !== 'none' && Math.floor(clockMs / blinkHalfMs3d) % 2 === 0;
+  const _cos3d = (Math.cos(clockMs / (blinkHalfMs3d * 2) * Math.PI * 2) + 1) / 2;
   const blinkFadeFactor3d = scene.blinkFade > 0 && scene.blinkMode !== 'none'
     ? 1 - scene.blinkFade * (1 - _cos3d) : 1;
   let lastFs = null;

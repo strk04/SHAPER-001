@@ -38,3 +38,18 @@ test('cohesion one gives the same offset to every glyph', () => {
 test('centroidOf averages finite points', () => {
   assert.deepEqual(centroidOf([{ x: 0, y: 2, z: 4 }, { x: 2, y: 4, z: 6 }]), { x: 1, y: 3, z: 5 });
 });
+
+import { applyMotionToLines } from '../motion.js';
+
+test('applyMotionToLines preserves metadata and moves positions only', () => {
+  const lines = [{ y: 12, chars: [{ ch: 'A', x: 10, y: 12, accentT: 2 }] }];
+  const behaviors = [{
+    id: 'd', type: 'drift', enabled: true, intensity: 1, cohesion: 1,
+    seedOffset: 1, params: { angle: 0, elevation: 0, distance: 20, speed: 0, phase: 0.25 },
+  }];
+  const moved = applyMotionToLines(lines, behaviors, 0, 1);
+  assert.equal(moved[0].chars[0].x, 30);
+  assert.equal(moved[0].chars[0].ch, 'A');
+  assert.equal(moved[0].chars[0].accentT, 2);
+  assert.equal(lines[0].chars[0].x, 10);
+});

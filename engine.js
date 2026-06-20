@@ -1,5 +1,6 @@
 // engine.js — pure functions for SHAPER 001
 // Seeded PRNG + layout algorithm. Same seed + params => identical output.
+import { applyMotionBehaviors, applyMotionToLines, centroidOf } from './motion.js';
 
 // 2D value noise: smooth trilinear hash. Output [0,1].
 function valueNoise2D(x, y) {
@@ -1516,7 +1517,7 @@ function build3D(params, width, height) {
     };
   };
 
-  const transformPoint = (u, v, inst, rainDY, localMix) => {
+  const transformPoint = (u, v, inst, rainDY, localMix, motionContext = null) => {
     let pt = morphSurface(u, v, inst, localMix);
     if (P.pulse > 0) {
       pt = { ...pt, x: pt.x * pulseScale, y: pt.y * pulseScale, z: pt.z * pulseScale };
@@ -1524,11 +1525,100 @@ function build3D(params, width, height) {
     if (rainDY !== 0) {
       pt = { ...pt, y: pt.y + rainDY };
     }
+    if (motionContext?.behaviors.length) {
+      const moved = applyMotionBehaviors(
+        pt,
+        motionContext.centroid,
+        motionContext.identity,
+        motionContext.behaviors,
+        motionContext.time,
+        seed,
+      );
+      pt = { ...pt, x: moved.x, y: moved.y, z: moved.z };
+    }
     const rp = rotate3D(pt, ax, ay, az);
     return project(rp, P, width, height);
   };
 
+  const motionBehaviors = Array.isArray(params.motionBehaviors) ? params.motionBehaviors : [];
+  const motionTime = Number.isFinite(params.directorTime) ? params.directorTime : 0;
   const glyphs = [];
+  const pendingGlyphs = [];
+  let glyphIdentity = 0;
+
+  const finalizeGlyph = (item, centroid) => {
+    const { c, m0, inst, rainDY, localMix, yNorm } = item;
+    const moved = motionBehaviors.length
+      ? applyMotionBehaviors(item.pt, centroid, item.identity, motionBehaviors, motionTime, seed)
+      : item.pt;
+    const pt = {
+      ...item.pt,
+      x: moved.x,
+      y: moved.y,
+      z: moved.z,
+    };
+    const rp = rotate3D(pt, ax, ay, az);
+    const rn = rotateDir({ x: pt.nx, y: pt.ny, z: pt.nz }, ax, ay, az);
+    const pr = project(rp, P, width, height);
+    const facing = rn.x * viewDir.x + rn.y * viewDir.y + rn.z * viewDir.z;
+    const back = facing > 0;
+
+    let matrixTransform = null;
+    if (P.surfaceText) {
+      let tx, ty;
+      if (m0.tangent) {
+        const rt = rotateDir(m0.tangent, ax, ay, az);
+        if (P.projection === 'perspective') {
+          tx = rt.x * pr.scale;
+          ty = -rt.y * pr.scale;
+        } else {
+          const k = (0.45 * Math.min(width, height) * P.zoom) / FORM_SIZE_BASE;
+          tx = (rt.x - rt.z) * Math.cos(Math.PI / 6) * k;
+          ty = ((rt.x + rt.z) * Math.sin(Math.PI / 6) - rt.y) * k;
+        }
+      } else {
+        const mT = mapUV(c.x + TANGENT_D, yNorm);
+        const prSu = transformPoint(mT.u, mT.v, inst, rainDY, localMix, {
+          centroid,
+          identity: item.identity,
+          behaviors: motionBehaviors,
+          time: motionTime,
+        });
+        tx = prSu.X - pr.X;
+        ty = prSu.Y - pr.Y;
+      }
+      const len = Math.hypot(tx, ty);
+      if (len >= 1e-4) {
+        const ca = tx / len;
+        const sa = ty / len;
+        const glyphScale = P.projection === 'perspective' ? pr.scale : 1;
+        matrixTransform = {
+          a: ca * glyphScale,
+          b: sa * glyphScale,
+          c: -sa * glyphScale,
+          d: ca * glyphScale,
+          e: pr.X,
+          f: pr.Y,
+        };
+      }
+    }
+
+    return {
+      ch: c.ch,
+      X: pr.X,
+      Y: pr.Y,
+      z: rp.z,
+      scale: pr.scale,
+      back,
+      matrixTransform,
+      accentT: c.accentT || 0,
+      blinkT: c.blinkT || 0,
+      extraOp: c.extraOp !== undefined ? c.extraOp : 1,
+      skew: c.skew || 0,
+      sizeMul: c.sizeMul !== undefined ? c.sizeMul : 1,
+    };
+  };
+
   for (const line of lines) {
     for (const c of line.chars) {
       const yNorm = c.y / height;
@@ -1589,69 +1679,26 @@ function build3D(params, width, height) {
         pt = { ...pt, y: pt.y + rainDY };
       }
 
-      const rp = rotate3D(pt, ax, ay, az);
-      const rn = rotateDir({ x: pt.nx, y: pt.ny, z: pt.nz }, ax, ay, az);
-      const pr = project(rp, P, width, height);
-
-      // Facing: normal . viewDir (>0 => normal points toward camera-ish).
-      const facing = rn.x * viewDir.x + rn.y * viewDir.y + rn.z * viewDir.z;
-      const back = facing > 0; // normal pointing away from camera
-
-      // Surface tangent matrix (only computed when surfaceText is on).
-      let matrixTransform = null;
-      if (P.surfaceText) {
-        let tx, ty;
-        if (m0.tangent) {
-          // Fast path: rotate the pre-computed 3D LUT tangent — no extra surfaceMap call.
-          const rt = rotateDir(m0.tangent, ax, ay, az);
-          if (P.projection === 'perspective') {
-            tx = rt.x * pr.scale;
-            ty = -rt.y * pr.scale;
-          } else {
-            // Isometric: apply the linear (non-translational) part of projectIso.
-            const k = (0.45 * Math.min(width, height) * P.zoom) / FORM_SIZE_BASE;
-            tx = (rt.x - rt.z) * Math.cos(Math.PI / 6) * k;
-            ty = ((rt.x + rt.z) * Math.sin(Math.PI / 6) - rt.y) * k;
-          }
-        } else {
-          // Fallback (panel / columns): compute tangent by sampling the surface.
-          const mT = mapUV(c.x + TANGENT_D, yNorm);
-          const prSu = transformPoint(mT.u, mT.v, inst, rainDY, localMix);
-          tx = prSu.X - pr.X;
-          ty = prSu.Y - pr.Y;
-        }
-        const len = Math.hypot(tx, ty);
-        if (len >= 1e-4) {
-          const ca = tx / len;
-          const sa = ty / len;
-          const scale = P.projection === 'perspective' ? pr.scale : 1;
-          matrixTransform = {
-            a: ca * scale,
-            b: sa * scale,
-            c: -sa * scale,
-            d: ca * scale,
-            e: pr.X,
-            f: pr.Y,
-          };
-        }
-        // else: degenerate tangent — billboard (matrixTransform stays null)
-      }
-
-      glyphs.push({
-        ch: c.ch,
-        X: pr.X,
-        Y: pr.Y,
-        z: rp.z,
-        scale: pr.scale,
-        back,
-        matrixTransform,
-        accentT: c.accentT || 0,
-        blinkT: c.blinkT || 0,
-        extraOp: c.extraOp !== undefined ? c.extraOp : 1,
-        skew: c.skew || 0,
-        sizeMul: c.sizeMul !== undefined ? c.sizeMul : 1,
-      });
+      const prepared = {
+        identity: glyphIdentity++,
+        c,
+        m0,
+        pt,
+        wu,
+        wv,
+        inst,
+        rainDY,
+        localMix,
+        yNorm,
+      };
+      if (motionBehaviors.length) pendingGlyphs.push(prepared);
+      else glyphs.push(finalizeGlyph(prepared, { x: 0, y: 0, z: 0 }));
     }
+  }
+
+  if (motionBehaviors.length) {
+    const centroid = centroidOf(pendingGlyphs.map((item) => item.pt));
+    for (const item of pendingGlyphs) glyphs.push(finalizeGlyph(item, centroid));
   }
 
   // Depth normalization for fade + back-to-front sort.
@@ -2331,7 +2378,12 @@ export function buildScene(params, width, height) {
   // Explicit mode='2d' always forces the 2D path regardless of 3D params.
   // mode absent (back-compat / Node tests) falls through to is2DPath check.
   if (params.mode === '2d' || (params.mode !== '3d' && is2DPath(P3))) {
-    const { lines } = layout(params, width, height);
+    const laidOut = layout(params, width, height).lines;
+    const behaviors = Array.isArray(params.motionBehaviors) ? params.motionBehaviors : [];
+    const motionTime = Number.isFinite(params.directorTime) ? params.directorTime : 0;
+    const lines = behaviors.length
+      ? applyMotionToLines(laidOut, behaviors, motionTime, params.seed >>> 0)
+      : laidOut;
     return {
       mode: '2d',
       bgColor, textColor, fontSize, fontSpec, width, height,

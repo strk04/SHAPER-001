@@ -198,4 +198,4 @@ No resolt / vigilar:
 
 - Validació visual al navegador de totes les formes 3D noves i del slider `noiseTexture`.
 - Revisió token `--rule: #9d9d9d` (contrast 2.71:1 — insuficient WCAG 1.4.11).
-- `18 SHAPER 002` — audioreactivitat (propera sessió, repo local sense remote).
+- Audioreactivitat: fork `18 SHAPER 002` **eliminat** (2026-06-19); sense continuació activa.

@@ -33,7 +33,7 @@ _Actualitzat: 2026-06-20_
 
 ## Riscos i pendents
 
-- **Gap funcional menor (Task 7):** els botons ◇ de keyframe DINS d'un comportament passen `value: 0` placeholder en lloc del valor real del camp del comportament. Els keyframes són editables, però la captura directa del valor de camp queda pendent. Els ◇ dels paràmetres (sliders sidebar) sí capturen el valor real.
+- ~~Gap ◇ keyframe de comportament amb `value: 0`~~ — **resolt** (`main.js` `onAddKeyframe` ara llegeix el valor real del camp del comportament/param a l'escena).
 - Re-review a11y va flaguejar 2 Minor: (1) focus-ring de `.automation-key-button` — **descartat com a fals positiu** (el botó viu a la sidebar clara, no al dock fosc; l'ordre actual paper/ink és correcte); (2) `aria-controls` del Collapse apunta a `#directorTimeline` però col·lapsa tot el dock — cosmètic, no bloqueja.
 - Pendents previs encara oberts: validació visual formes 3D/`noiseTexture`; revisió contrast `--rule: #9d9d9d`.
 - `main` local té commits documentals previs (`7e5c9cc`...) sense push.

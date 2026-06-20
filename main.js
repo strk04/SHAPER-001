@@ -1761,8 +1761,21 @@ function wireDirector() {
     onAddKeyframe: (path, _field) => {
       const { localTime } = evaluateDirector(state.director, state.directorTime, state);
       const scene = selectedDirectorScene();
-      const kind = path.startsWith('param:') ? (AUTOMATABLE_PARAMS[path.slice(6)] || 'number') : 'number';
-      replaceDirectorScene(upsertKeyframe(scene, path, { time: localTime, value: 0, easing: kind === 'hold' ? 'hold' : 'linear' }));
+      let value = 0;
+      let kind = 'number';
+      if (path.startsWith('param:')) {
+        const name = path.slice(6);
+        kind = AUTOMATABLE_PARAMS[name] || 'number';
+        value = state[name] !== undefined ? state[name] : 0;
+      } else if (path.startsWith('behavior:')) {
+        const [, id, field] = path.split(':');
+        const behavior = scene.behaviors.find((b) => b.id === id);
+        if (behavior) {
+          value = Number.isFinite(behavior.params?.[field]) ? behavior.params[field]
+            : (Number.isFinite(behavior[field]) ? behavior[field] : 0);
+        }
+      }
+      replaceDirectorScene(upsertKeyframe(scene, path, { time: localTime, value, easing: kind === 'hold' ? 'hold' : 'linear' }));
     },
   });
 

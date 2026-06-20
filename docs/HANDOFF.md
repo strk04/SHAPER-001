@@ -1,19 +1,32 @@
 # HANDOFF — SHAPER 001
 
-_Generat 2026-06-19 a partir de STATUS.md. S'actualitza al final de cada sessió de treball._
+_Actualitzat: 2026-06-20_
 
 ## Estat actual
-Estable. Desplegat a producció dins Pixel Perfect (URL canònica `/shaper/`; el Vercel standalone `q-shaper-001` està desactivat). Última feina (sessió 13, 2026-06-18): `morphScatter`, `morphSpeedVar`, rang de `morphSpeed`, i fix de desat de presets (`#presetStatus` + `validateToken()`).
 
-## Següents passos
-- Validació visual al navegador de les formes 3D noves i del slider `noiseTexture`.
-- Revisar token `--rule: #9d9d9d` (contrast 2.71:1 — insuficient WCAG 1.4.11).
-- Audioreactivitat: el fork `18 SHAPER 002` s'ha **eliminat** (2026-06-19); cap continuació activa.
+L’aplicació existent continua estable i sense canvis funcionals en aquesta sessió. S’ha aprovat el disseny del nou **Motion Director**: escenes, comportaments generatius, cohesió regulable, keyframes i intervenció en viu, tot determinista i exportable.
 
-## Fitxers / flux
-- Editar a `17 SHAPER 001/` → copiar a `02 Pixel Perfect/shaper/` → push PP001.
-- Live: https://q-pp-001.vercel.app/shaper/ · Repo: github.com/strk04/SHAPER-001 · Presets: `strk04/shaper-presets`.
-- Vanilla JS zero-build (index.html, main.js, engine.js, styles.css, mp4-muxer.mjs).
+## Següent pas immediat
 
-## Blocatges / riscos
-- Diff no commitejat a `engine.js` (guies de les formes 3D noves) — no sobreescriure sense revisar.
+- L’usuari ha de revisar l’especificació `docs/superpowers/specs/2026-06-20-motion-director-design.md`.
+- Després de l’aprovació escrita, crear el pla d’implementació; no començar codi abans.
+
+## Decisions clau
+
+- Model híbrid: escenes + automatització opcional + pads en viu.
+- Comportaments v1: deriva, òrbita, atracció/repulsió i explosió/reagrupament.
+- Cohesió `0–1`: de caràcters independents a objecte rígid.
+- Moviment analític basat en temps absolut i seed; cap física integrada entre frames.
+- UI: pestanya Director, inspector contextual i timeline inferior col·lapsable.
+
+## Fitxers importants
+
+- Especificació: `docs/superpowers/specs/2026-06-20-motion-director-design.md`.
+- Implementació actual: `main.js`, `engine.js`, `index.html`, `styles.css`.
+- Flux de deploy: editar aquí → copiar a `02 Pixel Perfect/shaper/` → push PP001.
+
+## Riscos i pendents previs
+
+- El Director és una ampliació gran: implementar per fases i conservar el fast path actual quan està desactivat.
+- Encara resten la validació visual de formes 3D/`noiseTexture` i la revisió del contrast de `--rule`.
+- No hi ha cap diff pendent a `engine.js`; l’avís anterior era obsolet.

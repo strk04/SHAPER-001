@@ -1,5 +1,24 @@
 # Progress — SHAPER 001
 
+## 2026-06-20 — Disseny Motion Director
+
+### Fet
+
+- Definit i aprovat un model híbrid de control d’animació: escenes, automatització amb keyframes i intervenció en viu.
+- Seleccionats quatre comportaments per a v1: direcció/deriva, òrbita, atracció/repulsió i explosió/reagrupament.
+- Definida cohesió regulable entre moviment rígid i resposta individual per caràcter.
+- Aprovada la UI: pestanya Director, inspector contextual, stage existent i timeline inferior col·lapsable.
+- Arquitectura separada en `director.js`, `motion.js` i `director-ui.js`.
+- Especificació escrita a `docs/superpowers/specs/2026-06-20-motion-director-design.md`.
+
+### Resta
+
+- Revisió final de l’especificació per part de l’usuari.
+- Escriure el pla d’implementació per fases.
+- Implementar i validar sense alterar el render quan Director està desactivat.
+
+---
+
 ## 2026-06-18 (sessió 13) — Morph orgànic per caràcter + fix desat de presets
 
 ### Fet

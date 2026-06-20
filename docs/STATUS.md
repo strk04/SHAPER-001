@@ -1,6 +1,6 @@
 # STATUS — SHAPER 001
 
-_Actualitzat: 2026-06-18 (sessió 13)_
+_Actualitzat: 2026-06-20_
 
 ## Estat general
 
@@ -15,6 +15,14 @@ Estable. Desplegat a producció dins Pixel Perfect. La URL canònica és `/shape
 ## Stack
 
 Vanilla JS zero-build (index.html, main.js, engine.js, styles.css). Sense bundler ni node_modules. `mp4-muxer.mjs` s'usa per a l'export MP4 via WebCodecs.
+
+## Disseny pendent d’implementació
+
+- **Motion Director** aprovat el 2026-06-20.
+- Model: escenes + comportaments + keyframes + controls en viu.
+- Comportaments v1: deriva, òrbita, atracció/repulsió i explosió/reagrupament, amb cohesió regulable.
+- Especificació: `docs/superpowers/specs/2026-06-20-motion-director-design.md`.
+- Estat: només disseny; cap canvi funcional implementat.
 
 ## Darrera sessió
 

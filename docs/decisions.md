@@ -1,5 +1,17 @@
 # Decisions — SHAPER 001
 
+## 2026-06-20 — Director híbrid en lloc d’una timeline completa tipus After Effects
+
+SHAPER ha de conservar la seva naturalesa generativa però permetre coreografiar i repetir una peça. S’adopta un model híbrid: escenes per estructurar, comportaments per generar moviment, pistes de keyframes només quan cal precisió i pads per intervenir en viu. Això evita convertir la UI en un editor de composició generalista. La timeline viu en una pestanya Director i es pot col·lapsar; la resta de l’eina continua funcionant com ara.
+
+## 2026-06-20 — Moviment analític i determinista basat en temps absolut
+
+Els comportaments del Director no integraran física entre frames. Cada posició es calcularà com una funció pura del punt base, temps absolut, seed i paràmetres. Això fa possible scrubbing, reverse, loops i export frame-exact sense reproduir l’historial anterior. Conseqüència: atracció, repulsió i explosió tindran sensació de camp físic però no seran una simulació dinàmica real.
+
+## 2026-06-20 — Cohesió com a interpolació entre centreide i resposta individual
+
+Un únic control `cohesion` governarà l’escala del moviment: `1` aplica el camp calculat al centreide a tots els caràcters; `0` avalua cada caràcter i la seva variació seeded; els valors intermedis interpolen els dos offsets. Això cobreix moviment de bloc i moviment de partícules sense duplicar cada comportament en dos modes separats.
+
 ## 2026-06-18 (sessió 13) — speedVar com a easing per potència, no com a ample de finestra
 
 La variació de velocitat per caràcter es va implementar primer escalant l'ample de la finestra de transició (`charSpan = baseSpan * spanMul`). Bug: caràcters "lents" tenien `charSpan > 1` i mai arribaven a `localMix = 1` abans que el cicle reiniciés → salt sec. Decisió: la velocitat és un **easing per potència** dins la finestra normalitzada [0,1] (`localMix = rawMix ^ power`, `power = exp((roll-0.5)·var·3)`). `x^n = 1` quan `x = 1` per qualsevol potència → cap caràcter queda a mig camí, sense talls. scatter i speedVar usen un PRNG separat amb 2 rolls SEMPRE consumits (independentment dels valors) per mantenir el determinisme seed+params.

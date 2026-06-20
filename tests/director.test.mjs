@@ -161,3 +161,20 @@ test('automation allowlist accepts known paths and rejects arbitrary state', () 
   assert.equal(isAutomatablePath('param:director'), false);
   assert.equal(isAutomatablePath('behavior:orbit-1:intensity'), true);
 });
+
+import { simplifySamples } from '../director.js';
+
+test('simplifySamples keeps endpoints and meaningful changes', () => {
+  const result = simplifySamples([
+    { time: 0, value: 0 },
+    { time: 0.1, value: 0.01 },
+    { time: 0.2, value: 0.5 },
+    { time: 0.3, value: 0.51 },
+    { time: 0.4, value: 1 },
+  ], 0.05);
+  assert.deepEqual(result, [
+    { time: 0, value: 0, easing: 'linear' },
+    { time: 0.2, value: 0.5, easing: 'linear' },
+    { time: 0.4, value: 1, easing: 'linear' },
+  ]);
+});

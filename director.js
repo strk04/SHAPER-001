@@ -246,6 +246,22 @@ export function removeBehavior(sceneInput, id) {
   return { ...scene, behaviors: scene.behaviors.filter((behavior) => behavior.id !== id) };
 }
 
+// ── Gesture recording helpers (Task 8) ──────────────────────────────────────
+
+export function simplifySamples(samples, tolerance = 0.02) {
+  const sorted = (Array.isArray(samples) ? samples : [])
+    .filter((sample) => Number.isFinite(sample?.time) && Number.isFinite(sample?.value))
+    .sort((a, b) => a.time - b.time);
+  if (sorted.length <= 2) return sorted.map((sample) => ({ ...sample, easing: 'linear' }));
+  const kept = [{ ...sorted[0], easing: 'linear' }];
+  for (let index = 1; index < sorted.length - 1; index++) {
+    const current = sorted[index];
+    if (Math.abs(current.value - kept.at(-1).value) >= tolerance) kept.push({ ...current, easing: 'linear' });
+  }
+  kept.push({ ...sorted.at(-1), easing: 'linear' });
+  return kept;
+}
+
 // ── Evaluation ───────────────────────────────────────────────────────────────
 
 export function evaluateDirector(input, absoluteTime, baseState = {}, liveOverrides = {}) {

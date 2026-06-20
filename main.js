@@ -1,8 +1,8 @@
 // main.js — UI wiring for SHAPER 001
 import { buildSVG, buildScene, drawScene, DEFAULT_CUSTOM_PROFILE, DEFAULT_CUSTOM_OUTLINE } from './engine.js';
 import { getToken, setToken, clearToken, validateToken, listProjects, listPresets, loadPreset, savePreset, deletePreset } from './presets-github.js';
-import { DEFAULT_DIRECTOR, advanceDirectorTime, evaluateDirector, normalizeDirector, normalizeScene, totalDuration, addScene, duplicateScene, moveScene, removeScene, upsertBehavior, updateBehavior, removeBehavior, upsertKeyframe, AUTOMATABLE_PARAMS } from './director.js';
-import { mountDirectorUI, AUTOMATION_CONTROL_IDS } from './director-ui.js';
+import { DEFAULT_DIRECTOR, advanceDirectorTime, evaluateDirector, normalizeDirector, normalizeScene, totalDuration, addScene, duplicateScene, moveScene, removeScene, upsertBehavior, updateBehavior, removeBehavior, upsertKeyframe, AUTOMATABLE_PARAMS, simplifySamples } from './director.js';
+import { mountDirectorUI, mountLivePads, AUTOMATION_CONTROL_IDS } from './director-ui.js';
 
 // Slider definitions: key -> { label, default }
 const SLIDERS = {
@@ -172,6 +172,9 @@ const state = {
   directorTime: 0,
   directorRate: 1,
   directorLiveOverrides: {},
+  directorRecording: false,
+  directorRecordedSamples: {},
+  directorActiveLive: {},
   selectedDirectorSceneId: 'scene-1',
   // Custom drawing data (input data, never randomness). Plain arrays so they
   // pass straight into the engine. Default = engine defaults.
@@ -1589,6 +1592,70 @@ function wirePresets() {
   });
 }
 
+// --- Director live behavior + gesture recording (Task 8) ---
+
+function setLiveBehavior(type, value) {
+  const activeSceneId = evaluateDirector(state.director, state.directorTime, state).sceneId;
+  const scene = state.director.scenes.find((item) => item.id === activeSceneId);
+  const behavior = scene?.behaviors.find((item) => item.type === type);
+  if (!behavior) return;
+  const field = type === 'attract' ? 'strength' : 'progress';
+  const baseValue = Number(behavior.params[field]) || 0;
+  const liveValue = type === 'attract' ? value * Math.max(1, Math.abs(baseValue)) : Math.max(0, value);
+  state.directorActiveLive = { ...state.directorActiveLive, [type]: { sceneId: scene.id, behaviorId: behavior.id, field, baseValue } };
+  state.directorLiveOverrides = { ...state.directorLiveOverrides, [behavior.id]: { params: { [field]: liveValue } } };
+  if (state.directorRecording) {
+    const path = `${scene.id}|behavior:${behavior.id}:${field}`;
+    const list = state.directorRecordedSamples[path] || [];
+    state.directorRecordedSamples = { ...state.directorRecordedSamples, [path]: [...list, { time: state.directorTime, value: liveValue }] };
+  }
+  scheduleRender();
+}
+
+function clearLiveBehavior(type) {
+  const active = state.directorActiveLive[type];
+  if (!active) return;
+  const scene = state.director.scenes.find((item) => item.id === active.sceneId);
+  const behavior = scene?.behaviors.find((item) => item.id === active.behaviorId);
+  if (!scene || !behavior) return;
+  const { field, baseValue } = active;
+  if (state.directorRecording) {
+    const path = `${scene.id}|behavior:${behavior.id}:${field}`;
+    const list = state.directorRecordedSamples[path] || [];
+    state.directorRecordedSamples = { ...state.directorRecordedSamples, [path]: [...list, { time: state.directorTime, value: baseValue }] };
+  }
+  const next = { ...state.directorLiveOverrides }; delete next[behavior.id];
+  state.directorLiveOverrides = next;
+  const activeNext = { ...state.directorActiveLive }; delete activeNext[type];
+  state.directorActiveLive = activeNext;
+  scheduleRender();
+}
+
+function finishDirectorRecording() {
+  let director = normalizeDirector(state.director);
+  for (const [compoundPath, samples] of Object.entries(state.directorRecordedSamples)) {
+    const separator = compoundPath.indexOf('|');
+    const sceneId = compoundPath.slice(0, separator);
+    const path = compoundPath.slice(separator + 1);
+    const sceneIndex = director.scenes.findIndex((scene) => scene.id === sceneId);
+    if (sceneIndex < 0) continue;
+    const sceneStart = director.scenes.slice(0, sceneIndex).reduce((sum, scene) => sum + scene.duration, 0);
+    const scene = director.scenes[sceneIndex];
+    const frames = simplifySamples(samples, 0.02).map((frame) => ({
+      time: Math.max(0, Math.min(scene.duration, frame.time - sceneStart)),
+      value: frame.value, easing: 'linear',
+    }));
+    const scenes = director.scenes.slice();
+    scenes[sceneIndex] = { ...scene, automations: { ...scene.automations, [path]: frames } };
+    director = { ...director, scenes };
+  }
+  state.director = director;
+  state.directorRecording = false;
+  state.directorRecordedSamples = {};
+  $('directorRecord').setAttribute('aria-pressed', 'false');
+  directorUI.render();
+}
+
 // --- Director scene editing helpers ---
 function replaceDirectorScene(nextScene) {
   state.director = { ...state.director, scenes: state.director.scenes.map((scene) => scene.id === nextScene.id ? nextScene : scene) };
@@ -1749,6 +1816,28 @@ function wireDirector() {
       loopBtn.setAttribute('aria-pressed', String(nowLoop));
     });
   }
+
+  // REC button — start/stop gesture recording
+  const recBtn = $('directorRecord');
+  if (recBtn) {
+    recBtn.addEventListener('click', () => {
+      if (state.directorRecording) {
+        finishDirectorRecording();
+        announce('Gravació aturada');
+      } else {
+        state.directorRecording = true;
+        state.directorRecordedSamples = {};
+        $('directorRecord').setAttribute('aria-pressed', 'true');
+        announce('Gravant');
+      }
+    });
+  }
+
+  // Live pads — mount into #directorLivePads
+  mountLivePads($('directorLivePads'), {
+    onLiveStart: (type, value) => setLiveBehavior(type, value),
+    onLiveEnd:   (type)        => clearLiveBehavior(type),
+  });
 }
 
 // --- Character Map ---

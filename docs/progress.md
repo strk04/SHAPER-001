@@ -10,11 +10,12 @@
 - Aprovada la UI: pestanya Director, inspector contextual, stage existent i timeline inferior col·lapsable.
 - Arquitectura separada en `director.js`, `motion.js` i `director-ui.js`.
 - Especificació escrita a `docs/superpowers/specs/2026-06-20-motion-director-design.md`.
+- Pla d’implementació TDD en 10 tasques escrit a `docs/superpowers/plans/2026-06-20-motion-director-implementation.md`.
+- El pla cobreix esquema, avaluador temporal, moviment 2D/3D, UI, edició, live recording, presets, export frame-exact i verificació final.
 
 ### Resta
 
-- Revisió final de l’especificació per part de l’usuari.
-- Escriure el pla d’implementació per fases.
+- Triar mode d’execució del pla.
 - Implementar i validar sense alterar el render quan Director està desactivat.
 
 ---

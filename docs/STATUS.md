@@ -22,7 +22,8 @@ Vanilla JS zero-build (index.html, main.js, engine.js, styles.css). Sense bundle
 - Model: escenes + comportaments + keyframes + controls en viu.
 - Comportaments v1: deriva, òrbita, atracció/repulsió i explosió/reagrupament, amb cohesió regulable.
 - Especificació: `docs/superpowers/specs/2026-06-20-motion-director-design.md`.
-- Estat: només disseny; cap canvi funcional implementat.
+- Pla executable: `docs/superpowers/plans/2026-06-20-motion-director-implementation.md`.
+- Estat: disseny i pla complets; cap canvi funcional implementat.
 
 ## Darrera sessió
 

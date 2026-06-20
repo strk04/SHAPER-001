@@ -2,6 +2,7 @@
 import { buildSVG, buildScene, drawScene, DEFAULT_CUSTOM_PROFILE, DEFAULT_CUSTOM_OUTLINE } from './engine.js';
 import { getToken, setToken, clearToken, validateToken, listProjects, listPresets, loadPreset, savePreset, deletePreset } from './presets-github.js';
 import { DEFAULT_DIRECTOR, advanceDirectorTime, evaluateDirector, normalizeDirector, totalDuration } from './director.js';
+import { mountDirectorUI } from './director-ui.js';
 
 // Slider definitions: key -> { label, default }
 const SLIDERS = {
@@ -171,6 +172,7 @@ const state = {
   directorTime: 0,
   directorRate: 1,
   directorLiveOverrides: {},
+  selectedDirectorSceneId: 'scene-1',
   // Custom drawing data (input data, never randomness). Plain arrays so they
   // pass straight into the engine. Default = engine defaults.
   customProfile: DEFAULT_CUSTOM_PROFILE.slice(),
@@ -366,7 +368,17 @@ function render(atTime = state.directorTime) {
   const renderState = resolveRenderState(atTime);
   const scene = buildScene(renderState, displayW, displayH);
   drawScene(displayCtx, scene, displayW, displayH, displayDpr);
+  directorUI?.setTime(atTime, renderState.activeDirectorSceneId);
+  if (state.director.enabled && renderState.activeDirectorSceneId !== lastAnnouncedDirectorSceneId) {
+    lastAnnouncedDirectorSceneId = renderState.activeDirectorSceneId;
+    const active = state.director.scenes.find((item) => item.id === renderState.activeDirectorSceneId);
+    if (active) announce(`Escena ${active.name}`);
+  }
 }
+
+// --- Director UI ---
+let directorUI = null;
+let lastAnnouncedDirectorSceneId = null;
 
 // --- Animation loop ---
 let playing = false;
@@ -730,6 +742,16 @@ function activatePanel(panelId) {
     announce('Mode 3D activat');
     scheduleRender();
   }
+
+  // Director dock open/close
+  const directorOpen = panelId === 'panel-director';
+  document.body.toggleAttribute('data-director-open', directorOpen);
+  const dock = $('directorDock');
+  const livePads = $('directorLivePads');
+  if (dock) dock.hidden = !directorOpen;
+  if (livePads) livePads.hidden = !directorOpen;
+  if (directorOpen) { directorUI?.render(); }
+  resizeCanvas();
 
   if (panelId === 'panel-charmap') buildCharMap();
   const sidebar = document.querySelector('.section-sidebar');
@@ -1567,6 +1589,82 @@ function wirePresets() {
   });
 }
 
+// --- Director wiring ---
+function wireDirector() {
+  directorUI = mountDirectorUI({
+    inspector: $('directorInspector'),
+    timeline: $('directorTimeline'),
+    getState: () => state,
+    onSelectScene: (id) => { state.selectedDirectorSceneId = id; directorUI.render(); },
+    onSeek: (time) => { state.directorTime = time; render(time); directorUI.render(); },
+    onToggleEnabled: (enabled) => { state.director = { ...state.director, enabled }; scheduleRender(); directorUI.render(); },
+  });
+
+  const resizeHandle = $('directorResize');
+  let resizeStart = null;
+  if (resizeHandle) {
+    resizeHandle.addEventListener('pointerdown', (event) => {
+      resizeStart = { y: event.clientY, height: $('directorDock').getBoundingClientRect().height };
+      resizeHandle.setPointerCapture(event.pointerId);
+    });
+    resizeHandle.addEventListener('pointermove', (event) => {
+      if (!resizeStart) return;
+      const height = Math.max(140, Math.min(480, resizeStart.height + resizeStart.y - event.clientY));
+      document.body.style.setProperty('--director-dock-height', `${height}px`);
+      resizeHandle.setAttribute('aria-valuenow', String(Math.round(height)));
+      resizeCanvas();
+    });
+    resizeHandle.addEventListener('pointerup', () => { resizeStart = null; });
+    resizeHandle.addEventListener('pointercancel', () => { resizeStart = null; });
+    resizeHandle.addEventListener('keydown', (event) => {
+      if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+      const current = Number(resizeHandle.getAttribute('aria-valuenow')) || 220;
+      const height = Math.max(140, Math.min(480, current + (event.key === 'ArrowUp' ? 10 : -10)));
+      document.body.style.setProperty('--director-dock-height', `${height}px`);
+      resizeHandle.setAttribute('aria-valuenow', String(height));
+      resizeCanvas();
+      event.preventDefault();
+    });
+  }
+
+  // Collapse toggle
+  const collapseBtn = $('directorCollapse');
+  if (collapseBtn) {
+    collapseBtn.addEventListener('click', () => {
+      const collapsed = document.body.hasAttribute('data-director-collapsed');
+      if (collapsed) {
+        document.body.removeAttribute('data-director-collapsed');
+        collapseBtn.setAttribute('aria-expanded', 'true');
+      } else {
+        document.body.setAttribute('data-director-collapsed', '');
+        collapseBtn.setAttribute('aria-expanded', 'false');
+      }
+      resizeCanvas();
+    });
+  }
+
+  // Stop button
+  const stopBtn = $('directorStop');
+  if (stopBtn) {
+    stopBtn.addEventListener('click', () => {
+      pause();
+      state.directorTime = 0;
+      render(0);
+      directorUI.render();
+    });
+  }
+
+  // Loop toggle
+  const loopBtn = $('directorLoop');
+  if (loopBtn) {
+    loopBtn.addEventListener('click', () => {
+      const nowLoop = !state.director.loop;
+      state.director = { ...state.director, loop: nowLoop };
+      loopBtn.setAttribute('aria-pressed', String(nowLoop));
+    });
+  }
+}
+
 // --- Character Map ---
 const CHARMAP_FONT_CSS = {
   'times-regular':     { family: '"Times New Roman", Times, serif', weight: 400 },
@@ -1716,6 +1814,7 @@ function init() {
   bindNavigation();
   wireControls();
   wirePresets();
+  wireDirector();
   // Sync select / checkbox UI to state defaults
   $('text').value = state.text;
   $('font').value = state.font;

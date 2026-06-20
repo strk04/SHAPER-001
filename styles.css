@@ -16,6 +16,7 @@
   --paper-2: #fafafa;
   --paper-3: #e8e8e8;
   --rule:    #9d9d9d;
+  --rule-on-dark: #8a8a8a;
 
   --accent:       #000000;
   --accent-hover: #333333;
@@ -763,4 +764,73 @@ output { color: var(--ink); }
 .charmap-cell.is-copied .charmap-hex {
   color: var(--paper);
   opacity: 0.7;
+}
+
+/* ── Director Dock ──────────────────────────────────────────────────────── */
+body[data-director-open] .stage { padding-bottom: var(--director-dock-height, 220px); }
+
+.director-dock {
+  position: fixed; z-index: 20; right: 0; bottom: 0;
+  left: calc(var(--app-menu-width) + var(--sidebar-width));
+  height: var(--director-dock-height, 220px);
+  padding: var(--space-3); overflow: auto;
+  border-top: 1px solid var(--rule);
+  background: var(--ink); color: var(--paper);
+}
+
+.director-dock[hidden] { display: none; }
+
+.director-resize {
+  position: absolute; top: 0; right: 0; left: 0; width: 100%; height: 8px;
+  padding: 0; border: 0; cursor: ns-resize; background: transparent;
+}
+
+body[data-director-collapsed] .director-dock { height: auto; }
+body[data-director-collapsed] #directorTimeline { display: none; }
+body[data-director-collapsed][data-director-open] .stage { padding-bottom: 52px; }
+
+.director-transport {
+  display: flex; gap: var(--space-1); margin-bottom: var(--space-2); flex-wrap: wrap;
+}
+
+.director-scenes { display: flex; min-height: 44px; }
+
+/* Contrast fix: boundaries on the dark dock use --rule-on-dark, never --ink-3 */
+.director-scene {
+  min-width: 48px; border: 1px solid var(--rule-on-dark);
+  color: var(--paper); background: transparent;
+}
+
+.director-scene.is-active {
+  background: var(--paper); color: var(--ink);
+  border-width: 2px; border-color: var(--paper); font-weight: 600;
+}
+
+.director-scene-dot { margin-right: 0.35em; }
+
+/* Dock-scoped focus ring: reverse rings so they show on black dock AND white active buttons */
+.director-dock :focus-visible {
+  box-shadow: 0 0 0 2px var(--ink), 0 0 0 4px var(--paper);
+}
+
+/* Range on dark dock: thumb/filled track in --paper (21:1), empty track #8a8a8a */
+#directorPlayhead { width: 100%; accent-color: var(--paper); }
+
+.director-live-pads {
+  position: absolute; right: var(--space-4);
+  bottom: calc(var(--director-dock-height, 220px) + var(--space-4)); z-index: 10;
+}
+
+body[data-nav-collapsed] .director-dock { left: var(--sidebar-width); }
+
+@media (max-width: 860px) {
+  .director-dock { position: static; width: 100%; height: auto; }
+  body[data-director-open] .stage { padding-bottom: 0; }
+}
+
+/* Director inspector elements */
+.director-scene-name {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--ink-3);
 }

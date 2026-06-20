@@ -56,3 +56,57 @@ test('unknown fields survive normalization for forward-compatible round trips', 
   assert.equal(result.futureFlag, 'keep-me');
   assert.equal(result.scenes[0].futureSceneField, 7);
 });
+
+import { evaluateDirector, totalDuration, advanceDirectorTime } from '../director.js';
+
+test('evaluateDirector selects scenes and interpolates numeric params', () => {
+  const config = normalizeDirector({
+    version: 1, enabled: true, loop: false,
+    scenes: [
+      { id: 'a', duration: 2, params: { morphT: 0 }, automations: {} },
+      {
+        id: 'b', duration: 2, transition: { duration: 1, easing: 'linear' },
+        params: { morphT: 1 }, behaviors: [], automations: {},
+      },
+    ],
+  });
+  assert.equal(evaluateDirector(config, 2.5, { morphT: 0 }).sceneId, 'b');
+  assert.equal(evaluateDirector(config, 2.5, { morphT: 0 }).params.morphT, 0.5);
+});
+
+test('automation overrides the scene value in local scene time', () => {
+  const config = normalizeDirector({
+    version: 1, enabled: true, loop: false,
+    scenes: [{
+      id: 'a', duration: 4, params: { morphT: 0 }, behaviors: [],
+      automations: {
+        'param:morphT': [
+          { time: 0, value: 0, easing: 'linear' },
+          { time: 4, value: 1, easing: 'linear' },
+        ],
+      },
+    }],
+  });
+  assert.equal(evaluateDirector(config, 2, { morphT: 0 }).params.morphT, 0.5);
+});
+
+test('advanceDirectorTime loops and clamps with absolute seconds', () => {
+  assert.equal(totalDuration(normalizeDirector(null)), 5);
+  assert.ok(Math.abs(advanceDirectorTime(4.8, 1, 5, true) - 0.8) < 1e-9);
+  assert.equal(advanceDirectorTime(4.8, 1, 5, false), 5);
+  assert.ok(Math.abs(advanceDirectorTime(0.2, -1, 5, true) - 4.2) < 1e-9);
+});
+
+test('the first scene transitions from the base preset', () => {
+  const config = normalizeDirector({
+    version: 1, enabled: true, loop: false,
+    scenes: [{
+      id: 'a', duration: 2,
+      transition: { duration: 1, easing: 'linear' },
+      params: { zoom: 3, bgColor: '#ffffff' }, behaviors: [], automations: {},
+    }],
+  });
+  const result = evaluateDirector(config, 0.5, { zoom: 1, bgColor: '#000000' });
+  assert.equal(result.params.zoom, 2);
+  assert.equal(result.params.bgColor, '#000000');
+});

@@ -118,6 +118,12 @@ const BEHAVIOR_FIELDS = Object.freeze({
   explode: ['centerX', 'centerY', 'centerZ', 'distance', 'spread', 'progress'],
 });
 
+// Display names (Catalan) for behavior types; internal id/type stays English.
+const BEHAVIOR_LABELS = Object.freeze({
+  drift: 'Deriva', orbit: 'Òrbita', attract: 'Atracció', explode: 'Explosió',
+});
+const behaviorLabel = (type) => BEHAVIOR_LABELS[type] || type;
+
 // Maps AUTOMATABLE_PARAMS key → actual element id in index.html / built by buildSliders()
 export const AUTOMATION_CONTROL_IDS = Object.freeze({
   morphT: 'rng-morphT',
@@ -224,6 +230,17 @@ export function mountDirectorUI({
     }
   });
 
+  // Live readout for intensity/cohesion sliders while dragging (no re-render, no SR chatter).
+  inspector.addEventListener('input', (event) => {
+    const { target } = event;
+    const field = target.dataset?.behaviorField;
+    if (target.type !== 'range' || (field !== 'intensity' && field !== 'cohesion')) return;
+    const txt = Number(target.value).toFixed(2);
+    target.setAttribute('aria-valuetext', txt);
+    const out = target.parentElement?.querySelector('output.director-value');
+    if (out) out.textContent = txt;
+  });
+
   inspector.addEventListener('change', (event) => {
     const { target } = event;
     if (target.id === 'directorSceneDuration' && onSceneDuration) {
@@ -315,41 +332,54 @@ export function mountDirectorUI({
     if (!active) { sceneEditEl.innerHTML = ''; return; }
 
     const behaviorRows = active.behaviors.map((behavior) => {
+      const label = behaviorLabel(behavior.type);
       if (behavior.unsupported) {
-        return `<div class="director-behavior-item" role="group" aria-label="Comportament ${escapeHtml(behavior.type)}">
-          <span>${escapeHtml(behavior.type)} — <em>no compatible</em></span>
+        return `<div class="director-behavior-item" role="group" aria-label="Comportament ${escapeHtml(label)}">
+          <span>${escapeHtml(label)} — <em>no compatible</em></span>
         </div>`;
       }
       const fields = BEHAVIOR_FIELDS[behavior.type] || [];
       const fieldInputs = fields.map((field) => `
         <label class="control-row" for="bfield-${escapeHtml(behavior.id)}-${field}">
           <span>${escapeHtml(field)}</span>
-          <input id="bfield-${escapeHtml(behavior.id)}-${field}"
-            type="number" step="any"
-            value="${Number.isFinite(behavior.params[field]) ? behavior.params[field] : 0}"
-            data-behavior-field="${escapeHtml(field)}">
-          <button type="button" class="automation-key-button"
-            data-keyframe-path="behavior:${escapeHtml(behavior.id)}:${escapeHtml(field)}"
-            data-keyframe-field="${escapeHtml(field)}"
-            aria-label="Afegeix keyframe a ${escapeHtml(field)}">
-            <span aria-hidden="true">◇</span>
-          </button>
+          <span class="director-field-input">
+            <input id="bfield-${escapeHtml(behavior.id)}-${field}"
+              type="number" step="any"
+              value="${Number.isFinite(behavior.params[field]) ? behavior.params[field] : 0}"
+              data-behavior-field="${escapeHtml(field)}">
+            <button type="button" class="automation-key-button"
+              data-keyframe-path="behavior:${escapeHtml(behavior.id)}:${escapeHtml(field)}"
+              data-keyframe-field="${escapeHtml(field)}"
+              aria-label="Afegeix keyframe a ${escapeHtml(field)}">
+              <span aria-hidden="true">◇</span>
+            </button>
+          </span>
         </label>`).join('');
-      return `<div class="director-behavior-item" role="group" aria-label="Comportament ${escapeHtml(behavior.type)}" data-behavior-id="${escapeHtml(behavior.id)}">
+      const intensityTxt = Number(behavior.intensity).toFixed(2);
+      const cohesionTxt = Number(behavior.cohesion).toFixed(2);
+      return `<div class="director-behavior-item" role="group" aria-label="Comportament ${escapeHtml(label)}" data-behavior-id="${escapeHtml(behavior.id)}">
         <div class="director-behavior-header">
-          <strong>${escapeHtml(behavior.type)}</strong>
+          <strong>${escapeHtml(label)}</strong>
           <button type="button" data-remove-behavior="${escapeHtml(behavior.id)}"
-            aria-label="Elimina comportament ${escapeHtml(behavior.type)}">Elimina</button>
+            aria-label="Elimina comportament ${escapeHtml(label)}">Elimina</button>
         </div>
         <label class="control-row" for="bintensity-${escapeHtml(behavior.id)}">
           <span>intensity</span>
-          <input id="bintensity-${escapeHtml(behavior.id)}" type="range" min="0" max="1" step="0.01"
-            value="${behavior.intensity}" data-behavior-field="intensity">
+          <span class="director-field-input">
+            <input id="bintensity-${escapeHtml(behavior.id)}" type="range" min="0" max="1" step="0.01"
+              value="${behavior.intensity}" data-behavior-field="intensity"
+              aria-valuetext="${intensityTxt}">
+            <output class="director-value" for="bintensity-${escapeHtml(behavior.id)}" aria-live="off">${intensityTxt}</output>
+          </span>
         </label>
         <label class="control-row" for="bcohesion-${escapeHtml(behavior.id)}">
           <span>cohesion</span>
-          <input id="bcohesion-${escapeHtml(behavior.id)}" type="range" min="0" max="1" step="0.01"
-            value="${behavior.cohesion}" data-behavior-field="cohesion">
+          <span class="director-field-input">
+            <input id="bcohesion-${escapeHtml(behavior.id)}" type="range" min="0" max="1" step="0.01"
+              value="${behavior.cohesion}" data-behavior-field="cohesion"
+              aria-valuetext="${cohesionTxt}">
+            <output class="director-value" for="bcohesion-${escapeHtml(behavior.id)}" aria-live="off">${cohesionTxt}</output>
+          </span>
         </label>
         ${fieldInputs}
       </div>`;

@@ -218,6 +218,18 @@ export function upsertKeyframe(sceneInput, path, frameInput) {
   return { ...scene, automations: { ...scene.automations, [path]: frames } };
 }
 
+export function removeKeyframe(sceneInput, path, time) {
+  const scene = normalizeScene(sceneInput);
+  if (!isAutomatablePath(path)) return scene;
+  const t = clamp(finite(time, 0), 0, scene.duration);
+  const existing = Array.isArray(scene.automations[path]) ? scene.automations[path] : [];
+  const frames = existing.filter((item) => Math.abs(item.time - t) > 0.0001);
+  const automations = { ...scene.automations };
+  if (frames.length === 0) delete automations[path];
+  else automations[path] = frames;
+  return { ...scene, automations };
+}
+
 export function upsertBehavior(sceneInput, type) {
   const scene = normalizeScene(sceneInput);
   if (!(type in BEHAVIOR_DEFAULTS)) return scene;

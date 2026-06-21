@@ -909,7 +909,10 @@ body[data-nav-collapsed] .director-dock { left: var(--sidebar-width); }
 }
 .automation-key-button:focus-visible {
   box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--ink);
+  outline-offset: 2px;
 }
+.automation-key-button[aria-pressed="false"] span::before { content: "◇"; }
+.automation-key-button[aria-pressed="true"]  span::before { content: "◆"; }
 
 /* Automation lanes in timeline (dark dock) */
 .director-lanes {

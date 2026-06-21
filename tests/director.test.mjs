@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DEFAULT_DIRECTOR, normalizeDirector } from '../director.js';
 import {
-  addScene, duplicateScene, moveScene, removeScene, upsertKeyframe,
+  addScene, duplicateScene, moveScene, removeScene, upsertKeyframe, removeKeyframe,
   upsertBehavior, updateBehavior, removeBehavior, isAutomatablePath,
 } from '../director.js';
 
@@ -153,6 +153,27 @@ test('behavior editing creates supported defaults and stays immutable', () => {
   assert.equal(updated.behaviors[0].intensity, 0.75);
   assert.equal(updated.behaviors[0].params.radius, 240);
   assert.equal(removed.behaviors.length, 0);
+});
+
+test('removeKeyframe removes exact-time frame and cleans empty lane', () => {
+  const scene = normalizeDirector(null).scenes[0];
+  const with2 = upsertKeyframe(
+    upsertKeyframe(scene, 'param:morphT', { time: 1, value: 0.2, easing: 'linear' }),
+    'param:morphT', { time: 3, value: 0.8, easing: 'linear' },
+  );
+  const after = removeKeyframe(with2, 'param:morphT', 1);
+  assert.deepEqual(after.automations['param:morphT'], [{ time: 3, value: 0.8, easing: 'linear' }]);
+
+  const empty = removeKeyframe(after, 'param:morphT', 3);
+  assert.equal('param:morphT' in empty.automations, false, 'lane removed when empty');
+});
+
+test('removeKeyframe is a no-op for unknown path or missing time', () => {
+  const scene = normalizeDirector(null).scenes[0];
+  const withKf = upsertKeyframe(scene, 'param:morphT', { time: 2, value: 0.5, easing: 'linear' });
+  assert.deepEqual(removeKeyframe(withKf, 'param:unknown', 2), removeKeyframe(withKf, 'param:unknown', 2));
+  assert.deepEqual(removeKeyframe(withKf, 'param:morphT', 9).automations['param:morphT'],
+    [{ time: 2, value: 0.5, easing: 'linear' }], 'non-matching time leaves lane intact');
 });
 
 test('automation allowlist accepts known paths and rejects arbitrary state', () => {

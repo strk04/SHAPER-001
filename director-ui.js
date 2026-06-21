@@ -164,7 +164,7 @@ export function mountDirectorUI({
   inspector, timeline, getState,
   onSelectScene, onSeek, onToggleEnabled,
   onSceneAction, onSceneDuration, onTransitionChange,
-  onAddBehavior, onUpdateBehavior, onRemoveBehavior, onAddKeyframe,
+  onAddBehavior, onUpdateBehavior, onRemoveBehavior, onToggleKeyframe,
 }) {
   if (!inspector || !timeline) return { render: () => {}, setTime: () => {} };
 
@@ -225,8 +225,8 @@ export function mountDirectorUI({
       return;
     }
     const addKeyframeBtn = event.target.closest('[data-keyframe-path]');
-    if (addKeyframeBtn && onAddKeyframe) {
-      onAddKeyframe(addKeyframeBtn.dataset.keyframePath, addKeyframeBtn.dataset.keyframeField);
+    if (addKeyframeBtn && onToggleKeyframe) {
+      onToggleKeyframe(addKeyframeBtn.dataset.keyframePath, addKeyframeBtn.dataset.keyframeField);
     }
   });
 
@@ -328,7 +328,7 @@ export function mountDirectorUI({
   });
 
   // ── Build scene inspector panel ────────────────────────────────────────────
-  function buildSceneInspector(active) {
+  function buildSceneInspector(active, localTime) {
     if (!active) { sceneEditEl.innerHTML = ''; return; }
 
     const behaviorRows = active.behaviors.map((behavior) => {
@@ -339,7 +339,11 @@ export function mountDirectorUI({
         </div>`;
       }
       const fields = BEHAVIOR_FIELDS[behavior.type] || [];
-      const fieldInputs = fields.map((field) => `
+      const fieldInputs = fields.map((field) => {
+        const kfPath = `behavior:${behavior.id}:${field}`;
+        const frames = active.automations[kfPath];
+        const hasKf = Array.isArray(frames) && frames.some((f) => Math.abs(f.time - localTime) <= 0.0001);
+        return `
         <label class="control-row" for="bfield-${escapeHtml(behavior.id)}-${field}">
           <span>${escapeHtml(field)}</span>
           <span class="director-field-input">
@@ -348,13 +352,15 @@ export function mountDirectorUI({
               value="${Number.isFinite(behavior.params[field]) ? behavior.params[field] : 0}"
               data-behavior-field="${escapeHtml(field)}">
             <button type="button" class="automation-key-button"
-              data-keyframe-path="behavior:${escapeHtml(behavior.id)}:${escapeHtml(field)}"
+              data-keyframe-path="${escapeHtml(kfPath)}"
               data-keyframe-field="${escapeHtml(field)}"
-              aria-label="Afegeix keyframe a ${escapeHtml(field)}">
-              <span aria-hidden="true">◇</span>
+              aria-label="Keyframe a ${escapeHtml(field)}"
+              aria-pressed="${hasKf}">
+              <span aria-hidden="true"></span>
             </button>
           </span>
-        </label>`).join('');
+        </label>`;
+      }).join('');
       const intensityTxt = Number(behavior.intensity).toFixed(2);
       const cohesionTxt = Number(behavior.cohesion).toFixed(2);
       return `<div class="director-behavior-item" role="group" aria-label="Comportament ${escapeHtml(label)}" data-behavior-id="${escapeHtml(behavior.id)}">
@@ -466,7 +472,8 @@ export function mountDirectorUI({
     buildScenes(vm);
 
     // Rebuild scene inspector
-    buildSceneInspector(vm.activeScene);
+    const localTime = Math.max(0, (vm.time ?? 0) - (vm.activeScene?.start ?? 0));
+    buildSceneInspector(vm.activeScene, localTime);
 
     // Rebuild automation lanes
     buildLanes(vm.activeScene);

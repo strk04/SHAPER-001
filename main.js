@@ -2,7 +2,7 @@
 import { buildSVG, buildScene, drawScene, DEFAULT_CUSTOM_PROFILE, DEFAULT_CUSTOM_OUTLINE } from './engine.js';
 import { encodeDirectorFrames } from './export-video.js';
 import { getToken, setToken, clearToken, validateToken, listProjects, listPresets, loadPreset, savePreset, deletePreset } from './presets-github.js';
-import { DEFAULT_DIRECTOR, advanceDirectorTime, evaluateDirector, normalizeDirector, normalizeScene, totalDuration, addScene, duplicateScene, moveScene, removeScene, upsertBehavior, updateBehavior, removeBehavior, upsertKeyframe, AUTOMATABLE_PARAMS, simplifySamples } from './director.js';
+import { DEFAULT_DIRECTOR, advanceDirectorTime, evaluateDirector, normalizeDirector, normalizeScene, totalDuration, addScene, duplicateScene, moveScene, removeScene, upsertBehavior, updateBehavior, removeBehavior, upsertKeyframe, removeKeyframe, AUTOMATABLE_PARAMS, simplifySamples } from './director.js';
 import { mountDirectorUI, mountLivePads, AUTOMATION_CONTROL_IDS } from './director-ui.js';
 
 // Slider definitions: key -> { label, default }
@@ -1696,6 +1696,7 @@ function finishDirectorRecording() {
 function replaceDirectorScene(nextScene) {
   state.director = { ...state.director, scenes: state.director.scenes.map((scene) => scene.id === nextScene.id ? nextScene : scene) };
   directorUI.render(); scheduleRender();
+  updateAutomationButtonStates();
 }
 function selectedDirectorScene() {
   return state.director.scenes.find((scene) => scene.id === state.selectedDirectorSceneId) || state.director.scenes[0];
@@ -1719,6 +1720,18 @@ function addSelectedBehavior(type) { replaceDirectorScene(upsertBehavior(selecte
 function updateSelectedBehavior(id, patch) { replaceDirectorScene(updateBehavior(selectedDirectorScene(), id, patch)); }
 function removeSelectedBehavior(id) { replaceDirectorScene(removeBehavior(selectedDirectorScene(), id)); }
 
+function updateAutomationButtonStates() {
+  if (!state.director?.enabled) return;
+  const scene = selectedDirectorScene();
+  const { localTime } = evaluateDirector(state.director, state.directorTime, state);
+  for (const name of Object.keys(AUTOMATION_CONTROL_IDS)) {
+    const btn = document.querySelector(`[data-automation-path="${name}"]`);
+    if (!btn) continue;
+    const frames = scene?.automations?.[`param:${name}`] || [];
+    btn.setAttribute('aria-pressed', String(frames.some((f) => Math.abs(f.time - localTime) <= 0.0001)));
+  }
+}
+
 function installAutomationButtons() {
   for (const [name, id] of Object.entries(AUTOMATION_CONTROL_IDS)) {
     const control = $(id);
@@ -1727,18 +1740,25 @@ function installAutomationButtons() {
     button.type = 'button';
     button.className = 'automation-key-button';
     button.dataset.automationPath = name;
-    button.setAttribute('aria-label', `Afegeix keyframe a ${name}`);
+    button.setAttribute('aria-label', `Keyframe a ${name}`);
+    button.setAttribute('aria-pressed', 'false');
     const glyph = document.createElement('span');
     glyph.setAttribute('aria-hidden', 'true');
-    glyph.textContent = '◇';
     button.appendChild(glyph);
     control.insertAdjacentElement('afterend', button);
     button.addEventListener('click', () => {
-      const kind = AUTOMATABLE_PARAMS[name];
-      const value = kind === 'number' ? Number(control.value) : control.value;
       const { localTime } = evaluateDirector(state.director, state.directorTime, state);
       const scene = selectedDirectorScene();
-      replaceDirectorScene(upsertKeyframe(scene, `param:${name}`, { time: localTime, value, easing: kind === 'hold' ? 'hold' : 'linear' }));
+      const path = `param:${name}`;
+      const frames = scene?.automations?.[path] || [];
+      const has = frames.some((f) => Math.abs(f.time - localTime) <= 0.0001);
+      if (has) {
+        replaceDirectorScene(removeKeyframe(scene, path, localTime));
+      } else {
+        const kind = AUTOMATABLE_PARAMS[name];
+        const value = kind === 'number' ? Number(control.value) : control.value;
+        replaceDirectorScene(upsertKeyframe(scene, path, { time: localTime, value, easing: kind === 'hold' ? 'hold' : 'linear' }));
+      }
     });
   }
 }
@@ -1750,17 +1770,23 @@ function wireDirector() {
     timeline: $('directorTimeline'),
     getState: () => state,
     onSelectScene: (id) => { state.selectedDirectorSceneId = id; directorUI.render(); },
-    onSeek: (time) => { state.directorTime = time; render(time); directorUI.render(); },
-    onToggleEnabled: (enabled) => { state.director = { ...state.director, enabled }; scheduleRender(); directorUI.render(); },
+    onSeek: (time) => { state.directorTime = time; render(time); directorUI.render(); updateAutomationButtonStates(); },
+    onToggleEnabled: (enabled) => { state.director = { ...state.director, enabled }; scheduleRender(); directorUI.render(); updateAutomationButtonStates(); },
     onSceneAction: handleDirectorSceneAction,
     onSceneDuration: updateSelectedSceneDuration,
     onTransitionChange: updateSelectedTransition,
     onAddBehavior: addSelectedBehavior,
     onUpdateBehavior: updateSelectedBehavior,
     onRemoveBehavior: removeSelectedBehavior,
-    onAddKeyframe: (path, _field) => {
+    onToggleKeyframe: (path, _field) => {
       const { localTime } = evaluateDirector(state.director, state.directorTime, state);
       const scene = selectedDirectorScene();
+      const frames = scene?.automations?.[path] || [];
+      const has = frames.some((f) => Math.abs(f.time - localTime) <= 0.0001);
+      if (has) {
+        replaceDirectorScene(removeKeyframe(scene, path, localTime));
+        return;
+      }
       let value = 0;
       let kind = 'number';
       if (path.startsWith('param:')) {

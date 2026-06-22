@@ -16,14 +16,16 @@ Estable. Desplegat a producció dins Pixel Perfect. La URL canònica és `/shape
 
 Vanilla JS zero-build (index.html, main.js, engine.js, styles.css). Sense bundler ni node_modules. `mp4-muxer.mjs` s'usa per a l'export MP4 via WebCodecs.
 
-## Disseny pendent d’implementació
+## Motion Director — implementat (branca `feat/motion-director`)
 
-- **Motion Director** aprovat el 2026-06-20.
-- Model: escenes + comportaments + keyframes + controls en viu.
-- Comportaments v1: deriva, òrbita, atracció/repulsió i explosió/reagrupament, amb cohesió regulable.
+- Aprovat i implementat el 2026-06-20 (10 tasques TDD, subagent-driven). Pendent de verificació visual al navegador abans de merge a `main` i copia a Pixel Perfect.
+- Model: escenes + 4 comportaments deterministes (deriva, òrbita, atracció/repulsió, explosió/reagrupament) + cohesió 0–1 + keyframes/automatització + pads en viu + gravació + export offline frame-exact.
+- Mòduls nous: `director.js`, `motion.js`, `director-ui.js`, `export-video.js` + `tests/` (5 fitxers, 26 tests verds).
+- Director OFF = render byte-idèntic a l'anterior (fast path preservat, sense rolls PRNG reordenats).
+- Accessibilitat WCAG 2.2 AA verificada (SHIP): escenes radiogroup, pads press-and-hold amb force-release, `<output aria-live="off">`, contrast dock fosc via token `--rule-on-dark`.
 - Especificació: `docs/superpowers/specs/2026-06-20-motion-director-design.md`.
 - Pla executable: `docs/superpowers/plans/2026-06-20-motion-director-implementation.md`.
-- Estat: disseny i pla complets; cap canvi funcional implementat.
+- Detall operatiu i gate pendent: vegeu `HANDOFF.md`.
 
 ## Darrera sessió
 

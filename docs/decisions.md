@@ -1,5 +1,13 @@
 # Decisions — SHAPER 001
 
+## 2026-06-20 — Token `--rule-on-dark` per a límits sobre el dock fosc (emergent en implementació)
+
+El dock del Director és `background: var(--ink)` (#000) amb text `--paper`. Cap gris existent supera 3:1 (WCAG 1.4.11) contra **alhora** #fff i #000: `--ink-3` (#555) passa sobre blanc però falla a 2.6:1 sobre negre, i `--rule` (#9d9d9d) ja era marginal sobre blanc. Decisió: afegir un token de superfície fosca dedicat `--rule-on-dark: #8a8a8a` (~6:1 sobre #000) i usar-lo per a totes les vores de controls del dock (escenes, pads, keyframes, lanes), mai `--ink-3`. Els focus rings del dock també s'inverteixen (anella interior `--ink`, exterior `--paper`) per ser visibles tant sobre el dock negre com sobre els botons d'escena actius (blancs).
+
+## 2026-06-20 — Escenes com a radiogroup i pads press-and-hold amb force-release (emergent, gate a11y)
+
+La revisió d'accessibilitat va corregir el disseny inicial abans d'escriure codi: (1) la fila d'escenes és `role="radiogroup"`/`role="radio"` amb `aria-checked` + roving tabindex + fletxes/Home/End (no `role="list"`, que despullaria el rol de botó i deixaria la selecció sense host vàlid); (2) els pads en viu (press-and-hold) implementen alliberament forçat en `blur` de l'element **i** `blur` de finestra, a més de pointerup/cancel i keyup, perquè un pad no pugui quedar enganxat «on» en perdre focus o finestra; (3) el `<output>` del temps porta `aria-live="off"` i `announce()` només es dispara en canvis discrets (canvi d'escena, REC), mai per frame. Aquests patrons són requisits, no preferències, per al compliment WCAG 2.2 AA.
+
 ## 2026-06-20 — Director híbrid en lloc d’una timeline completa tipus After Effects
 
 SHAPER ha de conservar la seva naturalesa generativa però permetre coreografiar i repetir una peça. S’adopta un model híbrid: escenes per estructurar, comportaments per generar moviment, pistes de keyframes només quan cal precisió i pads per intervenir en viu. Això evita convertir la UI en un editor de composició generalista. La timeline viu en una pestanya Director i es pot col·lapsar; la resta de l’eina continua funcionant com ara.

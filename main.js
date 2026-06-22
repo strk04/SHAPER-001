@@ -1,6 +1,9 @@
 // main.js — UI wiring for SHAPER 001
 import { buildSVG, buildScene, drawScene, DEFAULT_CUSTOM_PROFILE, DEFAULT_CUSTOM_OUTLINE } from './engine.js';
+import { encodeDirectorFrames } from './export-video.js';
 import { getToken, setToken, clearToken, validateToken, listProjects, listPresets, loadPreset, savePreset, deletePreset } from './presets-github.js';
+import { DEFAULT_DIRECTOR, advanceDirectorTime, evaluateDirector, normalizeDirector, normalizeScene, totalDuration, addScene, duplicateScene, moveScene, removeScene, upsertBehavior, updateBehavior, removeBehavior, upsertKeyframe, removeKeyframe, AUTOMATABLE_PARAMS, simplifySamples } from './director.js';
+import { mountDirectorUI, mountLivePads, AUTOMATION_CONTROL_IDS } from './director-ui.js';
 
 // Slider definitions: key -> { label, default }
 const SLIDERS = {
@@ -165,6 +168,15 @@ const state = {
   morphForm3: '',
   morphAuto: false,
   morphClock: 0,
+  // Director state
+  director: structuredClone(DEFAULT_DIRECTOR),
+  directorTime: 0,
+  directorRate: 1,
+  directorLiveOverrides: {},
+  directorRecording: false,
+  directorRecordedSamples: {},
+  directorActiveLive: {},
+  selectedDirectorSceneId: 'scene-1',
   // Custom drawing data (input data, never randomness). Plain arrays so they
   // pass straight into the engine. Default = engine defaults.
   customProfile: DEFAULT_CUSTOM_PROFILE.slice(),
@@ -337,11 +349,40 @@ function scheduleRender() {
   });
 }
 
-function render() {
-  ensureCanvas();
-  const scene = buildScene(state, displayW, displayH);
-  drawScene(displayCtx, scene, displayW, displayH, displayDpr);
+function resolveRenderState(atTime = state.directorTime) {
+  if (!state.director.enabled) return state;
+  const resolved = evaluateDirector(state.director, atTime, state, state.directorLiveOverrides);
+  const mode = resolved.params.mode || state.mode;
+  const animationSpeed = mode === '2d'
+    ? Number(resolved.params.speed2d ?? state.speed2d)
+    : Number(resolved.params.speed3d ?? state.speed3d);
+  return {
+    ...state,
+    ...resolved.params,
+    t: atTime * (Number.isFinite(animationSpeed) ? animationSpeed : 1),
+    morphClock: atTime,
+    directorTime: atTime,
+    motionBehaviors: resolved.behaviors,
+    activeDirectorSceneId: resolved.sceneId,
+  };
 }
+
+function render(atTime = state.directorTime) {
+  ensureCanvas();
+  const renderState = resolveRenderState(atTime);
+  const scene = buildScene(renderState, displayW, displayH);
+  drawScene(displayCtx, scene, displayW, displayH, displayDpr);
+  directorUI?.setTime(atTime, renderState.activeDirectorSceneId);
+  if (state.director.enabled && renderState.activeDirectorSceneId !== lastAnnouncedDirectorSceneId) {
+    lastAnnouncedDirectorSceneId = renderState.activeDirectorSceneId;
+    const active = state.director.scenes.find((item) => item.id === renderState.activeDirectorSceneId);
+    if (active) announce(`Escena ${active.name}`);
+  }
+}
+
+// --- Director UI ---
+let directorUI = null;
+let lastAnnouncedDirectorSceneId = null;
 
 // --- Animation loop ---
 let playing = false;
@@ -355,6 +396,14 @@ function frame(ts) {
     const speed = state.mode === '2d' ? state.speed2d : state.speed3d;
     state.t += dt * speed;
     state.morphClock = (state.morphClock || 0) + dt; // real seconds, for morph hold
+    if (state.director.enabled) {
+      state.directorTime = advanceDirectorTime(
+        state.directorTime,
+        dt * state.directorRate,
+        totalDuration(state.director),
+        state.director.loop,
+      );
+    }
     if (dt > 0) state.fps = state.fps * 0.85 + (1 / dt) * 0.15;
     if (recState.isRecording) {
       const fps = getRecordFps();
@@ -697,6 +746,16 @@ function activatePanel(panelId) {
     announce('Mode 3D activat');
     scheduleRender();
   }
+
+  // Director dock open/close
+  const directorOpen = panelId === 'panel-director';
+  document.body.toggleAttribute('data-director-open', directorOpen);
+  const dock = $('directorDock');
+  const livePads = $('directorLivePads');
+  if (dock) dock.hidden = !directorOpen;
+  if (livePads) livePads.hidden = !directorOpen;
+  if (directorOpen) { directorUI?.render(); }
+  resizeCanvas();
 
   if (panelId === 'panel-charmap') buildCharMap();
   const sidebar = document.querySelector('.section-sidebar');
@@ -1101,7 +1160,8 @@ function setPresetStatus(msg) {
 function saveSVG() {
   const width = Math.max(1, Math.round(state.canvasW));
   const height = Math.max(1, Math.round(state.canvasH));
-  const svg = buildSVG(state, width, height);
+  const exportState = resolveRenderState(state.directorTime);
+  const svg = buildSVG(exportState, width, height);
   const blob = new Blob([svg], { type: 'image/svg+xml' });
   const url = URL.createObjectURL(blob);
   const a = Object.assign(document.createElement('a'), { href: url, download: `shaper-${state.seed}.svg` });
@@ -1117,7 +1177,8 @@ function savePNG(dpi) {
   const oc = document.createElement('canvas');
   oc.width = w; oc.height = h;
   const octx = oc.getContext('2d');
-  const scene = buildScene(state, w, h);
+  const exportState = resolveRenderState(state.directorTime);
+  const scene = buildScene(exportState, w, h);
   drawScene(octx, scene, w, h, 1);
   setExportStatus('Exportant PNG…');
   oc.toBlob((blob) => {
@@ -1148,13 +1209,17 @@ function getRecordFps() {
   return parseInt($('recordFps')?.value ?? '30');
 }
 
+function encodeCurrentCanvas(frameIndex, fps) {
+  const ts = Math.round(frameIndex * (1_000_000 / fps));
+  const videoFrame = new VideoFrame(displayCanvas, { timestamp: ts });
+  recState.videoEncoder.encode(videoFrame, { keyFrame: frameIndex % (fps * 2) === 0 });
+  videoFrame.close();
+}
+
 function captureFrame() {
   if (!recState.isRecording || !recState.videoEncoder || !displayCanvas) return;
   const fps = getRecordFps();
-  const ts = Math.round(recState.frameN * (1_000_000 / fps));
-  const videoFrame = new VideoFrame(displayCanvas, { timestamp: ts });
-  recState.videoEncoder.encode(videoFrame, { keyFrame: recState.frameN % (fps * 2) === 0 });
-  videoFrame.close();
+  encodeCurrentCanvas(recState.frameN, fps);
   recState.frameN++;
 
   if (recState.frameN % fps === 0) {
@@ -1208,6 +1273,26 @@ async function startRecord() {
     recState._accumTime = 0;
     recState.loopTotal = isNaN(dur) ? 0 : dur * fps;
     recState.isRecording = true;
+
+    if (state.director.enabled) {
+      const duration = totalDuration(state.director);
+      const wasPlaying = playing;
+      pause();
+      try {
+        await encodeDirectorFrames({
+          duration, fps,
+          renderAt: (time) => render(time),
+          encodeCanvas: (index, exportFps) => encodeCurrentCanvas(index, exportFps),
+          onProgress: (done, total) => setExportStatus(`Exportant Director… ${done}/${total}`),
+        });
+        await stopRecord();
+      } finally {
+        state.directorTime = 0;
+        render(0);
+        if (wasPlaying) play();
+      }
+      return;
+    }
 
     const btn = $('recordVideo');
     if (btn) {
@@ -1291,11 +1376,19 @@ function capturePreset() {
    'morphForm', 'morphForm2', 'morphForm3', 'morphAuto'].forEach((k) => {
     snap[k] = state[k];
   });
+  snap.director = structuredClone(state.director);
   return snap;
 }
 
 function applyPreset(p) {
   if (!p || p.v !== 1) return;
+  state.director = normalizeDirector(p.director);
+  state.directorTime = 0;
+  state.selectedDirectorSceneId = state.director.scenes[0].id;
+  state.directorLiveOverrides = {};
+  if (state.director.unsupportedVersion) {
+    setPresetStatus('Aquest preset usa una versió més nova del Director; es carrega la composició base amb Director desactivat.');
+  }
   Object.keys(SLIDERS).forEach((k) => {
     if (p[k] != null) { state[k] = p[k]; syncSliderUI(k); }
   });
@@ -1364,6 +1457,7 @@ function applyPreset(p) {
   }
   if (['morphForm','morphForm2','morphForm3','morphAuto'].some(k => p[k] != null)) updateMorphVisibility();
   scheduleRender();
+  directorUI?.render();
 }
 
 // --- GitHub preset state ---
@@ -1534,6 +1628,296 @@ function wirePresets() {
   });
 }
 
+// --- Director live behavior + gesture recording (Task 8) ---
+
+function setLiveBehavior(type, value) {
+  const activeSceneId = evaluateDirector(state.director, state.directorTime, state).sceneId;
+  const scene = state.director.scenes.find((item) => item.id === activeSceneId);
+  const behavior = scene?.behaviors.find((item) => item.type === type);
+  if (!behavior) return;
+  const field = type === 'attract' ? 'strength' : 'progress';
+  const baseValue = Number(behavior.params[field]) || 0;
+  const liveValue = type === 'attract' ? value * Math.max(1, Math.abs(baseValue)) : Math.max(0, value);
+  state.directorActiveLive = { ...state.directorActiveLive, [type]: { sceneId: scene.id, behaviorId: behavior.id, field, baseValue } };
+  state.directorLiveOverrides = { ...state.directorLiveOverrides, [behavior.id]: { params: { [field]: liveValue } } };
+  if (state.directorRecording) {
+    const path = `${scene.id}|behavior:${behavior.id}:${field}`;
+    const list = state.directorRecordedSamples[path] || [];
+    state.directorRecordedSamples = { ...state.directorRecordedSamples, [path]: [...list, { time: state.directorTime, value: liveValue }] };
+  }
+  scheduleRender();
+}
+
+function clearLiveBehavior(type) {
+  const active = state.directorActiveLive[type];
+  if (!active) return;
+  const scene = state.director.scenes.find((item) => item.id === active.sceneId);
+  const behavior = scene?.behaviors.find((item) => item.id === active.behaviorId);
+  if (!scene || !behavior) return;
+  const { field, baseValue } = active;
+  if (state.directorRecording) {
+    const path = `${scene.id}|behavior:${behavior.id}:${field}`;
+    const list = state.directorRecordedSamples[path] || [];
+    state.directorRecordedSamples = { ...state.directorRecordedSamples, [path]: [...list, { time: state.directorTime, value: baseValue }] };
+  }
+  const next = { ...state.directorLiveOverrides }; delete next[behavior.id];
+  state.directorLiveOverrides = next;
+  const activeNext = { ...state.directorActiveLive }; delete activeNext[type];
+  state.directorActiveLive = activeNext;
+  scheduleRender();
+}
+
+function finishDirectorRecording() {
+  let director = normalizeDirector(state.director);
+  for (const [compoundPath, samples] of Object.entries(state.directorRecordedSamples)) {
+    const separator = compoundPath.indexOf('|');
+    const sceneId = compoundPath.slice(0, separator);
+    const path = compoundPath.slice(separator + 1);
+    const sceneIndex = director.scenes.findIndex((scene) => scene.id === sceneId);
+    if (sceneIndex < 0) continue;
+    const sceneStart = director.scenes.slice(0, sceneIndex).reduce((sum, scene) => sum + scene.duration, 0);
+    const scene = director.scenes[sceneIndex];
+    const frames = simplifySamples(samples, 0.02).map((frame) => ({
+      time: Math.max(0, Math.min(scene.duration, frame.time - sceneStart)),
+      value: frame.value, easing: 'linear',
+    }));
+    const scenes = director.scenes.slice();
+    scenes[sceneIndex] = { ...scene, automations: { ...scene.automations, [path]: frames } };
+    director = { ...director, scenes };
+  }
+  state.director = director;
+  state.directorRecording = false;
+  state.directorRecordedSamples = {};
+  $('directorRecord').setAttribute('aria-pressed', 'false');
+  directorUI.render();
+}
+
+// --- Director scene editing helpers ---
+function replaceDirectorScene(nextScene) {
+  state.director = { ...state.director, scenes: state.director.scenes.map((scene) => scene.id === nextScene.id ? nextScene : scene) };
+  directorUI.render(); scheduleRender();
+  updateAutomationButtonStates();
+}
+function selectedDirectorScene() {
+  return state.director.scenes.find((scene) => scene.id === state.selectedDirectorSceneId) || state.director.scenes[0];
+}
+function handleDirectorSceneAction(action) {
+  const scene = selectedDirectorScene();
+  const index = state.director.scenes.findIndex((item) => item.id === scene.id);
+  if (action === 'add') state.director = addScene(state.director, { name: `Escena ${state.director.scenes.length + 1}` });
+  if (action === 'duplicate') state.director = duplicateScene(state.director, scene.id);
+  if (action === 'left') state.director = moveScene(state.director, index, index - 1);
+  if (action === 'right') state.director = moveScene(state.director, index, index + 1);
+  if (action === 'delete') state.director = removeScene(state.director, scene.id);
+  if (!state.director.scenes.some((item) => item.id === state.selectedDirectorSceneId)) {
+    state.selectedDirectorSceneId = state.director.scenes[Math.min(index, state.director.scenes.length - 1)].id;
+  }
+  directorUI.render(); scheduleRender();
+}
+function updateSelectedSceneDuration(duration) { replaceDirectorScene(normalizeScene({ ...selectedDirectorScene(), duration })); }
+function updateSelectedTransition(patch) { const s = selectedDirectorScene(); replaceDirectorScene(normalizeScene({ ...s, transition: { ...s.transition, ...patch } })); }
+function addSelectedBehavior(type) { replaceDirectorScene(upsertBehavior(selectedDirectorScene(), type)); }
+function updateSelectedBehavior(id, patch) { replaceDirectorScene(updateBehavior(selectedDirectorScene(), id, patch)); }
+function removeSelectedBehavior(id) { replaceDirectorScene(removeBehavior(selectedDirectorScene(), id)); }
+
+function updateAutomationButtonStates() {
+  if (!state.director?.enabled) return;
+  const scene = selectedDirectorScene();
+  const { localTime } = evaluateDirector(state.director, state.directorTime, state);
+  for (const name of Object.keys(AUTOMATION_CONTROL_IDS)) {
+    const btn = document.querySelector(`[data-automation-path="${name}"]`);
+    if (!btn) continue;
+    const frames = scene?.automations?.[`param:${name}`] || [];
+    btn.setAttribute('aria-pressed', String(frames.some((f) => Math.abs(f.time - localTime) <= 0.0001)));
+  }
+}
+
+function installAutomationButtons() {
+  for (const [name, id] of Object.entries(AUTOMATION_CONTROL_IDS)) {
+    const control = $(id);
+    if (!control || document.querySelector(`[data-automation-path="${name}"]`)) continue;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'automation-key-button';
+    button.dataset.automationPath = name;
+    button.setAttribute('aria-label', `Keyframe a ${name}`);
+    button.setAttribute('aria-pressed', 'false');
+    const glyph = document.createElement('span');
+    glyph.setAttribute('aria-hidden', 'true');
+    button.appendChild(glyph);
+    control.insertAdjacentElement('afterend', button);
+    button.addEventListener('click', () => {
+      const { localTime } = evaluateDirector(state.director, state.directorTime, state);
+      const scene = selectedDirectorScene();
+      const path = `param:${name}`;
+      const frames = scene?.automations?.[path] || [];
+      const has = frames.some((f) => Math.abs(f.time - localTime) <= 0.0001);
+      if (has) {
+        replaceDirectorScene(removeKeyframe(scene, path, localTime));
+      } else {
+        const kind = AUTOMATABLE_PARAMS[name];
+        const value = kind === 'number' ? Number(control.value) : control.value;
+        replaceDirectorScene(upsertKeyframe(scene, path, { time: localTime, value, easing: kind === 'hold' ? 'hold' : 'linear' }));
+      }
+    });
+  }
+}
+
+// --- Director wiring ---
+function wireDirector() {
+  directorUI = mountDirectorUI({
+    inspector: $('directorInspector'),
+    timeline: $('directorTimeline'),
+    getState: () => state,
+    onSelectScene: (id) => { state.selectedDirectorSceneId = id; directorUI.render(); },
+    onSeek: (time) => { state.directorTime = time; render(time); directorUI.render(); updateAutomationButtonStates(); },
+    onToggleEnabled: (enabled) => { state.director = { ...state.director, enabled }; scheduleRender(); directorUI.render(); updateAutomationButtonStates(); },
+    onSceneAction: handleDirectorSceneAction,
+    onSceneDuration: updateSelectedSceneDuration,
+    onTransitionChange: updateSelectedTransition,
+    onAddBehavior: addSelectedBehavior,
+    onUpdateBehavior: updateSelectedBehavior,
+    onRemoveBehavior: removeSelectedBehavior,
+    onRemoveKeyframe: (path, time) => {
+      replaceDirectorScene(removeKeyframe(selectedDirectorScene(), path, time));
+    },
+    onToggleKeyframe: (path, _field) => {
+      const { localTime } = evaluateDirector(state.director, state.directorTime, state);
+      const scene = selectedDirectorScene();
+      const frames = scene?.automations?.[path] || [];
+      const has = frames.some((f) => Math.abs(f.time - localTime) <= 0.0001);
+      if (has) {
+        replaceDirectorScene(removeKeyframe(scene, path, localTime));
+        return;
+      }
+      let value = 0;
+      let kind = 'number';
+      if (path.startsWith('param:')) {
+        const name = path.slice(6);
+        kind = AUTOMATABLE_PARAMS[name] || 'number';
+        value = state[name] !== undefined ? state[name] : 0;
+      } else if (path.startsWith('behavior:')) {
+        const [, id, field] = path.split(':');
+        const behavior = scene.behaviors.find((b) => b.id === id);
+        if (behavior) {
+          value = Number.isFinite(behavior.params?.[field]) ? behavior.params[field]
+            : (Number.isFinite(behavior[field]) ? behavior[field] : 0);
+        }
+      }
+      replaceDirectorScene(upsertKeyframe(scene, path, { time: localTime, value, easing: kind === 'hold' ? 'hold' : 'linear' }));
+    },
+  });
+
+  const resizeHandle = $('directorResize');
+  let resizeStart = null;
+  if (resizeHandle) {
+    resizeHandle.addEventListener('pointerdown', (event) => {
+      resizeStart = { y: event.clientY, height: $('directorDock').getBoundingClientRect().height };
+      resizeHandle.setPointerCapture(event.pointerId);
+    });
+    resizeHandle.addEventListener('pointermove', (event) => {
+      if (!resizeStart) return;
+      const height = Math.max(140, Math.min(480, resizeStart.height + resizeStart.y - event.clientY));
+      document.body.style.setProperty('--director-dock-height', `${height}px`);
+      resizeHandle.setAttribute('aria-valuenow', String(Math.round(height)));
+      resizeCanvas();
+    });
+    resizeHandle.addEventListener('pointerup', () => { resizeStart = null; });
+    resizeHandle.addEventListener('pointercancel', () => { resizeStart = null; });
+    resizeHandle.addEventListener('keydown', (event) => {
+      if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+      const current = Number(resizeHandle.getAttribute('aria-valuenow')) || 220;
+      const height = Math.max(140, Math.min(480, current + (event.key === 'ArrowUp' ? 10 : -10)));
+      document.body.style.setProperty('--director-dock-height', `${height}px`);
+      resizeHandle.setAttribute('aria-valuenow', String(height));
+      resizeCanvas();
+      event.preventDefault();
+    });
+  }
+
+  // Collapse toggle
+  const collapseBtn = $('directorCollapse');
+  if (collapseBtn) {
+    collapseBtn.addEventListener('click', () => {
+      const collapsed = document.body.hasAttribute('data-director-collapsed');
+      if (collapsed) {
+        document.body.removeAttribute('data-director-collapsed');
+        collapseBtn.setAttribute('aria-expanded', 'true');
+      } else {
+        document.body.setAttribute('data-director-collapsed', '');
+        collapseBtn.setAttribute('aria-expanded', 'false');
+      }
+      resizeCanvas();
+    });
+  }
+
+  // Stop button
+  const stopBtn = $('directorStop');
+  if (stopBtn) {
+    stopBtn.addEventListener('click', () => {
+      pause();
+      state.directorTime = 0;
+      render(0);
+      directorUI.render();
+    });
+  }
+
+  // Hold (play/pause) toggle
+  const holdBtn = $('directorHold');
+  if (holdBtn) {
+    holdBtn.addEventListener('click', () => {
+      if (playing) {
+        pause();
+        holdBtn.setAttribute('aria-pressed', 'true');
+      } else {
+        play();
+        holdBtn.setAttribute('aria-pressed', 'false');
+      }
+    });
+  }
+
+  // Reverse direction toggle
+  const reverseBtn = $('directorReverse');
+  if (reverseBtn) {
+    reverseBtn.addEventListener('click', () => {
+      state.directorRate = (state.directorRate ?? 1) * -1;
+      reverseBtn.setAttribute('aria-pressed', String(state.directorRate < 0));
+    });
+  }
+
+  // Loop toggle
+  const loopBtn = $('directorLoop');
+  if (loopBtn) {
+    loopBtn.addEventListener('click', () => {
+      const nowLoop = !state.director.loop;
+      state.director = { ...state.director, loop: nowLoop };
+      loopBtn.setAttribute('aria-pressed', String(nowLoop));
+    });
+  }
+
+  // REC button — start/stop gesture recording
+  const recBtn = $('directorRecord');
+  if (recBtn) {
+    recBtn.addEventListener('click', () => {
+      if (state.directorRecording) {
+        finishDirectorRecording();
+        announce('Gravació aturada');
+      } else {
+        state.directorRecording = true;
+        state.directorRecordedSamples = {};
+        $('directorRecord').setAttribute('aria-pressed', 'true');
+        announce('Gravant');
+      }
+    });
+  }
+
+  // Live pads — mount into #directorLivePads
+  mountLivePads($('directorLivePads'), {
+    onLiveStart: (type, value) => setLiveBehavior(type, value),
+    onLiveEnd:   (type)        => clearLiveBehavior(type),
+  });
+}
+
 // --- Character Map ---
 const CHARMAP_FONT_CSS = {
   'times-regular':     { family: '"Times New Roman", Times, serif', weight: 400 },
@@ -1680,9 +2064,11 @@ function buildCharMap() {
 function init() {
   restoreCustomData();
   buildSliders();
+  installAutomationButtons();
   bindNavigation();
   wireControls();
   wirePresets();
+  wireDirector();
   // Sync select / checkbox UI to state defaults
   $('text').value = state.text;
   $('font').value = state.font;

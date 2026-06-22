@@ -1,5 +1,26 @@
 # Progress — SHAPER 001
 
+## 2026-06-20 — Implementació Motion Director (branca `feat/motion-director`)
+
+### Fet
+
+- Implementat el Motion Director complet seguint el pla (10 tasques, TDD, subagent-driven amb gate d'accessibilitat).
+- **Mòduls nous:** `director.js` (esquema/normalització, avaluador temporal, escenes i keyframes immutables, `simplifySamples`), `motion.js` (4 camps deterministes + cohesió), `director-ui.js` (timeline radiogroup + pads press-and-hold), `export-video.js` (export offline frame-exact). 5 fitxers de test, 26 tests verds.
+- **Integració:** `engine.js` aplica offsets a 2D i 3D amb fast path idèntic quan no hi ha comportaments; blink determinista via `clockMs`. `main.js` resol un snapshot per temps absolut (`resolveRenderState`), avança el Director en segons reals, munta la UI, gestiona edició/pads/gravació, presets versionats i export SVG/PNG/MP4 del frame resolt.
+- **Accessibilitat (WCAG 2.2 AA):** review pre-escriptura + re-review post-escriptura sobre fitxers reals = SHIP. Escenes `role="radiogroup"`, pads press-and-hold amb force-release (element + window blur), `<output aria-live="off">`, `announce()` només discret, token `--rule-on-dark` + focus rings dock-scoped per al dock fosc.
+- **Verificació:** 26 tests, `node --check` net (6 mòduls), `git diff --check` net, smoke test del servidor (index 200, markup + 6 mòduls 200).
+
+### Queda
+
+- Verificació visual al navegador (checklist Task 10 Step 2-3) — únic gate abans de merge a `main` i copia a `02 Pixel Perfect/shaper/`.
+- Gap menor: ◇ keyframe dins comportament passa `value: 0` placeholder (captura de valor de camp real pendent).
+
+### Commits (branca)
+
+`db5c39e` esquema · `fd3e8d0` avaluador · `00fae03` motion · `80cc0ad` integració 2D/3D · `fb488a2` rellotge absolut · `68a7d49` shell timeline · `76b73f4` edició escenes · `b3db441` pads/gravació · `509c8c2` presets/export · (docs final).
+
+---
+
 ## 2026-06-20 — Disseny Motion Director
 
 ### Fet

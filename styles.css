@@ -945,11 +945,19 @@ body[data-nav-collapsed] .director-dock { left: var(--sidebar-width); }
   min-height: 24px;
   padding: 0;
   border: 1px solid var(--rule-on-dark);
-  background: var(--paper);
-  color: var(--ink);
+  background: transparent;
+  color: var(--paper);
   cursor: pointer;
-  font-size: 0.65rem;
+  font-size: 0.75rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
+.director-keyframe span::before { content: "◇"; }
+.director-keyframe[data-current="true"] span::before { content: "◆"; }
+.director-keyframe[data-current="true"] { color: var(--paper); border-color: var(--paper); }
+.director-keyframe:hover { background: var(--paper); color: var(--ink); }
 .director-keyframe:focus-visible {
   box-shadow: 0 0 0 2px var(--ink), 0 0 0 4px var(--paper);
 }

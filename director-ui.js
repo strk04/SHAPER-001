@@ -164,7 +164,7 @@ export function mountDirectorUI({
   inspector, timeline, getState,
   onSelectScene, onSeek, onToggleEnabled,
   onSceneAction, onSceneDuration, onTransitionChange,
-  onAddBehavior, onUpdateBehavior, onRemoveBehavior, onToggleKeyframe,
+  onAddBehavior, onUpdateBehavior, onRemoveBehavior, onToggleKeyframe, onRemoveKeyframe,
 }) {
   if (!inspector || !timeline) return { render: () => {}, setTime: () => {} };
 
@@ -180,6 +180,7 @@ export function mountDirectorUI({
     <label class="sr-only" for="directorPlayhead">Temps del Director</label>
     <input id="directorPlayhead" type="range" min="0" max="0" step="0.01" value="0" aria-valuetext="0.00 s de 0.00 s">
     <div id="directorSceneEditArea"></div>
+    <div id="directorStatus" aria-live="polite" class="sr-only"></div>
   `;
 
   // ── Timeline ───────────────────────────────────────────────────────────────
@@ -266,6 +267,20 @@ export function mountDirectorUI({
         onUpdateBehavior(id, { params: { [target.dataset.behaviorField]: Number(target.value) } });
       }
     }
+  });
+
+  // ── Timeline keyframe delete ───────────────────────────────────────────────
+  lanesEl.addEventListener('click', (event) => {
+    const btn = event.target.closest('[data-keyframe-path][data-keyframe-time]');
+    if (!btn || !onRemoveKeyframe) return;
+    const path = btn.dataset.keyframePath;
+    const time = Number(btn.dataset.keyframeTime);
+    const label = btn.getAttribute('aria-label') || `Keyframe ${path} a ${time.toFixed(2)} s`;
+    const focusTarget = btn.nextElementSibling ?? btn.previousElementSibling ?? btn.closest('.director-keyframes');
+    onRemoveKeyframe(path, time);
+    focusTarget?.focus();
+    const statusEl = inspector.querySelector('#directorStatus');
+    if (statusEl) statusEl.textContent = `${label} eliminat.`;
   });
 
   // ── Scene radiogroup: build + roving tabindex + keyboard ──────────────────
@@ -430,14 +445,31 @@ export function mountDirectorUI({
   }
 
   // ── Build automation lanes in timeline ────────────────────────────────────
-  function buildLanes(active) {
+  function buildLanes(active, localTime) {
     if (!active || !lanesEl) return;
-    const lanes = Object.entries(active.automations).map(([path, frames]) => `
-      <div class="director-lane" data-lane-path="${escapeHtml(path)}">
-        <span>${escapeHtml(path)}</span>
-        <div class="director-keyframes">${frames.map((frame) => `<button type="button" class="director-keyframe" style="left:${(frame.time / active.duration) * 100}%" aria-label="${escapeHtml(path)} a ${frame.time.toFixed(2)} segons"></button>`).join('')}</div>
-      </div>
-    `).join('');
+    const lt = localTime ?? 0;
+    const lanes = Object.entries(active.automations).map(([path, frames]) => {
+      const label = path.startsWith('param:') ? path.slice(6)
+        : path.startsWith('behavior:') ? path.split(':').slice(1).join(' · ')
+        : path;
+      const sorted = [...frames].sort((a, b) => a.time - b.time);
+      const buttons = sorted.map((frame) => {
+        const isCurrent = Math.abs(frame.time - lt) <= 0.0001;
+        const valStr = typeof frame.value === 'number' ? ` = ${frame.value.toFixed(2)}` : (frame.value != null ? ` = ${frame.value}` : '');
+        return `<button type="button" class="director-keyframe${isCurrent ? ' is-current' : ''}"
+          style="left:${(frame.time / active.duration) * 100}%"
+          data-keyframe-path="${escapeHtml(path)}"
+          data-keyframe-time="${frame.time}"
+          data-current="${isCurrent}"
+          aria-label="Elimina keyframe ${escapeHtml(label)}${escapeHtml(valStr)} a ${frame.time.toFixed(2)} s">
+          <span aria-hidden="true"></span>
+        </button>`;
+      }).join('');
+      return `<div class="director-lane" data-lane-path="${escapeHtml(path)}">
+        <span class="director-lane-label">${escapeHtml(label)}</span>
+        <div class="director-keyframes" tabindex="-1">${buttons}</div>
+      </div>`;
+    }).join('');
     lanesEl.innerHTML = lanes;
   }
 
@@ -476,7 +508,7 @@ export function mountDirectorUI({
     buildSceneInspector(vm.activeScene, localTime);
 
     // Rebuild automation lanes
-    buildLanes(vm.activeScene);
+    buildLanes(vm.activeScene, localTime);
   }
 
   // ── setTime(time, sceneId) ─────────────────────────────────────────────────

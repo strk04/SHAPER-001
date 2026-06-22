@@ -1778,6 +1778,9 @@ function wireDirector() {
     onAddBehavior: addSelectedBehavior,
     onUpdateBehavior: updateSelectedBehavior,
     onRemoveBehavior: removeSelectedBehavior,
+    onRemoveKeyframe: (path, time) => {
+      replaceDirectorScene(removeKeyframe(selectedDirectorScene(), path, time));
+    },
     onToggleKeyframe: (path, _field) => {
       const { localTime } = evaluateDirector(state.director, state.directorTime, state);
       const scene = selectedDirectorScene();

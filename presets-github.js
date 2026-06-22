@@ -1,7 +1,8 @@
 // presets-github.js — GitHub-backed preset storage for SHAPER 001
-// Stores presets as JSON files at presets/{project}/{name}.json in the repo.
+// Stores presets as JSON files at presets/shaper/{project}/{name}.json in the repo.
 
-const REPO      = 'strk04/shaper-presets';
+const REPO      = 'strk04/querida-presets';
+const PREFIX    = 'presets/shaper';
 const API       = 'https://api.github.com';
 const TOKEN_KEY = 'shaper-gh-token';
 
@@ -72,7 +73,7 @@ export async function validateToken() {
 
 export async function listProjects() {
   try {
-    const items = await ghFetch(`/repos/${REPO}/contents/presets`);
+    const items = await ghFetch(`/repos/${REPO}/contents/${PREFIX}`);
     return items.filter(i => i.type === 'dir').map(i => i.name).sort();
   } catch (e) {
     if (e.status === 404) return [];
@@ -82,7 +83,7 @@ export async function listProjects() {
 
 export async function listPresets(project) {
   try {
-    const items = await ghFetch(`/repos/${REPO}/contents/presets/${encodeURIComponent(project)}`);
+    const items = await ghFetch(`/repos/${REPO}/contents/${PREFIX}/${encodeURIComponent(project)}`);
     const files = items.filter(i => i.type === 'file' && i.name.endsWith('.json'));
     files.forEach(f => shas.set(f.path, f.sha));
     return files
@@ -119,7 +120,7 @@ function toBase64(obj) {
 
 export async function savePreset(project, name, data) {
   const safe = name.replace(/[^\w\s\-]/g, '').trim() || 'preset';
-  const path = `presets/${project}/${safe}.json`;
+  const path = `${PREFIX}/${project}/${safe}.json`;
   const body = { message: `preset: "${safe}"`, content: toBase64(data) };
   const sha = shas.get(path);
   if (sha) body.sha = sha;

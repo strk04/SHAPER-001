@@ -1,5 +1,20 @@
 # Progress — SHAPER 001
 
+## 2026-06-22 — Motion Director mergejar a main + keyframes interactius
+
+### Fet
+- `removeKeyframe` a `director.js`: elimina frame per temps exacte, neteja lane si buida.
+- ◇ toggle a l'inspector: `aria-pressed` + CSS `::before` (◇/◆), label estàtica, font única de veritat.
+- Keyframes interactius a la timeline: `buildLanes` mostra ◇/◆ (actual = ◆), clic elimina amb focus management + live region SR, `aria-label` inclou valor del paràmetre.
+- `onRemoveKeyframe` callback wired a `main.js`.
+- 28 tests verds. WCAG 2.2 AA verificat pre+post escriptura.
+- Merge `feat/motion-director` → `main` + push a `origin/main` (`7ac5467`).
+
+### Pendent
+- Copiar fitxers a `02 Pixel Perfect/shaper/` i push PP001 (l'usuari ho ha d'autoritzar).
+
+---
+
 ## 2026-06-20 — Implementació Motion Director (branca `feat/motion-director`)
 
 ### Fet

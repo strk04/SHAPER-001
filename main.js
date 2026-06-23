@@ -1,9 +1,12 @@
 // main.js — UI wiring for SHAPER 001
 import { buildSVG, buildScene, drawScene, DEFAULT_CUSTOM_PROFILE, DEFAULT_CUSTOM_OUTLINE } from './engine.js';
 import { encodeDirectorFrames } from './export-video.js';
-import { getToken, setToken, clearToken, validateToken, listProjects, listPresets, loadPreset, savePreset, deletePreset } from './presets-github.js';
+import { createGithubStore } from './github-store.js';
+import { createPresetPanel } from './preset-panel.js';
 import { DEFAULT_DIRECTOR, advanceDirectorTime, evaluateDirector, normalizeDirector, normalizeScene, totalDuration, addScene, duplicateScene, moveScene, removeScene, upsertBehavior, updateBehavior, removeBehavior, upsertKeyframe, removeKeyframe, AUTOMATABLE_PARAMS, simplifySamples } from './director.js';
 import { mountDirectorUI, mountLivePads, AUTOMATION_CONTROL_IDS } from './director-ui.js';
+
+const _ghStore = createGithubStore({ repo: 'strk04/querida-presets', prefix: 'presets/shaper', tokenKey: 'querida-gh-token' });
 
 // Slider definitions: key -> { label, default }
 const SLIDERS = {
@@ -1153,7 +1156,7 @@ function setExportStatus(msg) {
 // Preset feedback lives in its own panel — exportStatus is in a different,
 // often-hidden panel, so preset save/load/delete messages must go here.
 function setPresetStatus(msg) {
-  const el = $('presetStatus');
+  const el = document.getElementById('shaper-status');
   if (el) el.textContent = msg;
 }
 
@@ -1349,20 +1352,6 @@ async function stopRecord() {
 }
 
 // --- Presets ---
-const PRESETS_KEY = 'shaper-presets-v1';
-
-function esc(s) {
-  return String(s)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
-function loadPresets() {
-  try { return JSON.parse(localStorage.getItem(PRESETS_KEY)) ?? []; } catch { return []; }
-}
-function savePresets(list) {
-  try { localStorage.setItem(PRESETS_KEY, JSON.stringify(list)); } catch { /* quota */ }
-}
 
 function capturePreset() {
   const snap = { v: 1 };
@@ -1460,216 +1449,17 @@ function applyPreset(p) {
   directorUI?.render();
 }
 
-// --- GitHub preset state ---
-let _ghProjects = [];
-let _ghPresets  = []; // { name, path }
-
-function _ghUpdateView(login) {
-  const has = !!getToken();
-  const setup = $('ghSetup');
-  const ui    = $('ghUI');
-  if (setup) setup.hidden = has;
-  if (ui)    ui.hidden    = !has;
-  if (login) {
-    const userEl = $('ghUser');
-    if (userEl) userEl.textContent = `@${login}`;
-    const announce = $('shaperGhAnnounce');
-    if (announce) announce.textContent = `Connectat com a @${login}`;
-  }
-}
-
-async function _ghLoadProjects() {
-  let projects = await listProjects();
-  if (!projects.length) projects = ['General'];
-  _ghProjects = projects;
-  const sel = $('ghProject');
-  if (sel) sel.innerHTML = projects.map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join('');
-}
-
-async function _ghLoadPresets() {
-  const project = $('ghProject')?.value;
-  if (!project) return;
-  const list = $('presetList');
-  if (list) list.innerHTML = `<li style="color:var(--ink-4);font-size:var(--text-xs);padding:var(--space-1) 0">Carregant…</li>`;
-  _ghPresets = await listPresets(project);
-  _ghRenderList();
-}
-
-function _ghRenderList() {
-  const list = $('presetList');
-  if (!list) return;
-  if (!_ghPresets.length) {
-    list.innerHTML = `<li style="color:var(--ink-4);font-size:var(--text-xs);padding:var(--space-1) 0">Cap preset desat.</li>`;
-    return;
-  }
-  list.innerHTML = _ghPresets.map((p, i) => `
-    <li class="preset-item">
-      <span class="preset-name">${esc(p.name)}</span>
-      <button class="preset-btn preset-load" data-idx="${i}" type="button" aria-label="Carrega el preset ${esc(p.name)}">Load</button>
-      <button class="preset-btn preset-delete" data-idx="${i}" type="button" aria-label="Elimina el preset ${esc(p.name)}">✕</button>
-    </li>`).join('');
-}
-
-async function _tryAutoConnect() {
-  if (!getToken()) return;
-  setPresetStatus('Reconnectant…');
-  try {
-    const login = await validateToken();
-    _ghUpdateView(login);
-    await _ghLoadProjects();
-    await _ghLoadPresets();
-    setPresetStatus('');
-  } catch {
-    clearToken();
-    _ghUpdateView();
-    setPresetStatus('');
-  }
-}
-
-function wirePresets() {
-  _ghUpdateView();
-  if (getToken()) {
-    _tryAutoConnect().catch(() => {});
-  }
-
-  // Connect
-  $('ghConnect')?.addEventListener('click', async () => {
-    const tokenEl = $('ghToken');
-    const token = tokenEl?.value.trim();
-    if (!token) return;
-    setToken(token);
-    try {
-      const login = await validateToken();
-      if (tokenEl) tokenEl.value = '';
-      _ghUpdateView(login);
-      await _ghLoadProjects();
-      await _ghLoadPresets();
-      setPresetStatus('');
-    } catch (e) {
-      clearToken();
-      _ghUpdateView();
-      setPresetStatus('Token invàlid: ' + e.message);
-    }
-  });
-
-  // Disconnect (double confirm)
-  $('ghDisconnect')?.addEventListener('click', function () {
-    const announce = $('shaperGhAnnounce');
-    if (this.dataset.confirming === '1') {
-      clearTimeout(Number(this.dataset.timer));
-      delete this.dataset.confirming;
-      this.textContent = 'Desconnecta';
-      if (announce) announce.textContent = '';
-      clearToken();
-      _ghUpdateView();
-      _ghPresets = [];
-      _ghRenderList();
-      setPresetStatus('Desconnectat de GitHub.');
-    } else {
-      this.dataset.confirming = '1';
-      this.textContent = 'Segur?';
-      if (announce) announce.textContent = 'Prem de nou per desconnectar';
-      const timer = setTimeout(() => {
-        this.dataset.confirming = '';
-        this.textContent = 'Desconnecta';
-        if (announce) announce.textContent = '';
-      }, 3000);
-      this.dataset.timer = String(timer);
-    }
-  });
-
-  // Project change
-  $('ghProject')?.addEventListener('change', () => {
-    _ghLoadPresets().catch(e => setPresetStatus('Error: ' + e.message));
-  });
-
-  // New project (inline input)
-  $('ghNewProject')?.addEventListener('click', () => {
-    const input = $('ghNewProjectInput');
-    const name  = input?.value.trim();
-    if (!name) return;
-    if (!_ghProjects.includes(name)) {
-      _ghProjects = [..._ghProjects, name].sort();
-      const sel = $('ghProject');
-      if (sel) sel.innerHTML = _ghProjects.map(p => `<option value="${esc(p)}">${esc(p)}</option>`).join('');
-    }
-    const sel = $('ghProject');
-    if (sel) sel.value = name;
-    if (input) input.value = '';
-    _ghPresets = [];
-    _ghRenderList();
-  });
-
-  // Save
-  $('savePreset')?.addEventListener('click', async () => {
-    const nameEl  = $('presetName');
-    const project = $('ghProject')?.value;
-    const name    = nameEl?.value.trim() || `preset-${new Date().toLocaleTimeString()}`;
-    if (!project) { setPresetStatus('Selecciona un projecte.'); return; }
-    try {
-      setPresetStatus('Desant…');
-      await savePreset(project, name, capturePreset());
-      if (nameEl) nameEl.value = '';
-      await _ghLoadPresets();
-      setPresetStatus(`Desat: "${name}"`);
-    } catch (e) { setPresetStatus('Error desant: ' + e.message); }
-  });
-
-  // Load / Delete
-  $('presetList')?.addEventListener('click', async (e) => {
-    const loadBtn = e.target.closest('.preset-load');
-    const delBtn  = e.target.closest('.preset-delete');
-
-    if (loadBtn) {
-      const p = _ghPresets[parseInt(loadBtn.dataset.idx)];
-      if (!p) return;
-      try {
-        setPresetStatus('Carregant…');
-        applyPreset(await loadPreset(p.path));
-        setPresetStatus(`Carregat: "${p.name}"`);
-      } catch (e) { setPresetStatus('Error carregant: ' + e.message); }
-    }
-
-    if (delBtn) {
-      if (delBtn.dataset.confirming === '1') {
-        clearTimeout(Number(delBtn.dataset.timer));
-        const p = _ghPresets[parseInt(delBtn.dataset.idx)];
-        if (!p) return;
-        try {
-          await deletePreset(p.path);
-          await _ghLoadPresets();
-          setPresetStatus(`Eliminat: "${p.name}"`);
-        } catch (e) { setPresetStatus('Error eliminant: ' + e.message); }
-      } else {
-        const name = delBtn.getAttribute('aria-label').replace('Elimina el preset ', '');
-        delBtn.dataset.confirming = '1';
-        delBtn.textContent = 'Sure?';
-        delBtn.setAttribute('aria-label', `Confirma: elimina el preset ${name}`);
-        const timer = setTimeout(() => {
-          delBtn.dataset.confirming = '';
-          delBtn.textContent = '✕';
-          delBtn.setAttribute('aria-label', `Elimina el preset ${name}`);
-        }, 3000);
-        delBtn.dataset.timer = String(timer);
-      }
-    }
-  });
-
-  // Migrate localStorage → GitHub
-  $('ghMigrate')?.addEventListener('click', async () => {
-    const locals  = loadPresets();
-    const project = $('ghProject')?.value;
-    if (!locals.length) { setPresetStatus('Cap preset local a importar.'); return; }
-    if (!project)       { setPresetStatus('Selecciona un projecte.'); return; }
-    let ok = 0;
-    setPresetStatus(`Important ${locals.length} presets…`);
-    for (const p of locals) {
-      try { await savePreset(project, p.name, p.data); ok++; } catch { /* skip */ }
-    }
-    await _ghLoadPresets();
-    setPresetStatus(`Importats ${ok}/${locals.length} presets a "${project}".`);
-  });
-}
+// --- Preset panel ---
+const shaperPresetPanel = createPresetPanel({
+  container:     document.getElementById('shaperPresetContainer'),
+  id:            'shaper',
+  store:         _ghStore,
+  builtins:      [],
+  capturePreset,
+  applyPreset,
+  localKey:      'shaper-presets-v1',
+  setStatus:     setPresetStatus,
+});
 
 // --- Director live behavior + gesture recording (Task 8) ---
 
@@ -2110,7 +1900,7 @@ function init() {
   installAutomationButtons();
   bindNavigation();
   wireControls();
-  wirePresets();
+  shaperPresetPanel.activate();
   wireDirector();
   // Sync select / checkbox UI to state defaults
   $('text').value = state.text;

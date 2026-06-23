@@ -79,6 +79,15 @@ const SLIDERS = {
   morphSpeedVar: { label: 'Variació de velocitat', def: 0 },
 };
 
+const FORMS_WITH_CAPS = new Set(['cylinder', 'cone', 'star-prism', 'custom-prism']);
+const FORMS_WITH_INTERIOR = new Set([
+  'cylinder', 'helix', 'capsule',
+  'sphere', 'ellipsoid',
+  'cone',
+  'star-prism', 'custom-prism', 'cube', 'box',
+  'torus',
+]);
+
 const FORM_3D_CONTROLS = {
   plane:         ['formSize', 'aspect'],
   cylinder:      ['formSize', 'aspect'],
@@ -658,6 +667,20 @@ function updateEditorVisibility() {
     const el = document.querySelector(`.slider[data-key="${key}"]`);
     if (el) el.hidden = !visibleFormControls.has(key);
   }
+
+  // Region checkboxes: only show Tapes/Interior for forms that support them.
+  const capsRow = document.querySelector('label[for="regionCaps"]');
+  const volRow  = document.querySelector('label[for="regionVolume"]');
+  const showCaps = FORMS_WITH_CAPS.has(form);
+  const showVol  = FORMS_WITH_INTERIOR.has(form);
+  if (capsRow) capsRow.hidden = !showCaps;
+  if (volRow)  volRow.hidden  = !showVol;
+  const regionFieldset = capsRow?.closest('fieldset');
+  if (regionFieldset) regionFieldset.hidden = !showCaps && !showVol;
+
+  // FOV: only relevant for perspective projection.
+  const fovRow = document.querySelector('.slider[data-key="fov"]');
+  if (fovRow) fovRow.hidden = state.projection !== 'perspective';
 }
 
 // --- SVG shape import ---
@@ -971,6 +994,7 @@ function wireControls() {
   $('projection').addEventListener('change', (e) => {
     state.projection = e.target.value;
     updateFovEnabled();
+    updateEditorVisibility();
     scheduleRender();
   });
   $('guides').addEventListener('change', (e) => {
@@ -1409,7 +1433,7 @@ function applyPreset(p) {
     updateEditorVisibility();
   }
   if (p.form       != null) { state.form       = p.form;       $('form').value       = p.form;       updateEditorVisibility(); }
-  if (p.projection != null) { state.projection = p.projection; $('projection').value = p.projection; updateFovEnabled(); }
+  if (p.projection != null) { state.projection = p.projection; $('projection').value = p.projection; updateFovEnabled(); updateEditorVisibility(); }
   if (p.guides          != null) { state.guides          = p.guides;          $('guides').checked          = p.guides; }
   if (p.backfaceMirror  != null) { state.backfaceMirror  = p.backfaceMirror;  $('backfaceMirror').checked  = p.backfaceMirror; }
   if (p.surfaceText     != null) { state.surfaceText      = p.surfaceText;     $('surfaceText').checked     = p.surfaceText; }

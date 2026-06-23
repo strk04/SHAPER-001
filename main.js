@@ -72,6 +72,11 @@ const SLIDERS = {
   rainSpeed: { label: 'Velocitat de pluja', def: 0 },
   // --- 3D: Distribució ---
   noiseTexture: { label: 'Buits de textura', def: 0 },
+  // --- 3D: Per-region atom ---
+  capsFontScale:     { label: 'Tapes — Mida', def: 1 },
+  capsOpacity:       { label: 'Tapes — Opacitat', def: 1 },
+  interiorFontScale: { label: 'Interior — Mida', def: 1 },
+  interiorOpacity:   { label: 'Interior — Opacitat', def: 1 },
   // --- Morph ---
   morphT:       { label: 'Blend', def: 0 },
   morphSpeed:   { label: 'Velocitat morph', def: 0.05 },
@@ -154,6 +159,7 @@ const state = {
   regionSurface: true,
   regionCaps: false,
   regionVolume: false,
+  capsWrapMode: '',
   vNorm: false,
   wrapMode: 'rings',
   t: 0,
@@ -678,6 +684,20 @@ function updateEditorVisibility() {
   const regionFieldset = $('regionFieldset');
   if (regionFieldset) regionFieldset.hidden = !showCaps && !showVol;
 
+  // Per-region atom controls.
+  const showCapControls = showCaps && state.regionCaps;
+  const showVolControls = showVol  && state.regionVolume;
+  const capsWrapRow = $('capsWrapModeRow');
+  if (capsWrapRow) capsWrapRow.hidden = !showCapControls;
+  for (const key of ['capsFontScale', 'capsOpacity']) {
+    const el = document.querySelector(`.slider[data-key="${key}"]`);
+    if (el) el.hidden = !showCapControls;
+  }
+  for (const key of ['interiorFontScale', 'interiorOpacity']) {
+    const el = document.querySelector(`.slider[data-key="${key}"]`);
+    if (el) el.hidden = !showVolControls;
+  }
+
   // FOV: only relevant for perspective projection.
   const fovRow = document.querySelector('.slider[data-key="fov"]');
   if (fovRow) fovRow.hidden = state.projection !== 'perspective';
@@ -1019,8 +1039,10 @@ function wireControls() {
   });
   ['regionSurface', 'regionCaps', 'regionVolume'].forEach((id) => {
     const el = $(id);
-    if (el) el.addEventListener('change', (e) => { state[id] = e.target.checked; scheduleRender(); });
+    if (el) el.addEventListener('change', (e) => { state[id] = e.target.checked; updateEditorVisibility(); scheduleRender(); });
   });
+  const capsWrapModeEl = $('capsWrapMode');
+  if (capsWrapModeEl) capsWrapModeEl.addEventListener('change', (e) => { state.capsWrapMode = e.target.value; scheduleRender(); });
 
   $('wrapMode').addEventListener('change', (e) => {
     state.wrapMode = e.target.value;
@@ -1390,7 +1412,7 @@ function capturePreset() {
   ['text', 'font', 'shape', 'textColor', 'bgColor', 'hardWrap',
    'motion2d', 'mode', 'form', 'projection', 'guides',
    'backfaceMirror', 'surfaceText', 'regionSurface', 'regionCaps', 'regionVolume',
-   'wrapMode', 'canvasW', 'canvasH',
+   'wrapMode', 'capsWrapMode', 'canvasW', 'canvasH',
    'opacityMode', 'blinkMode', 'blinkFade', 'sizeMode',
    'accentMode', 'accentMode2', 'accentMode3', 'accentMode4',
    'accentColor', 'accentColor2', 'accentColor3', 'accentColor4',
@@ -1441,6 +1463,7 @@ function applyPreset(p) {
   if (p.regionCaps      != null) { state.regionCaps      = p.regionCaps;      const el=$('regionCaps');      if(el) el.checked = p.regionCaps; }
   if (p.regionVolume    != null) { state.regionVolume    = p.regionVolume;    const el=$('regionVolume');    if(el) el.checked = p.regionVolume; }
   if (p.wrapMode        != null) { state.wrapMode         = p.wrapMode;        $('wrapMode').value          = p.wrapMode; updateEditorVisibility(); }
+  if (p.capsWrapMode    != null) { state.capsWrapMode     = p.capsWrapMode;    const el=$('capsWrapMode'); if(el) el.value = p.capsWrapMode; }
   if (p.canvasW && p.canvasH) applyCanvasSize(p.canvasW, p.canvasH);
   if (p.blinkFade != null) {
     state.blinkFade = typeof p.blinkFade === 'number' ? p.blinkFade : (p.blinkFade ? 1 : 0);
@@ -1954,6 +1977,7 @@ function init() {
   const rVol = $('regionVolume');  if (rVol) rVol.checked = state.regionVolume;
 
   $('wrapMode').value = state.wrapMode;
+  const capsWrapEl = $('capsWrapMode'); if (capsWrapEl) capsWrapEl.value = state.capsWrapMode;
   // Sync format-select and renderInfo to default canvas size
   const formatSel = $('format-select');
   if (formatSel) {

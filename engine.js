@@ -632,6 +632,11 @@ function read3DParams(params) {
     regionSurface: params.regionSurface !== false,
     regionCaps:    !!params.regionCaps,
     regionVolume:  !!params.regionVolume,
+    capsFontScale:     Math.max(0.1, num(params.capsFontScale,     1)),
+    capsOpacity:       Math.max(0, Math.min(1, num(params.capsOpacity,       1))),
+    capsWrapMode:      params.capsWrapMode || null,
+    interiorFontScale: Math.max(0.1, num(params.interiorFontScale, 1)),
+    interiorOpacity:   Math.max(0, Math.min(1, num(params.interiorOpacity,   1))),
   };
 }
 
@@ -1459,7 +1464,10 @@ function buildCaps(params, width, height) {
   if (!hasCaps(P.form)) return [];
   const { ax, ay, az } = computeRotationAngles(params, P);
   const project = P.projection === 'perspective' ? projectPersp : projectIso;
-  const { lines } = layout(params, width, height);
+  const capsLayoutParams = (P.capsFontScale !== 1 || P.capsWrapMode)
+    ? { ...params, fontSize: (params.fontSize ?? 24) * P.capsFontScale, wrapMode: P.capsWrapMode || params.wrapMode }
+    : params;
+  const { lines } = layout(capsLayoutParams, width, height);
 
   const glyphs = [];
   const nCaps = capCount(P.form);
@@ -1480,7 +1488,7 @@ function buildCaps(params, width, height) {
           matrixTransform: null,
           accentT: c.accentT || 0,
           blinkT: c.blinkT || 0,
-          extraOp: typeof c.extraOp === 'number' ? c.extraOp : 1,
+          extraOp: (typeof c.extraOp === 'number' ? c.extraOp : 1) * P.capsOpacity,
           skew: c.skew || 0,
           sizeMul: typeof c.sizeMul === 'number' ? c.sizeMul : 1,
         });
@@ -1497,7 +1505,10 @@ function buildInterior(params, width, height) {
   const P = read3DParams(params);
   const { ax, ay, az } = computeRotationAngles(params, P);
   const project = P.projection === 'perspective' ? projectPersp : projectIso;
-  const { lines } = layout(params, width, height);
+  const intLayoutParams = P.interiorFontScale !== 1
+    ? { ...params, fontSize: (params.fontSize ?? 24) * P.interiorFontScale }
+    : params;
+  const { lines } = layout(intLayoutParams, width, height);
   const S = P.formSize, r = S / 2, h = S * P.aspect;
 
   // Third-dimension PRNG (independent from surface and caps).
@@ -1587,7 +1598,7 @@ function buildInterior(params, width, height) {
         matrixTransform: null,
         accentT: c.accentT || 0,
         blinkT: c.blinkT || 0,
-        extraOp: typeof c.extraOp === 'number' ? c.extraOp : 1,
+        extraOp: (typeof c.extraOp === 'number' ? c.extraOp : 1) * P.interiorOpacity,
         skew: c.skew || 0,
         sizeMul: typeof c.sizeMul === 'number' ? c.sizeMul : 1,
       });

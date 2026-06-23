@@ -61,7 +61,7 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
       <div class="control-row">
         <label class="sr-only" for="${id}-name">Nom del preset</label>
         <input type="text" id="${id}-name" placeholder="Nom del preset" autocomplete="off" style="flex:1;min-width:0">
-        <button id="${id}-save-btn" type="button">Desa</button>
+        <button id="${id}-save-btn" type="button">Guardar</button>
       </div>
     </div>
 
@@ -69,7 +69,7 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
       <div class="control-row" style="margin-top:var(--space-2)">
         <label class="sr-only" for="${id}-offline-name">Nom del preset</label>
         <input type="text" id="${id}-offline-name" placeholder="Nom del preset" autocomplete="off" style="flex:1;min-width:0">
-        <button id="${id}-offline-save-btn" type="button">Desa</button>
+        <button id="${id}-offline-save-btn" type="button">Guardar</button>
       </div>
     </div>
 
@@ -77,12 +77,10 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
 
     <ul id="${id}-list" role="list" aria-label="Presets"></ul>
 
-    <div class="control-row" style="margin-top:var(--space-2);gap:var(--space-1)">
-      <button id="${id}-export-btn" type="button" style="flex:1" title="Exporta el preset actual com a fitxer JSON">Export JSON</button>
-      <label id="${id}-import-label" style="flex:1">
-        <span role="button" tabindex="0" style="display:block;text-align:center;cursor:pointer;padding:var(--space-1) var(--space-2);border:1px solid var(--border);border-radius:var(--radius, 2px);font-size:var(--text-xs)" title="Importa preset des d'un fitxer JSON">Import JSON</span>
-        <input id="${id}-import-input" type="file" accept=".json,application/json" class="sr-only">
-      </label>
+    <div style="display:flex;gap:var(--space-1);margin-top:var(--space-2)">
+      <button id="${id}-export-btn" type="button" style="flex:1 1 0;min-width:0" title="Exporta el preset actual com a fitxer JSON">Export JSON</button>
+      <button id="${id}-import-btn" type="button" style="flex:1 1 0;min-width:0" title="Importa preset des d'un fitxer JSON">Import JSON</button>
+      <input id="${id}-import-input" type="file" accept=".json,application/json" class="sr-only">
     </div>`;
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -271,13 +269,13 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
     const nameEl = $('name');
     const name = (nameEl?.value ?? '').trim() || `Preset ${new Date().toLocaleTimeString()}`;
     if (!state.project) { setPanelStatus('Selecciona o crea un projecte primer.'); return; }
-    setPanelStatus(`Desant "${name}"…`);
+    setPanelStatus(`Guardarnt "${name}"…`);
     try {
       await store.savePreset(state.project, name, capturePreset());
       state.list = await store.listPresets(state.project);
       if (nameEl) nameEl.value = '';
       renderList();
-      setPanelStatus(`Desat: "${name}"`);
+      setPanelStatus(`Guardart: "${name}"`);
     } catch (e) {
       setPanelStatus(`Error: ${e.message}`);
     }
@@ -306,6 +304,9 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
     a.href = url; a.download = `${name}.json`; a.click();
     URL.revokeObjectURL(url);
   });
+
+  // Import button triggers hidden file input
+  $('import-btn')?.addEventListener('click', () => $('import-input')?.click());
 
   // Import preset from JSON file
   $('import-input')?.addEventListener('change', (e) => {

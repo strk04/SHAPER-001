@@ -49,14 +49,14 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
         <span id="${id}-user" style="flex:1;font-size:var(--text-xs);color:var(--ink-2)"></span>
         <button id="${id}-disconnect-btn" type="button">Desconnecta</button>
       </div>
-      <div id="${id}-project-row" class="control-row" style="margin-bottom:var(--space-2)" hidden>
-        <label class="sr-only" for="${id}-project">Projecte</label>
-        <select id="${id}-project" style="flex:1"></select>
-      </div>
       <div class="control-row" style="margin-bottom:var(--space-2)">
         <label class="sr-only" for="${id}-new-project">Nom del nou projecte</label>
         <input type="text" id="${id}-new-project" placeholder="Nou projecte" autocomplete="off" style="flex:1;min-width:0">
         <button id="${id}-new-project-btn" type="button">+ Projecte</button>
+      </div>
+      <div id="${id}-project-row" class="control-row" style="margin-bottom:var(--space-2)" hidden>
+        <label class="sr-only" for="${id}-project">Projecte</label>
+        <select id="${id}-project" style="flex:1"></select>
       </div>
       <div class="control-row">
         <label class="sr-only" for="${id}-name">Nom del preset</label>
@@ -77,8 +77,12 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
 
     <ul id="${id}-list" role="list" aria-label="Presets"></ul>
 
-    <div id="${id}-migrate-row" hidden style="margin-top:var(--space-2)">
-      <button id="${id}-migrate-btn" type="button" style="width:100%">Importa locals → GitHub</button>
+    <div class="control-row" style="margin-top:var(--space-2);gap:var(--space-1)">
+      <button id="${id}-export-btn" type="button" style="flex:1" title="Exporta el preset actual com a fitxer JSON">Export JSON</button>
+      <label id="${id}-import-label" style="flex:1">
+        <span role="button" tabindex="0" style="display:block;text-align:center;cursor:pointer;padding:var(--space-1) var(--space-2);border:1px solid var(--border);border-radius:var(--radius, 2px);font-size:var(--text-xs)" title="Importa preset des d'un fitxer JSON">Import JSON</span>
+        <input id="${id}-import-input" type="file" accept=".json,application/json" class="sr-only">
+      </label>
     </div>`;
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -120,8 +124,6 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
         list.innerHTML = userItems;
       }
 
-      const migrateRow = $('migrate-row');
-      if (migrateRow) migrateRow.hidden = !localKey || loadLocal().length === 0;
     } else {
       const local = loadLocal();
       const localItems = local.length
@@ -165,8 +167,6 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
     $('connected-view')?.setAttribute('hidden', '');
     $('disconnected-view')?.removeAttribute('hidden');
     if (localKey) $('offline-save')?.removeAttribute('hidden');
-    const migrateRow = $('migrate-row');
-    if (migrateRow) migrateRow.hidden = true;
   }
 
   // ── Connect / Disconnect ───────────────────────────────────────────────────
@@ -296,19 +296,31 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
     setPanelStatus(`Saved: "${name}"`);
   });
 
-  // Migrate locals → GitHub
-  $('migrate-btn')?.addEventListener('click', async () => {
-    const locals = loadLocal();
-    if (!locals.length) { setPanelStatus('Cap preset local.'); return; }
-    if (!state.project) { setPanelStatus('Selecciona un projecte.'); return; }
-    let ok = 0;
-    setPanelStatus(`Important ${locals.length} presets…`);
-    for (const p of locals) {
-      try { await store.savePreset(state.project, p.name, p.data); ok++; } catch { /* skip */ }
-    }
-    state.list = await store.listPresets(state.project);
-    renderList();
-    setPanelStatus(`Importats ${ok}/${locals.length} presets a "${state.project}".`);
+  // Export current preset as JSON file
+  $('export-btn')?.addEventListener('click', () => {
+    const data = capturePreset();
+    const name = $('name')?.value.trim() || $('offline-name')?.value.trim() || 'preset';
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `${name}.json`; a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // Import preset from JSON file
+  $('import-input')?.addEventListener('change', (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        applyPreset(data);
+        setPanelStatus(`Importat: "${file.name}"`);
+      } catch { setPanelStatus('Error: fitxer JSON invàlid.'); }
+      e.target.value = '';
+    };
+    reader.readAsText(file);
   });
 
   // Preset list: load / delete (event delegation)

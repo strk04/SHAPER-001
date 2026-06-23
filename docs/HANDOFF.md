@@ -1,6 +1,6 @@
 # HANDOFF — SHAPER 001
 
-_Actualitzat: 2026-06-22_
+_Actualitzat: 2026-06-23_
 
 ## Estat actual
 

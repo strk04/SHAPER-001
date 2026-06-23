@@ -1,5 +1,16 @@
 # Progress — SHAPER 001
 
+## 2026-06-23 — Documentació tècnica del sistema
+
+### Fet
+- `docs/informe-presets.md` — informe complet del sistema de presets (auth GitHub, capturePreset, applyPreset, SHA cache, fluxos desar/carregar, migració, limitacions).
+- `docs/informe-export.md` — informe complet del sistema d'exportació (SVG, PNG per DPI, MP4 via WebCodecs+mp4-muxer, dos modes gravació: offline Director vs. temps real).
+
+### Pendent
+- (sense canvis de codi en aquesta sessió)
+
+---
+
 ## 2026-06-22 — Motion Director mergejar a main + keyframes interactius
 
 ### Fet

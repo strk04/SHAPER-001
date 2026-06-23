@@ -4,7 +4,7 @@
 const REPO      = 'strk04/querida-presets';
 const PREFIX    = 'presets/shaper';
 const API       = 'https://api.github.com';
-const TOKEN_KEY = 'shaper-gh-token';
+const TOKEN_KEY = 'querida-gh-token';
 
 // In-memory SHA cache: path → sha (avoids extra GET before PUT/DELETE)
 const shas = new Map();

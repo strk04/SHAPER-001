@@ -1,17 +1,17 @@
 // presets-github.js — GitHub-backed preset storage for SHAPER 001
 // Stores presets as JSON files at presets/shaper/{project}/{name}.json in the repo.
 
-const REPO      = 'strk04/querida-presets';
-const PREFIX    = 'presets/shaper';
-const API       = 'https://api.github.com';
-const TOKEN_KEY = 'querida-gh-token';
+const REPO   = 'strk04/querida-presets';
+const PREFIX = 'presets/shaper';
+const API    = 'https://api.github.com';
 
 // In-memory SHA cache: path → sha (avoids extra GET before PUT/DELETE)
 const shas = new Map();
+let _token = '';
 
-export const getToken   = ()  => localStorage.getItem(TOKEN_KEY);
-export const setToken   = (t) => localStorage.setItem(TOKEN_KEY, t);
-export const clearToken = ()  => localStorage.removeItem(TOKEN_KEY);
+export const getToken   = ()  => _token;
+export const setToken   = (t) => { _token = t; };
+export const clearToken = ()  => { _token = ''; };
 
 async function ghFetch(path, opts = {}) {
   const r = await fetch(`${API}${path}`, {

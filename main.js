@@ -1464,12 +1464,18 @@ function applyPreset(p) {
 let _ghProjects = [];
 let _ghPresets  = []; // { name, path }
 
-function _ghUpdateView() {
+function _ghUpdateView(login) {
   const has = !!getToken();
   const setup = $('ghSetup');
   const ui    = $('ghUI');
   if (setup) setup.hidden = has;
   if (ui)    ui.hidden    = !has;
+  if (login) {
+    const userEl = $('ghUser');
+    if (userEl) userEl.textContent = `@${login}`;
+    const announce = $('shaperGhAnnounce');
+    if (announce) announce.textContent = `Connectat com a @${login}`;
+  }
 }
 
 async function _ghLoadProjects() {
@@ -1504,10 +1510,26 @@ function _ghRenderList() {
     </li>`).join('');
 }
 
+async function _tryAutoConnect() {
+  if (!getToken()) return;
+  setPresetStatus('Reconnectant…');
+  try {
+    const login = await validateToken();
+    _ghUpdateView(login);
+    await _ghLoadProjects();
+    await _ghLoadPresets();
+    setPresetStatus('');
+  } catch {
+    clearToken();
+    _ghUpdateView();
+    setPresetStatus('');
+  }
+}
+
 function wirePresets() {
   _ghUpdateView();
   if (getToken()) {
-    _ghLoadProjects().then(() => _ghLoadPresets()).catch(e => setPresetStatus('Error GitHub: ' + e.message));
+    _tryAutoConnect().catch(() => {});
   }
 
   // Connect
@@ -1519,10 +1541,10 @@ function wirePresets() {
     try {
       const login = await validateToken();
       if (tokenEl) tokenEl.value = '';
-      _ghUpdateView();
+      _ghUpdateView(login);
       await _ghLoadProjects();
       await _ghLoadPresets();
-      setPresetStatus(`Connectat com a @${login}`);
+      setPresetStatus('');
     } catch (e) {
       clearToken();
       _ghUpdateView();
@@ -1530,11 +1552,30 @@ function wirePresets() {
     }
   });
 
-  // Disconnect
-  $('ghDisconnect')?.addEventListener('click', () => {
-    clearToken();
-    _ghUpdateView();
-    setPresetStatus('Desconnectat de GitHub.');
+  // Disconnect (double confirm)
+  $('ghDisconnect')?.addEventListener('click', function () {
+    const announce = $('shaperGhAnnounce');
+    if (this.dataset.confirming === '1') {
+      clearTimeout(Number(this.dataset.timer));
+      delete this.dataset.confirming;
+      this.textContent = 'Desconnecta';
+      if (announce) announce.textContent = '';
+      clearToken();
+      _ghUpdateView();
+      _ghPresets = [];
+      _ghRenderList();
+      setPresetStatus('Desconnectat de GitHub.');
+    } else {
+      this.dataset.confirming = '1';
+      this.textContent = 'Segur?';
+      if (announce) announce.textContent = 'Prem de nou per desconnectar';
+      const timer = setTimeout(() => {
+        this.dataset.confirming = '';
+        this.textContent = 'Desconnecta';
+        if (announce) announce.textContent = '';
+      }, 3000);
+      this.dataset.timer = String(timer);
+    }
   });
 
   // Project change
@@ -1542,9 +1583,10 @@ function wirePresets() {
     _ghLoadPresets().catch(e => setPresetStatus('Error: ' + e.message));
   });
 
-  // New project
+  // New project (inline input)
   $('ghNewProject')?.addEventListener('click', () => {
-    const name = prompt('Nom del nou projecte:')?.trim();
+    const input = $('ghNewProjectInput');
+    const name  = input?.value.trim();
     if (!name) return;
     if (!_ghProjects.includes(name)) {
       _ghProjects = [..._ghProjects, name].sort();
@@ -1553,6 +1595,7 @@ function wirePresets() {
     }
     const sel = $('ghProject');
     if (sel) sel.value = name;
+    if (input) input.value = '';
     _ghPresets = [];
     _ghRenderList();
   });

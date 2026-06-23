@@ -629,6 +629,9 @@ function read3DParams(params) {
     morphClock: num(params.morphClock, 0),
     morphScatter:  Math.max(0, Math.min(1, num(params.morphScatter, 0))),
     morphSpeedVar: Math.max(0, Math.min(1, num(params.morphSpeedVar, 0))),
+    regionSurface: params.regionSurface !== false,
+    regionCaps:    !!params.regionCaps,
+    regionVolume:  !!params.regionVolume,
   };
 }
 
@@ -1361,6 +1364,238 @@ function buildArcLUT(formKey, v, P, inst, width, N = 200) {
   };
 }
 
+// Shared rotation-angle computation used by build3D, buildCaps, buildInterior.
+// Always creates an independent PRNG from seed+1 and reads 3 values so the
+// angles are identical across all three builders for the same params.
+function computeRotationAngles(params, P) {
+  const seed = params.seed >>> 0;
+  const rng = mulberry32(seed + 1);
+  const _r1 = rng(), _r2 = rng(), _r3 = rng();
+  const FLAT = P.form === 'plane' || P.form === 'wave-plane' || P.form === 'saddle';
+  const baseRX = FLAT ? 0 : _r1 * 2 * Math.PI;
+  const baseRY = FLAT ? 0 : _r2 * 2 * Math.PI;
+  const baseRZ = FLAT ? 0 : _r3 * 2 * Math.PI;
+  const time = typeof params.t === 'number' ? params.t : 0;
+  return {
+    ax: baseRX + time * P.rotXSpeed + P.angleX * Math.PI / 180,
+    ay: baseRY + time * P.rotYSpeed + P.angleY * Math.PI / 180,
+    az: baseRZ + time * P.rotZSpeed,
+  };
+}
+
+// Returns true when a 3D form has distinct flat cap faces.
+function hasCaps(form) {
+  return form === 'cylinder' || form === 'cone' || form === 'star-prism' || form === 'custom-prism';
+}
+
+// Number of caps a form has: cone has 1 (base only), rest have 2 (top + bottom).
+function capCount(form) {
+  return form === 'cone' ? 1 : 2;
+}
+
+// Map cap (u,v) → 3D point+normal for a flat face of a closed form.
+// u = azimuthal fraction [0,1), v = radial fraction [0,1].
+// sqrt(v) remap gives uniform area density (no crowding at centre).
+function capSurface(form, capIdx, u, v, P) {
+  const S = P.formSize, r = S / 2, h = S * P.aspect;
+  const ang = u * 2 * Math.PI;
+  const rv = Math.sqrt(v) * r;
+
+  switch (form) {
+    case 'cylinder': {
+      const capY = capIdx === 0 ? h / 2 : -h / 2;
+      const ny = capIdx === 0 ? 1 : -1;
+      return { x: rv * Math.cos(ang), y: capY, z: rv * Math.sin(ang), nx: 0, ny, nz: 0 };
+    }
+    case 'cone': {
+      // Base disc at y = -h/2 (v=0 side in surfaceMap). Normal points downward (-Y).
+      return { x: rv * Math.cos(ang), y: -h / 2, z: rv * Math.sin(ang), nx: 0, ny: -1, nz: 0 };
+    }
+    case 'star-prism': {
+      const capY = capIdx === 0 ? h / 2 : -h / 2;
+      const ny = capIdx === 0 ? 1 : -1;
+      const facets = P.facets;
+      // Star polygon radial profile: outer spokes at r, inner at r*0.45.
+      const starAng = ang;
+      const seg = (starAng / (2 * Math.PI)) * facets * 2;
+      const idx = Math.floor(seg) % (facets * 2);
+      const frac = seg - Math.floor(seg);
+      const r0 = idx % 2 === 0 ? r : r * 0.45;
+      const r1 = (idx + 1) % 2 === 0 ? r : r * 0.45;
+      const ang0 = (idx / (facets * 2)) * 2 * Math.PI;
+      const ang1 = ((idx + 1) / (facets * 2)) * 2 * Math.PI;
+      const px0 = r0 * Math.cos(ang0), pz0 = r0 * Math.sin(ang0);
+      const px1 = r1 * Math.cos(ang1), pz1 = r1 * Math.sin(ang1);
+      const edgeX = px0 + (px1 - px0) * frac;
+      const edgeZ = pz0 + (pz1 - pz0) * frac;
+      // Scale toward edge by v (v=0=center, v=1=perimeter)
+      const edgeR = Math.hypot(edgeX, edgeZ) || 1;
+      const scale = v; // linear scale from center to edge
+      return { x: edgeX * scale, y: capY, z: edgeZ * scale, nx: 0, ny, nz: 0 };
+    }
+    case 'custom-prism': {
+      const capY = capIdx === 0 ? h / 2 : -h / 2;
+      const ny = capIdx === 0 ? 1 : -1;
+      const pts = P.customOutline;
+      if (!pts || pts.length < 3) return null;
+      const m = pts.length;
+      // Walk perimeter by angle, scale radially by v.
+      const seg = (((u % 1) + 1) % 1) * m;
+      const idx = Math.floor(seg) % m;
+      const frac = seg - Math.floor(seg);
+      const p0 = pts[idx], p1 = pts[(idx + 1) % m];
+      const ex = (p0.x + (p1.x - p0.x) * frac) * r;
+      const ez = (p0.z + (p1.z - p0.z) * frac) * r;
+      return { x: ex * v, y: capY, z: ez * v, nx: 0, ny, nz: 0 };
+    }
+    default:
+      return null;
+  }
+}
+
+// Build cap glyphs. Each cap is independently filled with text from layout().
+function buildCaps(params, width, height) {
+  const P = read3DParams(params);
+  if (!hasCaps(P.form)) return [];
+  const { ax, ay, az } = computeRotationAngles(params, P);
+  const project = P.projection === 'perspective' ? projectPersp : projectIso;
+  const { lines } = layout(params, width, height);
+
+  const glyphs = [];
+  const nCaps = capCount(P.form);
+  for (let capIdx = 0; capIdx < nCaps; capIdx++) {
+    for (const line of lines) {
+      for (const c of line.chars) {
+        const u = c.x / width;
+        const v = c.y / height;
+        const pt = capSurface(P.form, capIdx, u, v, P);
+        if (!pt) continue;
+        const rp = rotate3D(pt, ax, ay, az);
+        const pr = project(rp, P, width, height);
+        glyphs.push({
+          ch: c.ch,
+          X: pr.X, Y: pr.Y, z: rp.z,
+          scale: pr.scale,
+          back: false,
+          matrixTransform: null,
+          accentT: c.accentT || 0,
+          blinkT: c.blinkT || 0,
+          extraOp: typeof c.extraOp === 'number' ? c.extraOp : 1,
+          skew: c.skew || 0,
+          sizeMul: typeof c.sizeMul === 'number' ? c.sizeMul : 1,
+        });
+      }
+    }
+  }
+  return glyphs;
+}
+
+// Build interior volumetric glyphs. Chars are placed inside the 3D volume.
+// No surfaceMap — coordinates derived directly from shape geometry.
+// Uses mulberry32(seed+3) for the third spatial dimension to stay deterministic.
+function buildInterior(params, width, height) {
+  const P = read3DParams(params);
+  const { ax, ay, az } = computeRotationAngles(params, P);
+  const project = P.projection === 'perspective' ? projectPersp : projectIso;
+  const { lines } = layout(params, width, height);
+  const S = P.formSize, r = S / 2, h = S * P.aspect;
+
+  // Third-dimension PRNG (independent from surface and caps).
+  const rng3 = mulberry32((params.seed >>> 0) + 3);
+
+  const glyphs = [];
+  for (const line of lines) {
+    for (const c of line.chars) {
+      const u = (c.x / width + 1) % 1;
+      const v = c.y / height;
+      const w = rng3(); // third coord, deterministic per char sequence
+      let x = 0, y = 0, z = 0;
+
+      switch (P.form) {
+        case 'cylinder':
+        case 'helix':
+        case 'capsule': {
+          // Cylindrical: uniform radial density via sqrt, angle from u, height from v.
+          const rho = Math.sqrt(u) * r;
+          const theta = w * 2 * Math.PI;
+          x = rho * Math.cos(theta);
+          z = rho * Math.sin(theta);
+          y = (v - 0.5) * h;
+          break;
+        }
+        case 'sphere':
+        case 'ellipsoid': {
+          // Spherical: uniform volume density via cbrt.
+          const rho = Math.cbrt(u) * r;
+          const lon = w * 2 * Math.PI;
+          const lat = (v - 0.5) * Math.PI;
+          const cl = Math.cos(lat);
+          x = rho * cl * Math.cos(lon);
+          y = rho * Math.sin(lat) * P.aspect;
+          z = rho * cl * Math.sin(lon);
+          break;
+        }
+        case 'cone': {
+          // Conical: disc radius shrinks linearly from base (v=0) to apex (v=1).
+          const yFrac = v;
+          y = (yFrac - 0.5) * h;
+          const maxR = r * (1 - yFrac);
+          const rho = Math.sqrt(u) * maxR;
+          const theta = w * 2 * Math.PI;
+          x = rho * Math.cos(theta);
+          z = rho * Math.sin(theta);
+          break;
+        }
+        case 'star-prism':
+        case 'custom-prism':
+        case 'cube':
+        case 'box': {
+          // Prismatic: scatter within bounding box.
+          x = (u - 0.5) * S;
+          z = (w - 0.5) * S;
+          y = (v - 0.5) * h;
+          break;
+        }
+        case 'torus': {
+          // Toroidal volume: sample inside the torus tube.
+          const bigR = r * 0.65, tubeR = r * 0.35;
+          const phi = u * 2 * Math.PI;
+          const theta = w * 2 * Math.PI;
+          const tubeFrac = Math.sqrt(v) * tubeR;
+          x = (bigR + tubeFrac * Math.cos(theta)) * Math.cos(phi);
+          z = (bigR + tubeFrac * Math.cos(theta)) * Math.sin(phi);
+          y = tubeFrac * Math.sin(theta) * P.aspect;
+          break;
+        }
+        default: {
+          // Generic: scatter in bounding box.
+          x = (u - 0.5) * S;
+          z = (w - 0.5) * S;
+          y = (v - 0.5) * h;
+          break;
+        }
+      }
+
+      const pt = { x, y, z };
+      const rp = rotate3D(pt, ax, ay, az);
+      const pr = project(rp, P, width, height);
+      glyphs.push({
+        ch: c.ch,
+        X: pr.X, Y: pr.Y, z: rp.z,
+        scale: pr.scale,
+        back: false,
+        matrixTransform: null,
+        accentT: c.accentT || 0,
+        blinkT: c.blinkT || 0,
+        extraOp: typeof c.extraOp === 'number' ? c.extraOp : 1,
+        skew: c.skew || 0,
+        sizeMul: typeof c.sizeMul === 'number' ? c.sizeMul : 1,
+      });
+    }
+  }
+  return glyphs;
+}
+
 // Build the per-glyph 3D draw list. Returns { glyphs, meta }.
 function build3D(params, width, height) {
   const P = read3DParams(params);
@@ -1370,15 +1605,10 @@ function build3D(params, width, height) {
   const spd = typeof params.speed === 'number' ? params.speed : 1;
 
   // Second PRNG — never touches the existing 2D stream.
+  // Burns 3 rolls (same values that computeRotationAngles derives) so cluster
+  // instance offsets remain at the same stream positions as before.
   const rand3 = mulberry32((seed >>> 0) + 1);
-
-  // Seed-derived initial rotation angles.
-  // Flat-surface forms start at zero so they're never viewed edge-on by default.
-  const _r1 = rand3(), _r2 = rand3(), _r3 = rand3(); // always consume 3 rolls
-  const FLAT_FORMS = P.form === 'plane' || P.form === 'wave-plane' || P.form === 'saddle';
-  const baseRX = FLAT_FORMS ? 0 : _r1 * 2 * Math.PI;
-  const baseRY = FLAT_FORMS ? 0 : _r2 * 2 * Math.PI;
-  const baseRZ = FLAT_FORMS ? 0 : _r3 * 2 * Math.PI;
+  rand3(); rand3(); rand3();
 
   // Cluster instance offsets (consumed before per-glyph rolls so they stay
   // deterministic regardless of glyph count).
@@ -1405,10 +1635,8 @@ function build3D(params, width, height) {
   const pulsePhase = time * P.pulseSpeed * PULSE_RATE * 2 * Math.PI;
   const pulseScale = 1 + P.pulse * 0.3 * Math.sin(pulsePhase);
 
-  // Rotation angles for this frame (manual orbit offsets added in radians).
-  const ax = baseRX + time * P.rotXSpeed + P.angleX * Math.PI / 180;
-  const ay = baseRY + time * P.rotYSpeed + P.angleY * Math.PI / 180;
-  const az = baseRZ + time * P.rotZSpeed;
+  // Rotation angles for this frame (shared helper guarantees same angles as buildCaps/buildInterior).
+  const { ax, ay, az } = computeRotationAngles(params, P);
 
   const fallRange = P.formSize * 1.5;
   const project = P.projection === 'perspective' ? projectPersp : projectIso;
@@ -1717,7 +1945,7 @@ function build3D(params, width, height) {
   return {
     P, glyphs, fontSize, time, ax, ay, az, pulseScale, spd,
     width, height,
-    instances, baseRX, baseRY, baseRZ,
+    instances,
   };
 }
 
@@ -2407,6 +2635,21 @@ export function buildScene(params, width, height) {
   const ctx = build3D(params, width, height);
   ctx.textColor = textColor;
   const P = ctx.P;
+
+  // Multi-region merge: surface + caps + interior.
+  // build3D already depth-sorted its own glyphs; we re-sort the merged array below.
+  if (!P.regionSurface) ctx.glyphs = [];
+  if (P.regionCaps) ctx.glyphs = ctx.glyphs.concat(buildCaps(params, width, height));
+  if (P.regionVolume) ctx.glyphs = ctx.glyphs.concat(buildInterior(params, width, height));
+
+  if (P.regionCaps || P.regionVolume) {
+    // Re-normalise depth across all merged glyphs and re-sort.
+    let minZ = Infinity, maxZ = -Infinity;
+    for (const g of ctx.glyphs) { if (g.z < minZ) minZ = g.z; if (g.z > maxZ) maxZ = g.z; }
+    const zSpan = maxZ - minZ || 1;
+    for (const g of ctx.glyphs) g.depth = (g.z - minZ) / zSpan;
+    ctx.glyphs.sort((a, b) => a.z - b.z);
+  }
 
   const glyphs = [];
   for (const g of ctx.glyphs) {

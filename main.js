@@ -142,6 +142,9 @@ const state = {
   guides: true,
   backfaceMirror: false,
   surfaceText: true,
+  regionSurface: true,
+  regionCaps: false,
+  regionVolume: false,
   vNorm: false,
   wrapMode: 'rings',
   t: 0,
@@ -990,6 +993,10 @@ function wireControls() {
     state.surfaceText = e.target.checked;
     scheduleRender();
   });
+  ['regionSurface', 'regionCaps', 'regionVolume'].forEach((id) => {
+    const el = $(id);
+    if (el) el.addEventListener('change', (e) => { state[id] = e.target.checked; scheduleRender(); });
+  });
 
   $('wrapMode').addEventListener('change', (e) => {
     state.wrapMode = e.target.value;
@@ -1358,7 +1365,8 @@ function capturePreset() {
   Object.keys(SLIDERS).forEach((k) => { snap[k] = state[k]; });
   ['text', 'font', 'shape', 'textColor', 'bgColor', 'hardWrap',
    'motion2d', 'mode', 'form', 'projection', 'guides',
-   'backfaceMirror', 'surfaceText', 'wrapMode', 'canvasW', 'canvasH',
+   'backfaceMirror', 'surfaceText', 'regionSurface', 'regionCaps', 'regionVolume',
+   'wrapMode', 'canvasW', 'canvasH',
    'opacityMode', 'blinkMode', 'blinkFade', 'sizeMode',
    'accentMode', 'accentMode2', 'accentMode3', 'accentMode4',
    'accentColor', 'accentColor2', 'accentColor3', 'accentColor4',
@@ -1405,6 +1413,9 @@ function applyPreset(p) {
   if (p.guides          != null) { state.guides          = p.guides;          $('guides').checked          = p.guides; }
   if (p.backfaceMirror  != null) { state.backfaceMirror  = p.backfaceMirror;  $('backfaceMirror').checked  = p.backfaceMirror; }
   if (p.surfaceText     != null) { state.surfaceText      = p.surfaceText;     $('surfaceText').checked     = p.surfaceText; }
+  if (p.regionSurface   != null) { state.regionSurface   = p.regionSurface;   const el=$('regionSurface');   if(el) el.checked = p.regionSurface; }
+  if (p.regionCaps      != null) { state.regionCaps      = p.regionCaps;      const el=$('regionCaps');      if(el) el.checked = p.regionCaps; }
+  if (p.regionVolume    != null) { state.regionVolume    = p.regionVolume;    const el=$('regionVolume');    if(el) el.checked = p.regionVolume; }
   if (p.wrapMode        != null) { state.wrapMode         = p.wrapMode;        $('wrapMode').value          = p.wrapMode; updateEditorVisibility(); }
   if (p.canvasW && p.canvasH) applyCanvasSize(p.canvasW, p.canvasH);
   if (p.blinkFade != null) {
@@ -1911,6 +1922,9 @@ function init() {
   $('guides').checked = state.guides;
   $('backfaceMirror').checked = state.backfaceMirror;
   $('surfaceText').checked = state.surfaceText;
+  const rSel = $('regionSurface'); if (rSel) rSel.checked = state.regionSurface;
+  const rCap = $('regionCaps');    if (rCap) rCap.checked = state.regionCaps;
+  const rVol = $('regionVolume');  if (rVol) rVol.checked = state.regionVolume;
 
   $('wrapMode').value = state.wrapMode;
   // Sync format-select and renderInfo to default canvas size

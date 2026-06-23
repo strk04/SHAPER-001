@@ -406,6 +406,24 @@ output { color: var(--ink); }
   margin-bottom: var(--space-1);
 }
 
+/* Region fieldset: legend and first label ("Superfície") share one visual line */
+#regionFieldset {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--space-3);
+}
+#regionFieldset > legend {
+  flex: 0 0 auto;
+  margin-bottom: 0;
+}
+#regionFieldset > label:first-of-type {
+  flex: 1 1 auto;
+}
+#regionFieldset > label:not(:first-of-type) {
+  flex: 1 1 100%;
+}
+
 .gtx-textarea {
   width: 100%;
 }

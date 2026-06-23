@@ -675,7 +675,7 @@ function updateEditorVisibility() {
   const showVol  = FORMS_WITH_INTERIOR.has(form);
   if (capsRow) capsRow.hidden = !showCaps;
   if (volRow)  volRow.hidden  = !showVol;
-  const regionFieldset = capsRow?.closest('fieldset');
+  const regionFieldset = $('regionFieldset');
   if (regionFieldset) regionFieldset.hidden = !showCaps && !showVol;
 
   // FOV: only relevant for perspective projection.

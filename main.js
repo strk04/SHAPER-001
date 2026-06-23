@@ -1458,6 +1458,7 @@ function applyPreset(p) {
   if (['morphForm','morphForm2','morphForm3','morphAuto'].some(k => p[k] != null)) updateMorphVisibility();
   scheduleRender();
   directorUI?.render();
+  updateAutomationButtonStates();
 }
 
 // --- Preset panel ---
@@ -1565,6 +1566,7 @@ function updateSelectedBehavior(id, patch) { replaceDirectorScene(updateBehavior
 function removeSelectedBehavior(id) { replaceDirectorScene(removeBehavior(selectedDirectorScene(), id)); }
 
 function updateAutomationButtonStates() {
+  document.body.toggleAttribute('data-director-enabled', !!state.director?.enabled);
   if (!state.director?.enabled) return;
   const scene = selectedDirectorScene();
   const { localTime } = evaluateDirector(state.director, state.directorTime, state);
@@ -1909,6 +1911,7 @@ function init() {
   restoreCustomData();
   buildSliders();
   installAutomationButtons();
+  updateAutomationButtonStates();
   bindNavigation();
   wireControls();
   shaperPresetPanel.activate();

@@ -888,6 +888,8 @@ body[data-nav-collapsed] .director-dock { left: var(--sidebar-width); }
   font-variant-numeric: tabular-nums;
 }
 
+body:not([data-director-enabled]) .automation-key-button { display: none; }
+
 .automation-key-button {
   display: inline-flex;
   align-items: center;

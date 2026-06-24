@@ -1499,8 +1499,18 @@ function buildCaps(params, width, height) {
   return glyphs;
 }
 
+// Cross-section half-width of the form at normalized height v (0=bottom, 1=top).
+function crossSectionRadius(form, v, r, aspect) {
+  switch (form) {
+    case 'sphere': case 'ellipsoid': return r * Math.cos((v - 0.5) * Math.PI);
+    case 'cone': return r * (1 - v);
+    default: return r; // cylinder, helix, capsule, cube, torus, prisms, etc.
+  }
+}
+
 // Build interior volumetric glyphs.
-// mode 'cross-sections': random point inside form's cross-section at random height.
+// mode 'cross-sections': horizontal planes — text laid flat (like 'plane') within each
+//   cross-section. layout x/y → 3D x/z; plane height from layout y → 3D y.
 // mode 'shells': chars on concentric scaled copies of the surface (80%/60%/40%/20%).
 function buildInterior(params, width, height) {
   const P = read3DParams(params);
@@ -1513,84 +1523,52 @@ function buildInterior(params, width, height) {
   const S = P.formSize, r = S / 2, h = S * P.aspect;
   const rng = mulberry32((params.seed >>> 0) + 3);
 
-  // Flatten all chars from layout.
-  const chars = [];
-  for (const line of lines) for (const c of line.chars) chars.push(c);
-
   const glyphs = [];
+
+  const pushGlyph = (c, x, y, z) => {
+    const rp = rotate3D({ x, y, z }, ax, ay, az);
+    const pr = project(rp, P, width, height);
+    glyphs.push({
+      ch: c.ch, X: pr.X, Y: pr.Y, z: rp.z, scale: pr.scale,
+      back: false, matrixTransform: null,
+      accentT: c.accentT || 0, blinkT: c.blinkT || 0,
+      extraOp: (typeof c.extraOp === 'number' ? c.extraOp : 1) * P.interiorOpacity,
+      skew: c.skew || 0, sizeMul: typeof c.sizeMul === 'number' ? c.sizeMul : 1,
+    });
+  };
 
   if (P.interiorMode === 'shells') {
     // Concentric shells: 4 scaled copies of the surface.
     const scales = [0.8, 0.6, 0.4, 0.2];
-    for (const c of chars) {
-      const scale = scales[Math.floor(rng() * scales.length)];
-      const scaledP = { ...P, formSize: P.formSize * scale };
-      const u = rng(), v = rng();
-      const { x, y, z } = surfaceMap(P.form, u, v, scaledP, null);
-      const rp = rotate3D({ x, y, z }, ax, ay, az);
-      const pr = project(rp, P, width, height);
-      glyphs.push({
-        ch: c.ch, X: pr.X, Y: pr.Y, z: rp.z, scale: pr.scale,
-        back: false, matrixTransform: null,
-        accentT: c.accentT || 0, blinkT: c.blinkT || 0,
-        extraOp: (typeof c.extraOp === 'number' ? c.extraOp : 1) * P.interiorOpacity,
-        skew: c.skew || 0, sizeMul: typeof c.sizeMul === 'number' ? c.sizeMul : 1,
-      });
+    for (const line of lines) {
+      for (const c of line.chars) {
+        const scale = scales[Math.floor(rng() * scales.length)];
+        const scaledP = { ...P, formSize: P.formSize * scale };
+        const u = rng(), v = rng();
+        const { x, y, z } = surfaceMap(P.form, u, v, scaledP, null);
+        pushGlyph(c, x, y, z);
+      }
     }
   } else {
-    // cross-sections: random point inside cross-section at random height.
-    for (const c of chars) {
-      const rv = rng(), ru = rng(), rw = rng();
-      let x = 0, y = 0, z = 0;
-      switch (P.form) {
-        case 'cylinder': case 'helix': case 'capsule': {
-          const rho = Math.sqrt(ru) * r;
-          const theta = rw * 2 * Math.PI;
-          x = rho * Math.cos(theta); z = rho * Math.sin(theta);
-          y = (rv - 0.5) * h;
-          break;
-        }
-        case 'sphere': case 'ellipsoid': {
-          const lat = (rv - 0.5) * Math.PI;
-          const sR = r * Math.cos(lat);
-          const rho = Math.sqrt(ru) * sR;
-          const theta = rw * 2 * Math.PI;
-          x = rho * Math.cos(theta); z = rho * Math.sin(theta);
-          y = r * Math.sin(lat) * P.aspect;
-          break;
-        }
-        case 'cone': {
-          const sR = r * (1 - rv);
-          const rho = Math.sqrt(ru) * sR;
-          const theta = rw * 2 * Math.PI;
-          x = rho * Math.cos(theta); z = rho * Math.sin(theta);
-          y = (rv - 0.5) * h;
-          break;
-        }
-        case 'torus': {
-          const bigR = r * 0.65, tubeR = r * 0.35;
-          const phi = ru * 2 * Math.PI, theta = rw * 2 * Math.PI;
-          const tubeFrac = Math.sqrt(rv) * tubeR;
-          x = (bigR + tubeFrac * Math.cos(theta)) * Math.cos(phi);
-          z = (bigR + tubeFrac * Math.cos(theta)) * Math.sin(phi);
-          y = tubeFrac * Math.sin(theta) * P.aspect;
-          break;
-        }
-        default: {
-          x = (ru - 0.5) * S; z = (rw - 0.5) * S; y = (rv - 0.5) * h;
-        }
+    // cross-sections: horizontal planes, text flat within each cross-section.
+    // layout x → 3D x (scaled to section width), layout y → 3D z (depth in plane),
+    // line vertical position → 3D y (height of the plane).
+    for (const line of lines) {
+      // Map line.y (layout pixels, 0=top) to 3D height y3.
+      const normV = height > 0 ? line.y / height : 0.5;
+      const y3 = (normV - 0.5) * h;
+      const sR = crossSectionRadius(P.form, normV, r, P.aspect);
+
+      for (const c of line.chars) {
+        // x: char horizontal position scaled to cross-section width, centered.
+        const x3 = (c.x / width - 0.5) * sR * 2;
+        // z: use char y within line (sub-line variation) mapped to a thin depth slice.
+        const z3 = 0;
+        pushGlyph(c, x3, y3, z3);
       }
-      const rp = rotate3D({ x, y, z }, ax, ay, az);
-      const pr = project(rp, P, width, height);
-      glyphs.push({
-        ch: c.ch, X: pr.X, Y: pr.Y, z: rp.z, scale: pr.scale,
-        back: false, matrixTransform: null,
-        accentT: c.accentT || 0, blinkT: c.blinkT || 0,
-        extraOp: (typeof c.extraOp === 'number' ? c.extraOp : 1) * P.interiorOpacity,
-        skew: c.skew || 0, sizeMul: typeof c.sizeMul === 'number' ? c.sizeMul : 1,
-      });
     }
   }
+
   return glyphs;
 }
 

@@ -1460,27 +1460,30 @@ function capSurface(form, capIdx, u, v, P) {
   }
 }
 
-// Build cap glyphs. Each cap is independently filled with text from layout().
+// Build cap glyphs. Each cap filled with text in 2D (x,z), same approach as cross-sections.
 function buildCaps(params, width, height) {
   const P = read3DParams(params);
   if (!hasCaps(P.form)) return [];
   const { ax, ay, az } = computeRotationAngles(params, P);
   const project = P.projection === 'perspective' ? projectPersp : projectIso;
+  const S = P.formSize, r = S / 2, h = S * P.aspect;
   const capsLayoutParams = (P.capsFontScale !== 1 || P.capsWrapMode)
     ? { ...params, fontSize: (params.fontSize ?? 24) * P.capsFontScale, wrapMode: P.capsWrapMode || params.wrapMode }
     : params;
-  const { lines } = layout(capsLayoutParams, width, height);
+  const layoutSize = r * 2;
+  const { lines } = layout(capsLayoutParams, layoutSize, layoutSize);
 
   const glyphs = [];
   const nCaps = capCount(P.form);
   for (let capIdx = 0; capIdx < nCaps; capIdx++) {
+    // cone has 1 cap (base at -h/2); cylinder/prisms have 2 (top +h/2, bottom -h/2).
+    const capY = P.form === 'cone' ? -h / 2 : (capIdx === 0 ? h / 2 : -h / 2);
     for (const line of lines) {
       for (const c of line.chars) {
-        const u = c.x / width;
-        const v = c.y / height;
-        const pt = capSurface(P.form, capIdx, u, v, P);
-        if (!pt) continue;
-        const rp = rotate3D(pt, ax, ay, az);
+        const x3 = (c.x / layoutSize - 0.5) * r * 2;
+        const z3 = (c.y / layoutSize - 0.5) * r * 2;
+        if (x3 * x3 + z3 * z3 > r * r) continue; // clip to cap circle
+        const rp = rotate3D({ x: x3, y: capY, z: z3 }, ax, ay, az);
         const pr = project(rp, P, width, height);
         glyphs.push({
           ch: c.ch,
@@ -1564,9 +1567,9 @@ function buildInterior(params, width, height) {
 
       for (const line of csLines) {
         for (const c of line.chars) {
-          // c.x → 3D x, c.y → 3D z: text fills the 2D section area.
           const x3 = (c.x / layoutSize - 0.5) * sR * 2;
           const z3 = (c.y / layoutSize - 0.5) * sR * 2;
+          if (x3 * x3 + z3 * z3 > sR * sR) continue; // clip to section circle
           pushGlyph(c, x3, planeY, z3);
         }
       }

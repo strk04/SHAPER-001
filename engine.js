@@ -1551,11 +1551,11 @@ function buildInterior(params, width, height) {
       }
     }
   } else {
-    // cross-sections: N equidistant horizontal planes, each with the full text
-    // layout scaled to the form's cross-section width at that height.
+    // cross-sections: N horizontal slices, each filled with text in 2D (x, z).
+    // Layout is square (r×r) so text fills the circle/ellipse of each section.
     const N = P.interiorPlanes;
-    const maxR = r; // layout at max section width
-    const { lines: csLines } = layout(intLayoutParams, maxR * 2, height);
+    const layoutSize = r * 2;
+    const { lines: csLines } = layout(intLayoutParams, layoutSize, layoutSize);
 
     for (let i = 0; i < N; i++) {
       const normV = N === 1 ? 0.5 : i / (N - 1);
@@ -1564,9 +1564,10 @@ function buildInterior(params, width, height) {
 
       for (const line of csLines) {
         for (const c of line.chars) {
-          // Scale x from max-width layout to this plane's section width.
-          const x3 = maxR > 0 ? (c.x / (maxR * 2) - 0.5) * sR * 2 : 0;
-          pushGlyph(c, x3, planeY, 0);
+          // c.x → 3D x, c.y → 3D z: text fills the 2D section area.
+          const x3 = (c.x / layoutSize - 0.5) * sR * 2;
+          const z3 = (c.y / layoutSize - 0.5) * sR * 2;
+          pushGlyph(c, x3, planeY, z3);
         }
       }
     }

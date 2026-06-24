@@ -637,6 +637,7 @@ function read3DParams(params) {
     capsWrapMode:      params.capsWrapMode || null,
     interiorFontScale: Math.max(0.1, num(params.interiorFontScale, 1)),
     interiorOpacity:   Math.max(0, Math.min(1, num(params.interiorOpacity,   1))),
+    interiorMode:      params.interiorMode || 'cross-sections',
   };
 }
 
@@ -1498,9 +1499,9 @@ function buildCaps(params, width, height) {
   return glyphs;
 }
 
-// Build interior volumetric glyphs. Chars are placed inside the 3D volume.
-// No surfaceMap — coordinates derived directly from shape geometry.
-// Uses mulberry32(seed+3) for the third spatial dimension to stay deterministic.
+// Build interior volumetric glyphs.
+// mode 'cross-sections': random point inside form's cross-section at random height.
+// mode 'shells': chars on concentric scaled copies of the surface (80%/60%/40%/20%).
 function buildInterior(params, width, height) {
   const P = read3DParams(params);
   const { ax, ay, az } = computeRotationAngles(params, P);
@@ -1510,97 +1511,83 @@ function buildInterior(params, width, height) {
     : params;
   const { lines } = layout(intLayoutParams, width, height);
   const S = P.formSize, r = S / 2, h = S * P.aspect;
+  const rng = mulberry32((params.seed >>> 0) + 3);
 
-  // Third-dimension PRNG (independent from surface and caps).
-  const rng3 = mulberry32((params.seed >>> 0) + 3);
+  // Flatten all chars from layout.
+  const chars = [];
+  for (const line of lines) for (const c of line.chars) chars.push(c);
 
   const glyphs = [];
-  for (const line of lines) {
-    for (const c of line.chars) {
-      const u = (c.x / width + 1) % 1;
-      const v = c.y / height;
-      const w = rng3(); // third coord, deterministic per char sequence
-      let x = 0, y = 0, z = 0;
 
+  if (P.interiorMode === 'shells') {
+    // Concentric shells: 4 scaled copies of the surface.
+    const scales = [0.8, 0.6, 0.4, 0.2];
+    for (const c of chars) {
+      const scale = scales[Math.floor(rng() * scales.length)];
+      const scaledP = { ...P, formSize: P.formSize * scale };
+      const u = rng(), v = rng();
+      const { x, y, z } = surfaceMap(P.form, u, v, scaledP, null);
+      const rp = rotate3D({ x, y, z }, ax, ay, az);
+      const pr = project(rp, P, width, height);
+      glyphs.push({
+        ch: c.ch, X: pr.X, Y: pr.Y, z: rp.z, scale: pr.scale,
+        back: false, matrixTransform: null,
+        accentT: c.accentT || 0, blinkT: c.blinkT || 0,
+        extraOp: (typeof c.extraOp === 'number' ? c.extraOp : 1) * P.interiorOpacity,
+        skew: c.skew || 0, sizeMul: typeof c.sizeMul === 'number' ? c.sizeMul : 1,
+      });
+    }
+  } else {
+    // cross-sections: random point inside cross-section at random height.
+    for (const c of chars) {
+      const rv = rng(), ru = rng(), rw = rng();
+      let x = 0, y = 0, z = 0;
       switch (P.form) {
-        case 'cylinder':
-        case 'helix':
-        case 'capsule': {
-          // Cylindrical: uniform radial density via sqrt, angle from u, height from v.
-          const rho = Math.sqrt(u) * r;
-          const theta = w * 2 * Math.PI;
-          x = rho * Math.cos(theta);
-          z = rho * Math.sin(theta);
-          y = (v - 0.5) * h;
+        case 'cylinder': case 'helix': case 'capsule': {
+          const rho = Math.sqrt(ru) * r;
+          const theta = rw * 2 * Math.PI;
+          x = rho * Math.cos(theta); z = rho * Math.sin(theta);
+          y = (rv - 0.5) * h;
           break;
         }
-        case 'sphere':
-        case 'ellipsoid': {
-          // Spherical: uniform volume density via cbrt.
-          const rho = Math.cbrt(u) * r;
-          const lon = w * 2 * Math.PI;
-          const lat = (v - 0.5) * Math.PI;
-          const cl = Math.cos(lat);
-          x = rho * cl * Math.cos(lon);
-          y = rho * Math.sin(lat) * P.aspect;
-          z = rho * cl * Math.sin(lon);
+        case 'sphere': case 'ellipsoid': {
+          const lat = (rv - 0.5) * Math.PI;
+          const sR = r * Math.cos(lat);
+          const rho = Math.sqrt(ru) * sR;
+          const theta = rw * 2 * Math.PI;
+          x = rho * Math.cos(theta); z = rho * Math.sin(theta);
+          y = r * Math.sin(lat) * P.aspect;
           break;
         }
         case 'cone': {
-          // Conical: disc radius shrinks linearly from base (v=0) to apex (v=1).
-          const yFrac = v;
-          y = (yFrac - 0.5) * h;
-          const maxR = r * (1 - yFrac);
-          const rho = Math.sqrt(u) * maxR;
-          const theta = w * 2 * Math.PI;
-          x = rho * Math.cos(theta);
-          z = rho * Math.sin(theta);
-          break;
-        }
-        case 'star-prism':
-        case 'custom-prism':
-        case 'cube':
-        case 'box': {
-          // Prismatic: scatter within bounding box.
-          x = (u - 0.5) * S;
-          z = (w - 0.5) * S;
-          y = (v - 0.5) * h;
+          const sR = r * (1 - rv);
+          const rho = Math.sqrt(ru) * sR;
+          const theta = rw * 2 * Math.PI;
+          x = rho * Math.cos(theta); z = rho * Math.sin(theta);
+          y = (rv - 0.5) * h;
           break;
         }
         case 'torus': {
-          // Toroidal volume: sample inside the torus tube.
           const bigR = r * 0.65, tubeR = r * 0.35;
-          const phi = u * 2 * Math.PI;
-          const theta = w * 2 * Math.PI;
-          const tubeFrac = Math.sqrt(v) * tubeR;
+          const phi = ru * 2 * Math.PI, theta = rw * 2 * Math.PI;
+          const tubeFrac = Math.sqrt(rv) * tubeR;
           x = (bigR + tubeFrac * Math.cos(theta)) * Math.cos(phi);
           z = (bigR + tubeFrac * Math.cos(theta)) * Math.sin(phi);
           y = tubeFrac * Math.sin(theta) * P.aspect;
           break;
         }
         default: {
-          // Generic: scatter in bounding box.
-          x = (u - 0.5) * S;
-          z = (w - 0.5) * S;
-          y = (v - 0.5) * h;
-          break;
+          x = (ru - 0.5) * S; z = (rw - 0.5) * S; y = (rv - 0.5) * h;
         }
       }
-
-      const pt = { x, y, z };
-      const rp = rotate3D(pt, ax, ay, az);
+      const rp = rotate3D({ x, y, z }, ax, ay, az);
       const pr = project(rp, P, width, height);
       glyphs.push({
-        ch: c.ch,
-        X: pr.X, Y: pr.Y, z: rp.z,
-        scale: pr.scale,
-        back: false,
-        matrixTransform: null,
-        accentT: c.accentT || 0,
-        blinkT: c.blinkT || 0,
+        ch: c.ch, X: pr.X, Y: pr.Y, z: rp.z, scale: pr.scale,
+        back: false, matrixTransform: null,
+        accentT: c.accentT || 0, blinkT: c.blinkT || 0,
         extraOp: (typeof c.extraOp === 'number' ? c.extraOp : 1) * P.interiorOpacity,
-        skew: c.skew || 0,
-        sizeMul: typeof c.sizeMul === 'number' ? c.sizeMul : 1,
+        skew: c.skew || 0, sizeMul: typeof c.sizeMul === 'number' ? c.sizeMul : 1,
       });
     }
   }

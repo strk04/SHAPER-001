@@ -22,7 +22,7 @@
   --accent-hover: #333333;
   --danger:       #991b1b;
 
-  --radius:     0;
+  --radius:     4px;
   --transition: 0.15s ease;
 
   --space-1: 4px;
@@ -138,8 +138,9 @@ button {
 }
 
 button:hover:not(:disabled) {
-  border-color: var(--ink-3);
-  background: var(--paper-2);
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
 }
 
 button:disabled {
@@ -148,9 +149,11 @@ button:disabled {
 }
 
 input[type="color"] {
-  width: var(--control-height);
+  width: 28px;
   height: var(--control-height);
-  padding: 2px;
+  padding: 0;
+  border: 1px solid var(--ink-3);
+  border-radius: var(--radius);
   cursor: pointer;
 }
 
@@ -196,8 +199,6 @@ input[type="range"]::-moz-range-thumb {
 
 input[type="checkbox"],
 input[type="radio"] {
-  width: 42px;
-  height: 24px;
   margin: 0;
   accent-color: var(--accent);
   flex-shrink: 0;
@@ -331,10 +332,12 @@ body[data-nav-collapsed] .stage { margin-left: var(--sidebar-width); }
   display: grid;
   gap: var(--space-3);
   min-width: 0;
-  padding: var(--space-7) 0;
+  padding: 30px 0;
   border-bottom: 1px solid var(--paper-3);
   background: transparent;
 }
+
+.panel:first-child { padding-top: 0; }
 
 .panel[hidden] {
   display: none !important;
@@ -480,8 +483,9 @@ output { color: var(--ink); }
 }
 
 .tone-upload-button:hover {
-  border-color: var(--ink-3);
-  background: var(--paper-2);
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
 }
 
 .export-footer {
@@ -660,9 +664,9 @@ output { color: var(--ink); }
 }
 
 .preset-btn:hover:not(:disabled) {
-  color: var(--ink);
-  border-color: var(--ink-3);
-  background: var(--paper-2);
+  color: var(--paper);
+  border-color: var(--ink);
+  background: var(--ink);
 }
 
 .preset-delete { color: var(--ink-4); }
@@ -865,7 +869,7 @@ body[data-nav-collapsed] .director-dock { left: var(--sidebar-width); }
 /* Behavior items */
 .director-behavior-item {
   border: 1px solid var(--paper-3);
-  border-radius: 2px;
+  border-radius: var(--radius);
   padding: var(--space-2);
   margin-bottom: var(--space-2);
 }

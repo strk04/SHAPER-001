@@ -638,6 +638,7 @@ function read3DParams(params) {
     interiorFontScale: Math.max(0.1, num(params.interiorFontScale, 1)),
     interiorOpacity:   Math.max(0, Math.min(1, num(params.interiorOpacity,   1))),
     interiorMode:      params.interiorMode || 'cross-sections',
+    interiorPlanes:    Math.max(1, Math.round(num(params.interiorPlanes, 3))),
   };
 }
 
@@ -1550,21 +1551,23 @@ function buildInterior(params, width, height) {
       }
     }
   } else {
-    // cross-sections: horizontal planes, text flat within each cross-section.
-    // layout x → 3D x (scaled to section width), layout y → 3D z (depth in plane),
-    // line vertical position → 3D y (height of the plane).
-    for (const line of lines) {
-      // Map line.y (layout pixels, 0=top) to 3D height y3.
-      const normV = height > 0 ? line.y / height : 0.5;
-      const y3 = (normV - 0.5) * h;
+    // cross-sections: N equidistant horizontal planes, each with the full text
+    // layout scaled to the form's cross-section width at that height.
+    const N = P.interiorPlanes;
+    const maxR = r; // layout at max section width
+    const { lines: csLines } = layout(intLayoutParams, maxR * 2, height);
+
+    for (let i = 0; i < N; i++) {
+      const normV = N === 1 ? 0.5 : i / (N - 1);
+      const planeY = (normV - 0.5) * h;
       const sR = crossSectionRadius(P.form, normV, r, P.aspect);
 
-      for (const c of line.chars) {
-        // x: char horizontal position scaled to cross-section width, centered.
-        const x3 = (c.x / width - 0.5) * sR * 2;
-        // z: use char y within line (sub-line variation) mapped to a thin depth slice.
-        const z3 = 0;
-        pushGlyph(c, x3, y3, z3);
+      for (const line of csLines) {
+        for (const c of line.chars) {
+          // Scale x from max-width layout to this plane's section width.
+          const x3 = maxR > 0 ? (c.x / (maxR * 2) - 0.5) * sR * 2 : 0;
+          pushGlyph(c, x3, planeY, 0);
+        }
       }
     }
   }

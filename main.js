@@ -23,6 +23,7 @@ const SLIDERS = {
   count:       { label: 'Quantitat', def: 1 },
   fov:         { label: 'Camp visual', def: 60 },
   zoom:        { label: 'Zoom', def: 1 },
+  interiorPlanes:    { label: 'Plans', def: 3 },
   capsFontScale:     { label: 'Tapes — Mida', def: 1 },
   capsOpacity:       { label: 'Tapes — Opacitat', def: 1 },
   interiorFontScale: { label: 'Interior — Mida', def: 1 },
@@ -690,6 +691,9 @@ function updateEditorVisibility() {
   }
   const interiorModeRow = $('interiorModeRow');
   if (interiorModeRow) interiorModeRow.hidden = !showVolControls;
+  const showInteriorPlanes = showVolControls && state.interiorMode === 'cross-sections';
+  const interiorPlanesEl = document.querySelector('.slider[data-key="interiorPlanes"]');
+  if (interiorPlanesEl) interiorPlanesEl.hidden = !showInteriorPlanes;
   for (const key of ['interiorFontScale', 'interiorOpacity']) {
     const el = document.querySelector(`.slider[data-key="${key}"]`);
     if (el) el.hidden = !showVolControls;
@@ -1041,7 +1045,7 @@ function wireControls() {
   const capsWrapModeEl = $('capsWrapMode');
   if (capsWrapModeEl) capsWrapModeEl.addEventListener('change', (e) => { state.capsWrapMode = e.target.value; scheduleRender(); });
   const interiorModeEl = $('interiorMode');
-  if (interiorModeEl) interiorModeEl.addEventListener('change', (e) => { state.interiorMode = e.target.value; scheduleRender(); });
+  if (interiorModeEl) interiorModeEl.addEventListener('change', (e) => { state.interiorMode = e.target.value; updateEditorVisibility(); scheduleRender(); });
 
   $('wrapMode').addEventListener('change', (e) => {
     state.wrapMode = e.target.value;
@@ -1464,6 +1468,7 @@ function applyPreset(p) {
   if (p.wrapMode        != null) { state.wrapMode         = p.wrapMode;        $('wrapMode').value          = p.wrapMode; updateEditorVisibility(); }
   if (p.capsWrapMode    != null) { state.capsWrapMode     = p.capsWrapMode;    const el=$('capsWrapMode'); if(el) el.value = p.capsWrapMode; }
   if (p.interiorMode    != null) { state.interiorMode     = p.interiorMode;    const el=$('interiorMode'); if(el) el.value = p.interiorMode; }
+  if (p.interiorPlanes  != null) { state.interiorPlanes   = p.interiorPlanes;  syncSliderUI('interiorPlanes'); }
   if (p.canvasW && p.canvasH) applyCanvasSize(p.canvasW, p.canvasH);
   if (p.blinkFade != null) {
     state.blinkFade = typeof p.blinkFade === 'number' ? p.blinkFade : (p.blinkFade ? 1 : 0);

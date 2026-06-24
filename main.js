@@ -141,7 +141,7 @@ const FORM_3D_CONTROLS = {
 const $ = (id) => document.getElementById(id);
 
 const state = {
-  text: '!"·$%&/()=?¿',
+  text: '',
   font: 'courier-regular',
   shape: 'rectangle',
   textColor: '#111111',

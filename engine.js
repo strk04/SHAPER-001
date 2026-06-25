@@ -1460,44 +1460,65 @@ function capSurface(form, capIdx, u, v, P) {
   }
 }
 
-// Build cap glyphs. Each cap filled with text in 2D (x,z), same approach as cross-sections.
+// Build cap glyphs. Two modes based on capsWrapMode:
+//   rings (default): each text line → one concentric ring, x→angle, lineIdx→radius.
+//   panel: direct x/z grid fill (same as cross-sections).
 function buildCaps(params, width, height) {
   const P = read3DParams(params);
   if (!hasCaps(P.form)) return [];
   const { ax, ay, az } = computeRotationAngles(params, P);
   const project = P.projection === 'perspective' ? projectPersp : projectIso;
   const S = P.formSize, r = S / 2, h = S * P.aspect;
-  const capsLayoutParams = (P.capsFontScale !== 1 || P.capsWrapMode)
-    ? { ...params, fontSize: (params.fontSize ?? 24) * P.capsFontScale, wrapMode: P.capsWrapMode || params.wrapMode }
+  const capFontScale = P.capsFontScale !== 1 ? P.capsFontScale : 1;
+  const capsWrapMode = P.capsWrapMode || 'rings';
+  const capsLayoutParams = capFontScale !== 1
+    ? { ...params, fontSize: (params.fontSize ?? 24) * capFontScale }
     : params;
-  const layoutSize = r * 2;
-  const { lines } = layout(capsLayoutParams, layoutSize, layoutSize);
+
+  // rings: layout width = outer circumference so one full rotation fits per line.
+  // panel: square layout like cross-sections.
+  const lw = capsWrapMode === 'panel' ? r * 2 : 2 * Math.PI * r;
+  const lh = r; // height = r so lines stack from center to edge
+  const { lines } = layout(capsLayoutParams, lw, lh);
 
   const glyphs = [];
+  const pushCap = (c, x3, capY, z3) => {
+    const rp = rotate3D({ x: x3, y: capY, z: z3 }, ax, ay, az);
+    const pr = project(rp, P, width, height);
+    glyphs.push({
+      ch: c.ch, X: pr.X, Y: pr.Y, z: rp.z, scale: pr.scale,
+      back: false, matrixTransform: null,
+      accentT: c.accentT || 0, blinkT: c.blinkT || 0,
+      extraOp: (typeof c.extraOp === 'number' ? c.extraOp : 1) * P.capsOpacity,
+      skew: c.skew || 0, sizeMul: typeof c.sizeMul === 'number' ? c.sizeMul : 1,
+    });
+  };
+
   const nCaps = capCount(P.form);
   for (let capIdx = 0; capIdx < nCaps; capIdx++) {
-    // cone has 1 cap (base at -h/2); cylinder/prisms have 2 (top +h/2, bottom -h/2).
     const capY = P.form === 'cone' ? -h / 2 : (capIdx === 0 ? h / 2 : -h / 2);
-    for (const line of lines) {
-      for (const c of line.chars) {
-        const x3 = (c.x / layoutSize - 0.5) * r * 2;
-        const z3 = (c.y / layoutSize - 0.5) * r * 2;
-        if (x3 * x3 + z3 * z3 > r * r) continue; // clip to cap circle
-        const rp = rotate3D({ x: x3, y: capY, z: z3 }, ax, ay, az);
-        const pr = project(rp, P, width, height);
-        glyphs.push({
-          ch: c.ch,
-          X: pr.X, Y: pr.Y, z: rp.z,
-          scale: pr.scale,
-          back: false,
-          matrixTransform: null,
-          accentT: c.accentT || 0,
-          blinkT: c.blinkT || 0,
-          extraOp: (typeof c.extraOp === 'number' ? c.extraOp : 1) * P.capsOpacity,
-          skew: c.skew || 0,
-          sizeMul: typeof c.sizeMul === 'number' ? c.sizeMul : 1,
-        });
+    if (capsWrapMode === 'panel') {
+      // Grid fill: x→x3, y→z3, clipped to circle.
+      for (const line of lines) {
+        for (const c of line.chars) {
+          const x3 = (c.x / lw - 0.5) * r * 2;
+          const z3 = (c.y / lh - 0.5) * r * 2;
+          if (x3 * x3 + z3 * z3 > r * r) continue;
+          pushCap(c, x3, capY, z3);
+        }
       }
+    } else {
+      // Rings: each line → one ring at a radius determined by line index.
+      // sqrt remapping gives equal area per ring.
+      const N = Math.max(1, lines.length);
+      lines.forEach((line, li) => {
+        const normR = (li + 0.5) / N;
+        const ringR = Math.sqrt(normR) * r;
+        for (const c of line.chars) {
+          const angle = (c.x / lw) * 2 * Math.PI;
+          pushCap(c, ringR * Math.cos(angle), capY, ringR * Math.sin(angle));
+        }
+      });
     }
   }
   return glyphs;

@@ -1395,6 +1395,14 @@ function hasCaps(form) {
   return form === 'cylinder' || form === 'cone' || form === 'star-prism' || form === 'custom-prism';
 }
 
+// Returns true when a 3D form has a closed interior volume.
+function hasInterior(form) {
+  return form === 'cylinder' || form === 'helix' || form === 'capsule' ||
+         form === 'sphere' || form === 'ellipsoid' || form === 'cone' ||
+         form === 'star-prism' || form === 'custom-prism' || form === 'cube' ||
+         form === 'box' || form === 'torus';
+}
+
 // Number of caps a form has: cone has 1 (base only), rest have 2 (top + bottom).
 function capCount(form) {
   return form === 'cone' ? 1 : 2;
@@ -1539,6 +1547,7 @@ function crossSectionRadius(form, v, r, aspect) {
 // mode 'shells': chars on concentric scaled copies of the surface (80%/60%/40%/20%).
 function buildInterior(params, width, height) {
   const P = read3DParams(params);
+  if (!hasInterior(P.form)) return [];
   const { ax, ay, az } = computeRotationAngles(params, P);
   const project = P.projection === 'perspective' ? projectPersp : projectIso;
   const intLayoutParams = P.interiorFontScale !== 1

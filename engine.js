@@ -122,65 +122,6 @@ function wavePhase(t, time, speed, frequency) {
   return time * hz * 2 * Math.PI;
 }
 
-// Default custom 2D profile: a gentle S-curve (64 samples, offset in [-1,1]).
-export const DEFAULT_CUSTOM_PROFILE = (() => {
-  const n = 64;
-  const arr = new Array(n);
-  for (let i = 0; i < n; i++) {
-    const t = i / (n - 1);
-    arr[i] = Math.sin(t * 2 * Math.PI) * 0.5; // one gentle S
-  }
-  return arr;
-})();
-
-// Linearly interpolate a normalized offset from a profile array at p in [0,1).
-// Profile entries are offsets in [-1,1]; index maps p across the array span.
-function sampleProfile(profile, p) {
-  if (!profile || profile.length === 0) return 0;
-  const n = profile.length;
-  if (n === 1) return profile[0];
-  // p in [0,1) -> position across [0, n-1]
-  const pos = (((p % 1) + 1) % 1) * (n - 1);
-  const i0 = Math.floor(pos);
-  const i1 = Math.min(n - 1, i0 + 1);
-  const frac = pos - i0;
-  return profile[i0] + (profile[i1] - profile[i0]) * frac;
-}
-
-// Shape offset function: returns base x for a given y.
-// time (seconds), speed, lineSeed (0..1 per-line seeded phase) drive animation.
-function shapeOffset(shape, y, height, marginLeft, amplitude, frequency, time, speed, lineSeed, customProfile) {
-  switch (shape) {
-    case 'custom': {
-      const yNorm = height > 0 ? y / height : 0;
-      // Slow vertical drift with time, like the other shapes.
-      const p = yNorm + time * speed * 0.05;
-      return marginLeft + amplitude * sampleProfile(customProfile, p);
-    }
-    case 'wave':
-      return (
-        marginLeft +
-        amplitude *
-          Math.sin(y * frequency * 2 * Math.PI + wavePhase(0, time, speed, frequency))
-      );
-    case 'trapezoid': {
-      const t = height > 0 ? y / height : 0;
-      // gentle amplitude breathing
-      const breath = 1 + 0.15 * Math.sin(time * speed * PHASE_RATE + lineSeed * 2 * Math.PI);
-      return marginLeft + amplitude * t * breath;
-    }
-    case 'diamond': {
-      const t = height > 0 ? y / height : 0;
-      const tri = 1 - Math.abs(t - 0.5) * 2; // 0 -> 1 -> 0
-      const breath = 1 + 0.15 * Math.sin(time * speed * PHASE_RATE + lineSeed * 2 * Math.PI);
-      return marginLeft + amplitude * tri * breath;
-    }
-    case 'rectangle':
-    default:
-      // gentle x0 oscillation so rectangle also animates
-      return marginLeft + amplitude * 0.12 * Math.sin(time * speed * PHASE_RATE + lineSeed * 2 * Math.PI);
-  }
-}
 
 // Tokenize text into words (collapse whitespace, ignore empties).
 export function tokenize(text) {
@@ -196,11 +137,8 @@ export function layout(params, width, height) {
   const {
     text,
     font,
-    shape,
     seed,
     fontSize,
-    amplitude,
-    frequency,
     charTrack,
     trackRand,
     leading,
@@ -214,11 +152,8 @@ export function layout(params, width, height) {
     dropProb,
     wordsPerRow,
     hardWrap,
-    motion2d,
-    rainSpeed2d,
     t,
     speed,
-    customProfile,
     charOpacity = 0.6,
     charSkew = 0,
     densityMap = 0,
@@ -248,23 +183,13 @@ export function layout(params, width, height) {
   const randAtom = mulberry32((seed ^ 0x9e3779b9) >>> 0);
   const marginLeft = 0;
   const words = tokenize(text);
-  const profile = shape === 'custom'
-    ? (Array.isArray(customProfile) && customProfile.length ? customProfile : DEFAULT_CUSTOM_PROFILE)
-    : null;
-
   const lineCount = Math.ceil(height / Math.max(1, leading)) + 3;
-  const rainOffset2d =
-    motion2d === 'rain'
-      ? ((time * spd * (typeof rainSpeed2d === 'number' ? rainSpeed2d : 1) * leading) % leading)
-      : 0;
-  const flowRate2d =
-    (typeof rainSpeed2d === 'number' ? rainSpeed2d : 1) * Math.max(1, fontSize * 2);
 
   const lines = [];
   let wordIndex = 0; // walks the repeated word stream
 
   for (let i = 0; i < lineCount; i++) {
-    const baseY = i * leading + fontSize + rainOffset2d;
+    const baseY = i * leading + fontSize;
 
     // Per-line seeded phase (0..1). Drawn from the seeded PRNG so it is
     // deterministic; time only SHIFTS this phase, never re-rolls randomness.
@@ -274,9 +199,7 @@ export function layout(params, width, height) {
     // oscillates it via sin with the per-line seeded phase (no strobing).
     const noiseOsc = Math.sin(time * spd * PHASE_RATE + linePhase * 2 * Math.PI);
     const noise = noiseOsc * noiseAmt;
-    const x0 =
-      shapeOffset(shape, baseY, height, marginLeft, amplitude, frequency, time, spd, linePhase, profile) +
-      noise;
+    const x0 = marginLeft + noise;
 
     // how many words on this line
     let wordsThisLine = wordsPerRow;
@@ -369,187 +292,7 @@ export function layout(params, width, height) {
       x += wordTrack + chaos + ramp;
     }
 
-    // Flow: tile the line content periodically so it scrolls as a seamless
-    // horizontal loop — the canvas can never go blank. Period = content advance.
-    if (motion2d === 'flow') {
-      const advance = x - x0;
-      if (advance > 1) {
-        const s = (((time * spd * flowRate2d) % advance) + advance) % advance;
-        const tiled = [];
-        for (const c of chars) {
-          let px = c.x + s - advance;
-          for (; px < width + fontSize; px += advance) {
-            if (px > -fontSize) tiled.push({ ...c, x: px });
-          }
-        }
-        lines.push({ y: baseY, chars: tiled });
-        continue;
-      }
-    }
-
     lines.push({ y: baseY, chars });
-  }
-
-  // --- 2D motion post-processing (new modes) ---
-  // rain and flow are handled inside the loop above; static needs nothing.
-  if (motion2d !== 'static' && motion2d !== 'rain' && motion2d !== 'flow') {
-    const T = time * spd;
-    const cx = width / 2;
-    const cy = height / 2;
-
-    switch (motion2d) {
-      case 'wave-h': {
-        // Each row oscillates horizontally; wave travels downward.
-        const A = leading * 0.6;
-        lines.forEach((line, li) => {
-          const dx = A * Math.sin(T * 2 * Math.PI + li * 0.7);
-          line.chars = line.chars.map((c) => ({ ...c, x: c.x + dx }));
-        });
-        break;
-      }
-      case 'bounce': {
-        // Each char bounces vertically with a seeded phase.
-        let ci = 0;
-        for (const line of lines) {
-          for (let k = 0; k < line.chars.length; k++, ci++) {
-            const phase = (ci * 0.618) % 1;
-            const yOff = leading * 0.7 * Math.abs(Math.sin(Math.PI * T + phase * 2 * Math.PI));
-            line.chars[k] = { ...line.chars[k], y: line.chars[k].y - yOff };
-          }
-        }
-        break;
-      }
-      case 'pendulum': {
-        // Global left–right swing.
-        const dx = cx * 0.45 * Math.sin(T * 2 * Math.PI);
-        for (const line of lines) {
-          line.chars = line.chars.map((c) => ({ ...c, x: c.x + dx }));
-        }
-        break;
-      }
-      case 'cascade': {
-        // Staggered horizontal flow: each row has a phase offset → diagonal cascade.
-        const rate = (typeof rainSpeed2d === 'number' ? rainSpeed2d : 1) * Math.max(1, fontSize * 2);
-        lines.forEach((line, li) => {
-          if (!line.chars.length) return;
-          const xs = line.chars.map((c) => c.x);
-          const x0c = Math.min(...xs);
-          const advance = Math.max(...xs) + fontSize - x0c;
-          if (advance < 1) return;
-          const rowPhase = li * (advance / Math.max(1, lines.length));
-          const s = (((T * rate + rowPhase) % advance) + advance) % advance;
-          const tiled = [];
-          for (const c of line.chars) {
-            let px = c.x + s - advance;
-            for (; px < width + fontSize; px += advance) {
-              if (px > -fontSize) tiled.push({ ...c, x: px });
-            }
-          }
-          lines[li] = { ...line, chars: tiled };
-        });
-        break;
-      }
-      case 'scatter': {
-        // Chars breathe radially outward from canvas center.
-        const factor = Math.sin(T * 2 * Math.PI) * 0.4;
-        for (const line of lines) {
-          line.chars = line.chars.map((c) => ({
-            ...c,
-            x: cx + (c.x - cx) * (1 + factor),
-            y: cy + (c.y - cy) * (1 + factor),
-          }));
-        }
-        break;
-      }
-      case 'vortex': {
-        // Each char rotates around canvas center.
-        const angSpeed = T * 2 * Math.PI * 0.3;
-        for (const line of lines) {
-          line.chars = line.chars.map((c) => {
-            const dx2 = c.x - cx, dy2 = c.y - cy;
-            const dist = Math.hypot(dx2, dy2);
-            if (dist < 1) return c;
-            const angle = Math.atan2(dy2, dx2) + angSpeed;
-            return { ...c, x: cx + Math.cos(angle) * dist, y: cy + Math.sin(angle) * dist };
-          });
-        }
-        break;
-      }
-      case 'expand': {
-        // Radial pulse: chars breathe outward from center synchronously.
-        const factor = 1 + 0.35 * Math.sin(T * 2 * Math.PI);
-        for (const line of lines) {
-          line.chars = line.chars.map((c) => ({
-            ...c,
-            x: cx + (c.x - cx) * factor,
-            y: cy + (c.y - cy) * factor,
-          }));
-        }
-        break;
-      }
-      case 'typewriter': {
-        // Sequential char reveal, loops continuously.
-        // At T=0 (paused/static), show all chars so canvas is never blank.
-        const allChars = [];
-        for (const line of lines) {
-          for (const c of line.chars) allChars.push({ line, c });
-        }
-        const total = allChars.length;
-        if (total > 0 && T > 0) {
-          const charsPerSec = Math.max(2, fontSize * 0.4);
-          const cycle = total / charsPerSec;
-          const phase = ((T % cycle) + cycle) % cycle;
-          const visN = Math.max(1, Math.floor(phase * charsPerSec));
-          for (const line of lines) line.chars = [];
-          for (let k = 0; k < Math.min(visN, total); k++) {
-            allChars[k].line.chars.push(allChars[k].c);
-          }
-        }
-        break;
-      }
-      case 'noise-walk': {
-        // Each char follows a unique smooth Lissajous-like path.
-        const B = fontSize * 0.9;
-        let ci = 0;
-        for (const line of lines) {
-          for (let k = 0; k < line.chars.length; k++, ci++) {
-            const ph = ci * 0.618 * Math.PI * 2;
-            const dx2 = B * Math.sin(T * 1.31 + ph);
-            const dy2 = B * 0.8 * Math.cos(T * 0.97 + ph * 1.23);
-            line.chars[k] = { ...line.chars[k], x: line.chars[k].x + dx2, y: line.chars[k].y + dy2 };
-          }
-        }
-        break;
-      }
-      case 'stagger': {
-        // Rows slide in from the left with staggered timing, then slide out.
-        // Fixed period (3s) so resizing fontSize/leading doesn't reset the cycle.
-        const nLines = Math.max(1, lines.length);
-        const period = 3;
-        const tCycle = ((T % period) + period) % period;
-        const inDur = 0.35, holdDur = period * 0.45, outDur = 0.35;
-        lines.forEach((line, li) => {
-          // Stagger by normalised vertical position so visible rows lead, buffer rows lag.
-          const yFrac = height > 0 ? Math.min(1, line.y / height) : li / nLines;
-          const delay = yFrac * (period * 0.35);
-          const tRow = tCycle - delay;
-          let xOff;
-          if (tRow <= 0) {
-            xOff = -width * 1.2;
-          } else if (tRow < inDur) {
-            xOff = -width * 1.2 * Math.pow(1 - tRow / inDur, 3);
-          } else if (tRow < inDur + holdDur) {
-            xOff = 0;
-          } else if (tRow < inDur + holdDur + outDur) {
-            xOff = width * 1.2 * Math.pow((tRow - inDur - holdDur) / outDur, 3);
-          } else {
-            xOff = width * 1.2;
-          }
-          line.chars = line.chars.map((c) => ({ ...c, x: c.x + xOff }));
-        });
-        break;
-      }
-    }
   }
 
   return { lines };
@@ -642,20 +385,6 @@ function read3DParams(params) {
   };
 }
 
-// True when the plane form with no 3D motion/overlays => use the 2D path.
-function is2DPath(p) {
-  return (
-    p.form === 'plane' &&
-    p.rotXSpeed === 0 &&
-    p.rotYSpeed === 0 &&
-    p.rotZSpeed === 0 &&
-    p.pulse === 0 &&
-    p.rainProb === 0 &&
-    p.angleX === 0 &&
-    p.angleY === 0 &&
-    !p.guides
-  );
-}
 
 // Hand-rolled rotation about X, Y, Z (radians). p = {x,y,z}.
 export function rotate3D(p, ax, ay, az) {
@@ -2615,35 +2344,6 @@ export function buildScene(params, width, height) {
   const fontSpec = resolveFontSpec(params.font);
   const P3 = read3DParams(params);
 
-  // --- 2D fast path ---
-  // Explicit mode='2d' always forces the 2D path regardless of 3D params.
-  // mode absent (back-compat / Node tests) falls through to is2DPath check.
-  if (params.mode === '2d' || (params.mode !== '3d' && is2DPath(P3))) {
-    const laidOut = layout(params, width, height).lines;
-    const behaviors = Array.isArray(params.motionBehaviors) ? params.motionBehaviors : [];
-    const motionTime = Number.isFinite(params.directorTime) ? params.directorTime : 0;
-    const lines = behaviors.length
-      ? applyMotionToLines(laidOut, behaviors, motionTime, params.seed >>> 0)
-      : laidOut;
-    return {
-      mode: '2d',
-      bgColor, textColor, fontSize, fontSpec, width, height,
-      lines,
-      blinkMode: params.blinkMode || 'none',
-      blinkRate: typeof params.blinkRate === 'number' ? params.blinkRate : 2,
-      blinkFade: typeof params.blinkFade === 'number' ? params.blinkFade : (params.blinkFade ? 1 : 0),
-      accentMode: params.accentMode || 'none',
-      accentColors: [
-        textColor,
-        params.accentColor  || textColor,
-        params.accentColor2 || params.accentColor || textColor,
-        params.accentColor3 || params.accentColor || textColor,
-        params.accentColor4 || params.accentColor || textColor,
-      ],
-      clockMs: Number.isFinite(params.directorTime) ? params.directorTime * 1000 : null,
-    };
-  }
-
   // --- 3D path ---
   const ctx = build3D(params, width, height);
   ctx.textColor = textColor;
@@ -2760,24 +2460,6 @@ export function buildSVG(params, width, height) {
     `width="${width}" height="${height}" preserveAspectRatio="xMidYMid slice">` +
     `<rect x="0" y="0" width="${width}" height="${height}" fill="${escXML(bgColor)}"/>`;
 
-  if (scene.mode === '2d') {
-    let body = '';
-    for (const line of scene.lines) {
-      if (!line.chars.length) continue;
-      let tspans = '';
-      for (const c of line.chars) {
-        tspans += `<tspan x="${c.x.toFixed(2)}" y="${c.y.toFixed(2)}">${escXML(c.ch)}</tspan>`;
-      }
-      body += `<text>${tspans}</text>`;
-    }
-    return (
-      head +
-      `<g font-family="${escXML(fontSpec.family)}" font-weight="${fontSpec.weight}" font-size="${fontSize}" fill="${escXML(textColor)}">` +
-      body +
-      `</g></svg>`
-    );
-  }
-
   // 3D serialization
   let body = '';
   for (const g of scene.glyphs) {
@@ -2816,50 +2498,6 @@ export function drawScene(ctx, scene, width, height, dpr) {
   ctx.fillRect(0, 0, width, height);
 
   const clockMs = Number.isFinite(scene.clockMs) ? scene.clockMs : performance.now();
-
-  if (scene.mode === '2d') {
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'alphabetic';
-    const fs2d = scene.fontSpec;
-    const hasAccent = true;
-    const blinkHalfMs2d = scene.blinkRate > 0 ? (500 / scene.blinkRate) : 500;
-    const blinkActive2d = scene.blinkFade === 0 && scene.blinkMode !== 'none' && Math.floor(clockMs / blinkHalfMs2d) % 2 === 0;
-    const _cos2d = (Math.cos(clockMs / (blinkHalfMs2d * 2) * Math.PI * 2) + 1) / 2;
-    const blinkFadeFactor2d = scene.blinkFade > 0 && scene.blinkMode !== 'none'
-      ? 1 - scene.blinkFade * (1 - _cos2d) : 1;
-    let lastFs2d = -1;
-
-    for (const line of scene.lines) {
-      for (const c of line.chars) {
-        if (c.blinkT && blinkActive2d) continue;
-        const rawOp = c.extraOp !== undefined ? c.extraOp : 1;
-        const extraOp = (c.blinkT && scene.blinkFade > 0) ? rawOp * blinkFadeFactor2d : rawOp;
-        const sizeMul = c.sizeMul !== undefined ? c.sizeMul : 1;
-        const skew = c.skew || 0;
-
-        ctx.globalAlpha = extraOp;
-        ctx.fillStyle = (hasAccent && c.accentT) ? scene.accentColors[c.accentT] : scene.textColor;
-
-        const fs = scene.fontSize * sizeMul;
-        if (fs !== lastFs2d) {
-          ctx.font = `${fs2d.weight} ${fs}px ${fs2d.family}`;
-          lastFs2d = fs;
-        }
-
-        if (skew !== 0) {
-          ctx.setTransform(d, 0, d * skew * 0.3, d, d * c.x, d * c.y);
-          ctx.fillText(c.ch, 0, 0);
-          ctx.setTransform(d, 0, 0, d, 0, 0);
-        } else {
-          ctx.fillText(c.ch, c.x, c.y);
-        }
-      }
-    }
-    ctx.globalAlpha = 1;
-
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    return;
-  }
 
   // --- 3D ---
 

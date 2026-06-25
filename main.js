@@ -1,5 +1,5 @@
 // main.js — UI wiring for SHAPER 001
-import { buildSVG, buildScene, drawScene, DEFAULT_CUSTOM_PROFILE, DEFAULT_CUSTOM_OUTLINE } from './engine.js';
+import { buildSVG, buildScene, drawScene, DEFAULT_CUSTOM_OUTLINE } from './engine.js';
 import { encodeDirectorFrames } from './export-video.js';
 import { createGithubStore } from './github-store.js';
 import { createPresetPanel } from './preset-panel.js';
@@ -15,7 +15,6 @@ const SLIDERS = {
   leading:     { label: 'Interlínia', def: 50 },
   wordsPerRow: { label: 'Paraules per línia', def: 2 },
   speed3d:     { label: 'Velocitat', def: 0.1 },
-  speed2d:     { label: 'Velocitat', def: 0.2 },
   formSize:    { label: 'Mida de forma', def: 413 },
   aspect:      { label: 'Proporció', def: 1 },
   facets:      { label: 'Cares', def: 4 },
@@ -33,7 +32,6 @@ const SLIDERS = {
   frequency:     { label: 'Freqüència', def: 0.001 },
   charTrack:     { label: 'Kerning', def: 0 },
   noiseAmt:      { label: 'Soroll horitzontal', def: 0 },
-  rainSpeed2d:   { label: 'Velocitat de moviment', def: 0 },
   wordTrack:     { label: 'Espai entre paraules', def: 0 },
   wordChaos:     { label: 'Variació de paraules', def: 0 },
   wordRamp:      { label: 'Progressió de paraules', def: 0 },
@@ -138,13 +136,11 @@ const $ = (id) => document.getElementById(id);
 const state = {
   text: '',
   font: 'courier-regular',
-  shape: 'rectangle',
   textColor: '#111111',
   bgColor: '#f4f4f4',
   seed: 1,
   hardWrap: false,
-  motion2d: 'static',
-  mode: '3d', // '2d' | '3d'
+  mode: '3d',
   // --- 3D selects + checkboxes (sliders come from SLIDERS defaults below) ---
   form: 'mobius',
   projection: 'isometric',
@@ -194,9 +190,7 @@ const state = {
   directorRecordedSamples: {},
   directorActiveLive: {},
   selectedDirectorSceneId: 'scene-1',
-  // Custom drawing data (input data, never randomness). Plain arrays so they
-  // pass straight into the engine. Default = engine defaults.
-  customProfile: DEFAULT_CUSTOM_PROFILE.slice(),
+  // Custom 3D outline data.
   customOutline: DEFAULT_CUSTOM_OUTLINE.slice(),
   ...Object.fromEntries(Object.entries(SLIDERS).map(([k, v]) => [k, v.def])),
 };
@@ -369,10 +363,7 @@ function scheduleRender() {
 function resolveRenderState(atTime = state.directorTime) {
   if (!state.director.enabled) return state;
   const resolved = evaluateDirector(state.director, atTime, state, state.directorLiveOverrides);
-  const mode = resolved.params.mode || state.mode;
-  const animationSpeed = mode === '2d'
-    ? Number(resolved.params.speed2d ?? state.speed2d)
-    : Number(resolved.params.speed3d ?? state.speed3d);
+  const animationSpeed = Number(resolved.params.speed3d ?? state.speed3d);
   return {
     ...state,
     ...resolved.params,
@@ -410,7 +401,7 @@ function frame(ts) {
   if (!playing) return;
   if (lastTs) {
     const dt = (ts - lastTs) / 1000;
-    const speed = state.mode === '2d' ? state.speed2d : state.speed3d;
+    const speed = state.speed3d;
     state.t += dt * speed;
     state.morphClock = (state.morphClock || 0) + dt; // real seconds, for morph hold
     if (state.director.enabled) {
@@ -481,33 +472,8 @@ function updateArtworkLabel() {
 // + seed + t => identical SVG.
 // ===========================================================================
 
-const PROFILE_LEN = 64; // profile array length (matches engine default)
 const OUTLINE_LEN = 96; // resampled outline point count
-const PROFILE_KEY = 'shaper-custom-profile';
 const OUTLINE_KEY = 'shaper-custom-outline';
-
-// --- Predefined 2D profile stamps (offset in [-1,1] per row) ---
-function makeProfile(fn) {
-  const arr = new Array(PROFILE_LEN);
-  for (let i = 0; i < PROFILE_LEN; i++) {
-    const t = i / (PROFILE_LEN - 1);
-    arr[i] = Math.max(-1, Math.min(1, fn(t)));
-  }
-  return arr;
-}
-const PROFILE_STAMPS = {
-  's-curve': () => DEFAULT_CUSTOM_PROFILE.slice(),
-  zigzag: () => makeProfile((t) => {
-    const p = (t * 4) % 1; // 4 teeth
-    return (p < 0.5 ? p * 2 : 2 - p * 2) * 2 - 1;
-  }),
-  steps: () => makeProfile((t) => {
-    const s = Math.floor(t * 5) / 4; // 5 levels 0..1
-    return s * 2 - 1;
-  }),
-  pulse: () => makeProfile((t) => (((t * 3) % 1) < 0.5 ? 0.8 : -0.8)),
-  clear: () => makeProfile(() => 0),
-};
 
 // --- Predefined 3D outline stamps (flat [x,z,...] in [-1,1]) ---
 function polyFromRadius(n, radFn) {
@@ -570,17 +536,10 @@ function resampleOutline(flat) {
 }
 
 // --- Persistence ---
-function persistProfile() {
-  try { localStorage.setItem(PROFILE_KEY, JSON.stringify(state.customProfile)); } catch (e) {}
-}
 function persistOutline() {
   try { localStorage.setItem(OUTLINE_KEY, JSON.stringify(state.customOutline)); } catch (e) {}
 }
 function restoreCustomData() {
-  try {
-    const p = JSON.parse(localStorage.getItem(PROFILE_KEY));
-    if (Array.isArray(p) && p.length) state.customProfile = p;
-  } catch (e) {}
   try {
     const o = JSON.parse(localStorage.getItem(OUTLINE_KEY));
     if (Array.isArray(o) && o.length >= 6) state.customOutline = o;
@@ -656,9 +615,7 @@ function updateMorphVisibility() {
 
 // --- Visibility (reused by select listeners and init) ---
 function updateEditorVisibility() {
-  const su2d = $('svgUpload2d');
   const su3d = $('svgUpload3d');
-  if (su2d) su2d.hidden = state.shape !== 'custom';
   if (su3d) su3d.hidden = state.form !== 'custom-prism';
   const guideMetaRow = $('guideMetaRow');
   if (guideMetaRow) guideMetaRow.hidden = !state.guides;
@@ -705,36 +662,6 @@ function updateEditorVisibility() {
 }
 
 // --- SVG shape import ---
-async function loadSvgProfile(file) {
-  const text = await file.text();
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(text, 'image/svg+xml');
-  const pathEl = doc.querySelector('path');
-  if (!pathEl) { announce('Cap path al SVG'); return; }
-
-  const tmpSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  tmpSvg.style.cssText = 'position:absolute;visibility:hidden;width:0;height:0';
-  document.body.appendChild(tmpSvg);
-  const pathClone = document.importNode(pathEl, true);
-  tmpSvg.appendChild(pathClone);
-
-  const len = pathClone.getTotalLength();
-  const xs = [];
-  for (let i = 0; i < PROFILE_LEN; i++) {
-    xs.push(pathClone.getPointAtLength((i / (PROFILE_LEN - 1)) * len).x);
-  }
-  document.body.removeChild(tmpSvg);
-
-  const minX = Math.min(...xs), range = (Math.max(...xs) - minX) || 1;
-  state.customProfile = xs.map((x) => ((x - minX) / range) * 2 - 1);
-  persistProfile();
-  state.shape = 'custom';
-  $('shape').value = 'custom';
-  updateEditorVisibility();
-  scheduleRender();
-  announce('Forma SVG carregada');
-}
-
 async function loadSvgOutline(file) {
   const text = await file.text();
   const parser = new DOMParser();
@@ -787,11 +714,7 @@ function activatePanel(panelId) {
     target.querySelector('.app-menu-mark').textContent = '[' + (isActive ? '*' : ' ') + ']';
   });
 
-  if (panelId === 'panel-2d' && state.mode !== '2d') {
-    state.mode = '2d';
-    announce('Mode 2D activat');
-    scheduleRender();
-  } else if (panelId === 'panel-3d' && state.mode !== '3d') {
+  if (panelId === 'panel-3d' && state.mode !== '3d') {
     state.mode = '3d';
     announce('Mode 3D activat');
     scheduleRender();
@@ -850,12 +773,6 @@ function bindNavigation() {
 }
 
 // --- Controls wiring ---
-function ensureShapeAmplitude() {
-  if (state.shape === 'rectangle' || state.amplitude !== 0) return;
-  state.amplitude = 80;
-  syncSliderUI('amplitude');
-}
-
 function wireFormatControls() {
   const formatSelect = $('format-select');
   const customRow = $('custom-size-row');
@@ -939,13 +856,6 @@ function wireControls() {
     scheduleRender();
   });
 
-  $('shape').addEventListener('change', (e) => {
-    state.shape = e.target.value;
-    ensureShapeAmplitude();
-    updateEditorVisibility(); // focus stays on the select
-    scheduleRender();
-  });
-
   $('textColor').addEventListener('input', (e) => {
     state.textColor = e.target.value;
     scheduleRender();
@@ -988,11 +898,6 @@ function wireControls() {
 
   $('hardWrap').addEventListener('change', (e) => {
     state.hardWrap = e.target.checked;
-    scheduleRender();
-  });
-
-  $('motion2d').addEventListener('change', (e) => {
-    state.motion2d = e.target.value;
     scheduleRender();
   });
 
@@ -1084,11 +989,6 @@ function wireControls() {
   });
 
   // SVG shape upload
-  $('svgFile2d').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (file) loadSvgProfile(file);
-    e.target.value = '';
-  });
   $('svgFile3d').addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) loadSvgOutline(file);
@@ -1412,8 +1312,8 @@ async function stopRecord() {
 function capturePreset() {
   const snap = { v: 1 };
   Object.keys(SLIDERS).forEach((k) => { snap[k] = state[k]; });
-  ['text', 'font', 'shape', 'textColor', 'bgColor', 'hardWrap',
-   'motion2d', 'mode', 'form', 'projection', 'guides',
+  ['text', 'font', 'textColor', 'bgColor', 'hardWrap',
+   'mode', 'form', 'projection', 'guides',
    'backfaceMirror', 'surfaceText', 'regionSurface', 'regionCaps', 'regionVolume',
    'wrapMode', 'capsWrapMode', 'canvasW', 'canvasH',
    'opacityMode', 'blinkMode', 'blinkFade', 'sizeMode',
@@ -1440,21 +1340,13 @@ function applyPreset(p) {
   });
   if (p.text    != null) { state.text    = p.text;    $('text').value    = p.text; }
   if (p.font    != null) { state.font    = p.font;    $('font').value    = p.font; }
-  if (p.shape   != null) { state.shape   = p.shape;   $('shape').value   = p.shape; }
   if (p.textColor != null) { state.textColor = p.textColor; $('textColor').value = p.textColor; }
   if (p.bgColor   != null) { state.bgColor   = p.bgColor;   $('bgColor').value   = p.bgColor; }
   if (p.hardWrap  != null) { state.hardWrap  = p.hardWrap;  $('hardWrap').checked  = p.hardWrap; }
-  if (p.motion2d  != null) { state.motion2d  = p.motion2d;  $('motion2d').value    = p.motion2d; }
-  if (p.speed2d != null) { state.speed2d = p.speed2d; syncSliderUI('speed2d'); }
   if (p.speed3d != null) { state.speed3d = p.speed3d; syncSliderUI('speed3d'); }
-  // backward compat: presets saved before the split had a single 'speed'
-  if (p.speed != null && p.speed2d == null) {
-    state.speed2d = p.speed; state.speed3d = p.speed;
-    syncSliderUI('speed2d'); syncSliderUI('speed3d');
-  }
   if (p.mode != null) {
-    state.mode = p.mode;
-    activatePanel(p.mode === '2d' ? 'panel-2d' : 'panel-3d');
+    state.mode = '3d';
+    activatePanel('panel-3d');
     updateEditorVisibility();
   }
   if (p.form       != null) { state.form       = p.form;       $('form').value       = p.form;       updateEditorVisibility(); }
@@ -1971,7 +1863,6 @@ function init() {
   // Sync select / checkbox UI to state defaults
   $('text').value = state.text;
   $('font').value = state.font;
-  $('motion2d').value = state.motion2d;
   $('form').value = state.form;
   $('projection').value = state.projection;
   $('guides').checked = state.guides;

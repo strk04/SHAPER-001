@@ -8,7 +8,7 @@
 const esc = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
 export function createPresetPanel({ container, id, store, builtins = [], capturePreset, applyPreset, localKey, setStatus }) {
-  const state = { connected: false, login: null, projects: [], project: null, list: [] };
+  const state = { connected: false, login: null, projects: [], project: null, list: [], active: null };
 
   // ── Local preset helpers (offline fallback) ────────────────────────────────
   function loadLocal() {
@@ -36,51 +36,59 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
   container.innerHTML = `
     <div id="${id}-announce" aria-live="polite" aria-atomic="true" class="sr-only"></div>
 
-    <div id="${id}-disconnected-view">
+    <div id="${id}-project-row" class="control-row" style="margin-bottom:var(--space-2)" hidden>
+      <label for="${id}-project">Projecte</label>
+      <select id="${id}-project" style="flex:1"></select>
+    </div>
+
+    <div id="${id}-update-row" class="control-row" hidden style="margin-bottom:var(--space-2)">
+      <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Preset: <span id="${id}-update-name" style="color:var(--ink-2)"></span></span>
+      <button id="${id}-update-btn" type="button">Actualitzar</button>
+    </div>
+
+    <p id="${id}-status" class="hint" role="status" aria-live="polite" aria-atomic="true"></p>
+
+    <ul id="${id}-list" role="list" aria-label="Presets" style="list-style:none;padding:0;margin:0"></ul>
+
+    <div id="${id}-connected-save" hidden style="margin-top:var(--space-6)">
+      <div class="control-row">
+        <label class="sr-only" for="${id}-name">Nom del preset</label>
+        <input type="text" id="${id}-name" placeholder="Nom del preset" autocomplete="off" style="flex:1;min-width:0">
+        <button id="${id}-save-btn" type="button">CREAR</button>
+      </div>
+    </div>
+
+    <div id="${id}-offline-save" ${localKey ? '' : 'hidden'} style="margin-top:var(--space-6)">
+      <div class="control-row">
+        <label class="sr-only" for="${id}-offline-name">Nom del preset</label>
+        <input type="text" id="${id}-offline-name" placeholder="Nom del preset" autocomplete="off" style="flex:1;min-width:0">
+        <button id="${id}-offline-save-btn" type="button">CREAR</button>
+      </div>
+    </div>
+
+    <div id="${id}-new-project-row" class="control-row" hidden style="margin-top:var(--space-2)">
+      <label class="sr-only" for="${id}-new-project">Nom projecte</label>
+      <input type="text" id="${id}-new-project" placeholder="Nom projecte" autocomplete="off" style="flex:1;min-width:0">
+      <button id="${id}-new-project-btn" type="button">CREAR</button>
+    </div>
+
+    <div style="display:flex;gap:var(--space-1);margin-top:var(--space-6)">
+      <button id="${id}-export-btn" type="button" style="flex:1 1 0;min-width:0" title="Exporta el preset actual com a fitxer JSON">EXPORT</button>
+      <button id="${id}-import-btn" type="button" style="flex:1 1 0;min-width:0" title="Importa preset des d'un fitxer JSON">IMPORT</button>
+      <input id="${id}-import-input" type="file" accept=".json,application/json" class="sr-only">
+    </div>
+
+    <div id="${id}-connected-bottom" class="control-row" hidden style="margin-top:var(--space-2)">
+      <span id="${id}-user" style="flex:1;font-size:var(--text-xs);color:var(--ink-2)"></span>
+      <button id="${id}-disconnect-btn" type="button">Desconnecta</button>
+    </div>
+
+    <div id="${id}-disconnected-view" style="margin-top:var(--space-2)">
       <div class="control-row">
         <label class="sr-only" for="${id}-token">GitHub Personal Access Token</label>
         <input type="password" id="${id}-token" placeholder="ghp_…" autocomplete="current-password" style="flex:1;min-width:0">
         <button id="${id}-connect-btn" type="button">Connecta</button>
       </div>
-    </div>
-
-    <div id="${id}-connected-view" hidden>
-      <div class="control-row" style="margin-bottom:var(--space-2)">
-        <span id="${id}-user" style="flex:1;font-size:var(--text-xs);color:var(--ink-2)"></span>
-        <button id="${id}-disconnect-btn" type="button">Desconnecta</button>
-      </div>
-      <div class="control-row" style="margin-bottom:var(--space-2)">
-        <label class="sr-only" for="${id}-new-project">Nom del nou projecte</label>
-        <input type="text" id="${id}-new-project" placeholder="Nou projecte" autocomplete="off" style="flex:1;min-width:0">
-        <button id="${id}-new-project-btn" type="button">+ Projecte</button>
-      </div>
-      <div id="${id}-project-row" class="control-row" style="margin-bottom:var(--space-2)" hidden>
-        <label class="sr-only" for="${id}-project">Projecte</label>
-        <select id="${id}-project" style="flex:1"></select>
-      </div>
-      <div class="control-row">
-        <label class="sr-only" for="${id}-name">Nom del preset</label>
-        <input type="text" id="${id}-name" placeholder="Nom del preset" autocomplete="off" style="flex:1;min-width:0">
-        <button id="${id}-save-btn" type="button">Guardar</button>
-      </div>
-    </div>
-
-    <div id="${id}-offline-save" ${localKey ? '' : 'hidden'}>
-      <div class="control-row" style="margin-top:var(--space-2)">
-        <label class="sr-only" for="${id}-offline-name">Nom del preset</label>
-        <input type="text" id="${id}-offline-name" placeholder="Nom del preset" autocomplete="off" style="flex:1;min-width:0">
-        <button id="${id}-offline-save-btn" type="button">Guardar</button>
-      </div>
-    </div>
-
-    <p id="${id}-status" class="hint" role="status" aria-live="polite" aria-atomic="true"></p>
-
-    <ul id="${id}-list" role="list" aria-label="Presets"></ul>
-
-    <div style="display:flex;gap:var(--space-1);margin-top:var(--space-2)">
-      <button id="${id}-export-btn" type="button" style="flex:1 1 0;min-width:0" title="Exporta el preset actual com a fitxer JSON">Export JSON</button>
-      <button id="${id}-import-btn" type="button" style="flex:1 1 0;min-width:0" title="Importa preset des d'un fitxer JSON">Import JSON</button>
-      <input id="${id}-import-input" type="file" accept=".json,application/json" class="sr-only">
     </div>`;
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -145,11 +153,25 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
     }
   }
 
+  function setActive(active) {
+    state.active = active;
+    const row = $('update-row');
+    const nameEl = $('update-name');
+    if (active) {
+      if (nameEl) nameEl.textContent = active.name;
+      row?.removeAttribute('hidden');
+    } else {
+      row?.setAttribute('hidden', '');
+    }
+  }
+
   function showConnected(login) {
     state.connected = true;
     state.login = login;
     $('disconnected-view')?.setAttribute('hidden', '');
-    $('connected-view')?.removeAttribute('hidden');
+    $('connected-save')?.removeAttribute('hidden');
+    $('new-project-row')?.removeAttribute('hidden');
+    $('connected-bottom')?.removeAttribute('hidden');
     $('offline-save')?.setAttribute('hidden', '');
     const userEl = $('user');
     if (userEl) userEl.textContent = `@${login}`;
@@ -162,7 +184,11 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
     state.projects = [];
     state.project = null;
     state.list = [];
-    $('connected-view')?.setAttribute('hidden', '');
+    setActive(null);
+    $('connected-save')?.setAttribute('hidden', '');
+    $('new-project-row')?.setAttribute('hidden', '');
+    $('connected-bottom')?.setAttribute('hidden', '');
+    $('project-row')?.setAttribute('hidden', '');
     $('disconnected-view')?.removeAttribute('hidden');
     if (localKey) $('offline-save')?.removeAttribute('hidden');
   }
@@ -209,10 +235,9 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
       state.list = state.project ? await store.listPresets(state.project) : [];
       renderProjectSelector();
       renderList();
-    } catch {
-      store.clearToken();
+    } catch (e) {
       showDisconnected();
-      setPanelStatus('');
+      setPanelStatus(`No s'ha pogut reconnectar. El token continua guardat. ${e.message}`);
       renderList();
     }
   }
@@ -245,6 +270,7 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
   $('project')?.addEventListener('change', async function () {
     state.project = this.value;
     state.list = await store.listPresets(state.project);
+    setActive(null);
     renderList();
   });
 
@@ -259,8 +285,9 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
     state.projects.sort();
     state.project = name;
     state.list = [];
+    setActive(null);
     if (input) input.value = '';
-    setPanelStatus('');
+    setPanelStatus('Projecte creat. Es guardarà a GitHub en desar el primer preset.');
     renderProjectSelector();
     renderList();
   });
@@ -269,13 +296,14 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
     const nameEl = $('name');
     const name = (nameEl?.value ?? '').trim() || `Preset ${new Date().toLocaleTimeString()}`;
     if (!state.project) { setPanelStatus('Selecciona o crea un projecte primer.'); return; }
-    setPanelStatus(`Guardarnt "${name}"…`);
+    setPanelStatus(`Guardant "${name}"…`);
     try {
-      await store.savePreset(state.project, name, capturePreset());
+      const path = await store.savePreset(state.project, name, capturePreset());
       state.list = await store.listPresets(state.project);
       if (nameEl) nameEl.value = '';
+      setActive({ type: 'gh', path, name });
       renderList();
-      setPanelStatus(`Guardart: "${name}"`);
+      setPanelStatus(`Guardat: "${name}"`);
     } catch (e) {
       setPanelStatus(`Error: ${e.message}`);
     }
@@ -290,8 +318,34 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
     if (presets.length > 20) presets.length = 20;
     saveLocal(presets);
     if (nameEl) nameEl.value = '';
+    setActive({ type: 'local', index: 0, name });
     renderList();
-    setPanelStatus(`Saved: "${name}"`);
+    setPanelStatus(`Guardat: "${name}"`);
+  });
+
+  // Update active preset
+  $('update-btn')?.addEventListener('click', async () => {
+    if (!state.active) return;
+    const { type, path, index, name } = state.active;
+    setPanelStatus(`Actualitzant "${name}"…`);
+    try {
+      if (type === 'gh') {
+        await store.savePreset(state.project, name, capturePreset());
+        state.list = await store.listPresets(state.project);
+        renderList();
+      } else {
+        const presets = loadLocal();
+        if (presets[index]) { presets[index].data = capturePreset(); saveLocal(presets); renderList(); }
+      }
+      const btn = $('update-btn');
+      if (btn) {
+        btn.textContent = 'Guardat ✓';
+        setTimeout(() => { btn.textContent = 'Actualitzar'; }, 2000);
+      }
+      setPanelStatus(`Actualitzat: "${name}"`);
+    } catch (e) {
+      setPanelStatus(`Error: ${e.message}`);
+    }
   });
 
   // Export current preset as JSON file
@@ -326,11 +380,11 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
 
   // Preset list: load / delete (event delegation)
   $('list')?.addEventListener('click', async (e) => {
-    // Built-in load
+    // Built-in load (no update — read-only)
     const builtinBtn = e.target.closest('.preset-load[data-builtin]');
     if (builtinBtn) {
       const p = builtins[parseInt(builtinBtn.dataset.builtin)];
-      if (p) { applyPreset(p.data); setPanelStatus(`Carregat: "${p.name}"`); }
+      if (p) { applyPreset(p.data); setActive(null); setPanelStatus(`Carregat: "${p.name}"`); }
       return;
     }
 
@@ -342,6 +396,7 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
         const data = await store.loadPreset(ghLoadBtn.dataset.ghPath);
         const name = ghLoadBtn.closest('.preset-item')?.querySelector('.preset-name')?.textContent ?? '';
         applyPreset(data);
+        setActive({ type: 'gh', path: ghLoadBtn.dataset.ghPath, name });
         setPanelStatus(`Carregat: "${name}"`);
       } catch (e) { setPanelStatus(`Error: ${e.message}`); }
       return;
@@ -357,6 +412,7 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
         try {
           await store.deletePreset(ghDelBtn.dataset.ghPath);
           state.list = await store.listPresets(state.project);
+          setActive(null);
           renderList();
           setPanelStatus(`Eliminat: "${name}"`);
         } catch (e) { setPanelStatus(`Error: ${e.message}`); }
@@ -379,8 +435,9 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
     const localLoadBtn = e.target.closest('.preset-load[data-local]');
     if (localLoadBtn) {
       const presets = loadLocal();
-      const p = presets[parseInt(localLoadBtn.dataset.local)];
-      if (p) { applyPreset(p.data); setPanelStatus(`Carregat: "${p.name}"`); }
+      const idx = parseInt(localLoadBtn.dataset.local);
+      const p = presets[idx];
+      if (p) { applyPreset(p.data); setActive({ type: 'local', index: idx, name: p.name }); setPanelStatus(`Carregat: "${p.name}"`); }
       return;
     }
 
@@ -394,6 +451,7 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
         const name = presets[idx]?.name ?? '';
         presets.splice(idx, 1);
         saveLocal(presets);
+        setActive(null);
         renderList();
         setPanelStatus(`Eliminat: "${name}"`);
       } else {
@@ -413,7 +471,6 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
   });
 
   // Initial render (disconnected state)
-  if (localKey) $('offline-save')?.removeAttribute('hidden');
   renderList();
 
   return {

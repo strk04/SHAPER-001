@@ -1,12 +1,10 @@
 // main.js — UI wiring for SHAPER 001
 import { buildSVG, buildScene, drawScene, DEFAULT_CUSTOM_OUTLINE } from './engine.js';
 import { encodeDirectorFrames } from './export-video.js';
-import { createGithubStore } from './github-store.js';
+import { store as _ghStore } from './presets-github.js';
 import { createPresetPanel } from './preset-panel.js';
 import { DEFAULT_DIRECTOR, advanceDirectorTime, evaluateDirector, normalizeDirector, normalizeScene, totalDuration, addScene, duplicateScene, moveScene, removeScene, upsertBehavior, updateBehavior, removeBehavior, upsertKeyframe, removeKeyframe, AUTOMATABLE_PARAMS, simplifySamples } from './director.js';
 import { mountDirectorUI, mountLivePads, AUTOMATION_CONTROL_IDS } from './director-ui.js';
-
-const _ghStore = createGithubStore({ repo: 'strk04/querida-presets', prefix: 'presets/shaper', tokenKey: 'querida-gh-token' });
 
 // Slider definitions: key -> { label, default }
 const SLIDERS = {

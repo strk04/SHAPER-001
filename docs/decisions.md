@@ -1,5 +1,9 @@
 # Decisions — SHAPER 001
 
+## 2026-06-29 — Crear o duplicar escena selecciona l’escena nova
+
+Quan l’usuari prem **Afegeix** o **Duplica** dins Director, la selecció passa automàticament a l’escena creada. Racional: el flux mental és “he creat una escena, ara l’edito”; mantenir `Escena 1` seleccionada feia que la columna 2 semblés incorrecta i convertia “Durada segons” en un control ambigu. Conseqüència: les accions d’escena es centralitzen en `applySceneAction()` perquè el comportament sigui testejable i no quedi dispers dins el wiring de `main.js`.
+
 ## 2026-06-20 — Token `--rule-on-dark` per a límits sobre el dock fosc (emergent en implementació)
 
 El dock del Director és `background: var(--ink)` (#000) amb text `--paper`. Cap gris existent supera 3:1 (WCAG 1.4.11) contra **alhora** #fff i #000: `--ink-3` (#555) passa sobre blanc però falla a 2.6:1 sobre negre, i `--rule` (#9d9d9d) ja era marginal sobre blanc. Decisió: afegir un token de superfície fosca dedicat `--rule-on-dark: #8a8a8a` (~6:1 sobre #000) i usar-lo per a totes les vores de controls del dock (escenes, pads, keyframes, lanes), mai `--ink-3`. Els focus rings del dock també s'inverteixen (anella interior `--ink`, exterior `--paper`) per ser visibles tant sobre el dock negre com sobre els botons d'escena actius (blancs).

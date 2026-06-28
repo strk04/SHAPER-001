@@ -1,60 +1,55 @@
 # HANDOFF — SHAPER 001
 
-_Actualitzat: 2026-06-23_
+_Actualitzat: 2026-06-29_
 
 ## Estat actual
 
-**Multi-region 3D fill implementat** (sense commit). 28 tests verds. WCAG 2.2 AA verificat.
+Microfix aplicat al Director: quan l’usuari fa **Afegeix** o **Duplica** escena, la columna 2 passa automàticament a editar l’escena acabada de crear. Abans es quedava seleccionada `Escena 1`, cosa que feia pensar que la durada o els controls no corresponien a la nova escena.
 
-### Implementat en aquesta sessió
+## Canvis d’aquesta sessió
 
-**Multi-region 3D fill** — text pot omplir 3 regions independents de les formes tancades:
+- `director.js`
+  - Afegit `applySceneAction(input, selectedSceneId, action)` com a helper pur per centralitzar accions d’escena i selecció.
+  - `add` selecciona la nova última escena.
+  - `duplicate` selecciona la còpia inserida just després de l’escena original.
+  - `left`, `right` i `delete` conserven el comportament anterior de selecció.
+- `main.js`
+  - `handleDirectorSceneAction()` ara usa `applySceneAction()` en lloc de mantenir la lògica manual dins la UI wiring.
+- `tests/director.test.mjs`
+  - Afegit test TDD: `scene actions select the newly created scene`.
 
-- **Regió: Superfície** (checkbox, on per defecte) — comportament existent
-- **Regió: Tapes** (checkbox, off) — cares planes de cylinder/cone/star-prism/custom-prism
-- **Regió: Interior** (checkbox, off) — volum interior de la forma 3D
-
-**Arquitectura:**
-- `computeRotationAngles(params, P)` — helper compartit (rotació idèntica a totes les regions)
-- `hasCaps(form)` / `capCount(form)` — quin forma té tapes i quantes
-- `capSurface(form, capIdx, u, v, P)` — punt 3D + normal d'una cara plana
-- `buildCaps(params, w, h)` → glyph[] — genera glifs sobre les tapes
-- `buildInterior(params, w, h)` → glyph[] — genera glifs dins del volum (seed+3 per 3a dimensió)
-- `buildScene` merger: concat + re-sort per profunditat si hi ha > 1 regió activa
-- 3 nous camps a `read3DParams`: `regionSurface` (default true, retrocompat), `regionCaps`, `regionVolume`
-
-**UI:** `<fieldset class="gtx-fieldset"><legend>Regió</legend>` + 3 checkboxes (WCAG AA: fieldset/legend aprovats per accessibility-lead)
-
-**Retrocompatibilitat:** `regionSurface` absent → `!== false` → `true`. Cap preset existent afectat.
-
-## Pendent
-
-1. **Commit** i push `17 SHAPER 001/`
-2. **Copiar a Pixel Perfect** (`02 Pixel Perfect/shaper/`) i push PP001
-3. Provar visualment: cylinder tapes/interior, cone base, star-prism
-4. Futures millores: drag keyframes timeline, LFO automation, densitat interior independent
-
-## Fitxers modificats en aquesta sessió
-
-- `engine.js` — computeRotationAngles, hasCaps, capCount, capSurface, buildCaps, buildInterior, merge a buildScene
-- `main.js` — state + wiring + capturePreset + applyPreset + sync initial
-- `index.html` — fieldset + 3 checkboxes
-
-## Fitxers principals
-
-- `engine.js` — tot el motor 2D/3D (surface + caps + interior)
-- `director.js` — lògica pura (schema, evaluator, editing)
-- `motion.js` — 4 comportaments deterministes + cohesió
-- `director-ui.js` — UI timeline interactiva
-- `export-video.js` — export offline frame-exact
-- `main.js` — wiring complet
-- `tests/` — 5 fitxers, 28 tests
-
-## Verificació ràpida
+## Verificació feta
 
 ```bash
-cd "17 SHAPER 001"
-node --test tests/*.test.mjs   # 28 pass
-git log --oneline -3
-# Visual: obrir index.html, mode 3D, form=cylinder, activar "Tapes" → discs visibles
+node --test tests/director.test.mjs   # 18 pass
+node --test tests/*.test.mjs          # 29 pass
+node --check main.js
+node --check director.js
+node --check director-ui.js
 ```
+
+## Estat git
+
+Canvis locals no commitejats:
+
+- `director.js`
+- `main.js`
+- `tests/director.test.mjs`
+- `docs/HANDOFF.md`
+- `docs/STATUS.md`
+- `docs/progress.md`
+- `docs/decisions.md`
+
+No s’ha fet push ni commit en aquesta sessió.
+
+## Properes passes recomanades
+
+1. Provar manualment al navegador: Director → Afegeix → confirmar que la columna 2 mostra `Escena 2`.
+2. Provar Duplica → confirmar que la columna 2 mostra la còpia.
+3. Si és correcte, commitejar el microfix.
+4. Continuar simplificant la UX de Director perquè el procés sigui “escenes + comportament + durada” abans de mostrar automatització avançada.
+
+## Riscos / notes
+
+- El fix és petit i cobert per test unitari, però encara falta verificació visual real al navegador.
+- La confusió de procés de Director no queda resolta del tot amb aquest fix; només elimina el cas més enganyós de selecció.

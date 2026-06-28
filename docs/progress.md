@@ -319,3 +319,27 @@
 
 ## 2026-06-12
 - Fet: creació de l'estructura de documentació (README, STATUS, progress, decisions) al vault i a docs/ del projecte.
+
+---
+
+## 2026-06-29 — Director: selecció automàtica de nova escena
+
+### Fet
+
+- Detectada confusió d’UX: després de crear més d’una escena, la columna 2 continuava mostrant `Escena 1` perquè l’escena nova no quedava seleccionada.
+- Implementat helper pur `applySceneAction()` a `director.js`.
+- `main.js` ara delega les accions d’escena a aquest helper.
+- Afegit test TDD `scene actions select the newly created scene`.
+
+### Verificat
+
+- `node --test tests/director.test.mjs` → 18 pass.
+- `node --test tests/*.test.mjs` → 29 pass.
+- `node --check main.js`
+- `node --check director.js`
+- `node --check director-ui.js`
+
+### Pendent
+
+- Provar visualment al navegador que `Afegeix` selecciona `Escena 2` i que `Duplica` selecciona la còpia.
+- Continuar simplificant l’explicació i la UX inicial de Director.

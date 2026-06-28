@@ -187,6 +187,40 @@ export function removeScene(input, id) {
   return { ...director, scenes: director.scenes.filter((scene) => scene.id !== id) };
 }
 
+export function applySceneAction(input, selectedSceneId, action) {
+  const director = normalizeDirector(input);
+  const scene = director.scenes.find((item) => item.id === selectedSceneId) || director.scenes[0];
+  const index = director.scenes.findIndex((item) => item.id === scene.id);
+
+  if (action === 'add') {
+    const nextDirector = addScene(director, { name: `Escena ${director.scenes.length + 1}` });
+    return { director: nextDirector, selectedSceneId: nextDirector.scenes.at(-1).id };
+  }
+
+  if (action === 'duplicate') {
+    const nextDirector = duplicateScene(director, scene.id);
+    return { director: nextDirector, selectedSceneId: nextDirector.scenes[index + 1]?.id || scene.id };
+  }
+
+  if (action === 'left') {
+    return { director: moveScene(director, index, index - 1), selectedSceneId: scene.id };
+  }
+
+  if (action === 'right') {
+    return { director: moveScene(director, index, index + 1), selectedSceneId: scene.id };
+  }
+
+  if (action === 'delete') {
+    const nextDirector = removeScene(director, scene.id);
+    return {
+      director: nextDirector,
+      selectedSceneId: nextDirector.scenes[Math.min(index, nextDirector.scenes.length - 1)].id,
+    };
+  }
+
+  return { director, selectedSceneId: scene.id };
+}
+
 export const AUTOMATABLE_PARAMS = Object.freeze({
   morphT: 'number', morphSpeed: 'number', morphScatter: 'number', morphSpeedVar: 'number',
   zoom: 'number', angleX: 'number', angleY: 'number', depthFade: 'number',

@@ -3,7 +3,7 @@ import { buildSVG, buildScene, drawScene, DEFAULT_CUSTOM_OUTLINE } from './engin
 import { encodeDirectorFrames } from './export-video.js';
 import { store as _ghStore } from './presets-github.js';
 import { createPresetPanel } from './preset-panel.js';
-import { DEFAULT_DIRECTOR, advanceDirectorTime, evaluateDirector, normalizeDirector, normalizeScene, totalDuration, addScene, duplicateScene, moveScene, removeScene, upsertBehavior, updateBehavior, removeBehavior, upsertKeyframe, removeKeyframe, AUTOMATABLE_PARAMS, simplifySamples } from './director.js';
+import { DEFAULT_DIRECTOR, advanceDirectorTime, evaluateDirector, normalizeDirector, normalizeScene, totalDuration, applySceneAction, upsertBehavior, updateBehavior, removeBehavior, upsertKeyframe, removeKeyframe, AUTOMATABLE_PARAMS, simplifySamples } from './director.js';
 import { mountDirectorUI, mountLivePads, AUTOMATION_CONTROL_IDS } from './director-ui.js';
 
 // Slider definitions: key -> { label, default }
@@ -1489,16 +1489,9 @@ function selectedDirectorScene() {
   return state.director.scenes.find((scene) => scene.id === state.selectedDirectorSceneId) || state.director.scenes[0];
 }
 function handleDirectorSceneAction(action) {
-  const scene = selectedDirectorScene();
-  const index = state.director.scenes.findIndex((item) => item.id === scene.id);
-  if (action === 'add') state.director = addScene(state.director, { name: `Escena ${state.director.scenes.length + 1}` });
-  if (action === 'duplicate') state.director = duplicateScene(state.director, scene.id);
-  if (action === 'left') state.director = moveScene(state.director, index, index - 1);
-  if (action === 'right') state.director = moveScene(state.director, index, index + 1);
-  if (action === 'delete') state.director = removeScene(state.director, scene.id);
-  if (!state.director.scenes.some((item) => item.id === state.selectedDirectorSceneId)) {
-    state.selectedDirectorSceneId = state.director.scenes[Math.min(index, state.director.scenes.length - 1)].id;
-  }
+  const result = applySceneAction(state.director, state.selectedDirectorSceneId, action);
+  state.director = result.director;
+  state.selectedDirectorSceneId = result.selectedSceneId;
   directorUI.render(); scheduleRender();
 }
 function updateSelectedSceneDuration(duration) { replaceDirectorScene(normalizeScene({ ...selectedDirectorScene(), duration })); }

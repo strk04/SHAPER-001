@@ -1,7 +1,7 @@
 // tests/director.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { DEFAULT_DIRECTOR, normalizeDirector } from '../director.js';
+import { DEFAULT_DIRECTOR, normalizeDirector, applySceneAction } from '../director.js';
 import {
   addScene, duplicateScene, moveScene, removeScene, upsertKeyframe, removeKeyframe,
   upsertBehavior, updateBehavior, removeBehavior, isAutomatablePath,
@@ -133,6 +133,17 @@ test('scene editing is immutable and never removes the final scene', () => {
   assert.equal(duplicated.scenes.length, 3);
   assert.equal(removed.scenes.length, 2);
   assert.equal(removeScene(base, base.scenes[0].id).scenes.length, 1);
+});
+
+test('scene actions select the newly created scene', () => {
+  const base = normalizeDirector(null);
+  const added = applySceneAction(base, base.scenes[0].id, 'add');
+  assert.equal(added.director.scenes.length, 2);
+  assert.equal(added.selectedSceneId, added.director.scenes[1].id);
+
+  const duplicated = applySceneAction(added.director, added.selectedSceneId, 'duplicate');
+  assert.equal(duplicated.director.scenes.length, 3);
+  assert.equal(duplicated.selectedSceneId, duplicated.director.scenes[2].id);
 });
 
 test('upsertKeyframe clamps time and replaces same-time values', () => {

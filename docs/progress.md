@@ -343,3 +343,28 @@
 
 - Provar visualment al navegador que `Afegeix` selecciona `Escena 2` i que `Duplica` selecciona la còpia.
 - Continuar simplificant l’explicació i la UX inicial de Director.
+
+---
+
+## 2026-06-29 — Director: eliminació de live pads i `REC`
+
+### Fet
+
+- Retirats `ATTRACT`, `REPEL`, `EXPLODE` i `REC` de la UI del Director.
+- Eliminada tota la infraestructura live associada a `main.js`, `director-ui.js`, `director.js`, `index.html` i `styles.css`.
+- `evaluateDirector()` ja no admet overrides en viu.
+- Afegit test de wiring per garantir que els controls live no tornen a aparèixer.
+
+### Verificat
+
+- `node --test tests/director.test.mjs` → 17 pass.
+- `node --test tests/project-wiring.test.mjs` → 3 pass.
+- `node --test tests/*.test.mjs` → 29 pass.
+- `node --check main.js`
+- `node --check director.js`
+- `node --check director-ui.js`
+
+### Pendent
+
+- Validació visual del Director simplificat.
+- Decidir si `Hold` i `Reverse` es mantenen o també es simplifiquen.

@@ -3,8 +3,8 @@ import { buildSVG, buildScene, drawScene, DEFAULT_CUSTOM_OUTLINE } from './engin
 import { encodeDirectorFrames } from './export-video.js';
 import { store as _ghStore } from './presets-github.js';
 import { createPresetPanel } from './preset-panel.js';
-import { DEFAULT_DIRECTOR, advanceDirectorTime, evaluateDirector, normalizeDirector, normalizeScene, totalDuration, applySceneAction, upsertBehavior, updateBehavior, removeBehavior, upsertKeyframe, removeKeyframe, AUTOMATABLE_PARAMS, simplifySamples } from './director.js';
-import { mountDirectorUI, mountLivePads, AUTOMATION_CONTROL_IDS } from './director-ui.js';
+import { DEFAULT_DIRECTOR, advanceDirectorTime, evaluateDirector, normalizeDirector, normalizeScene, totalDuration, applySceneAction, upsertBehavior, updateBehavior, removeBehavior, upsertKeyframe, removeKeyframe, AUTOMATABLE_PARAMS } from './director.js';
+import { mountDirectorUI, AUTOMATION_CONTROL_IDS } from './director-ui.js';
 
 // Slider definitions: key -> { label, default }
 const SLIDERS = {
@@ -183,10 +183,6 @@ const state = {
   director: structuredClone(DEFAULT_DIRECTOR),
   directorTime: 0,
   directorRate: 1,
-  directorLiveOverrides: {},
-  directorRecording: false,
-  directorRecordedSamples: {},
-  directorActiveLive: {},
   selectedDirectorSceneId: 'scene-1',
   // Custom 3D outline data.
   customOutline: DEFAULT_CUSTOM_OUTLINE.slice(),
@@ -360,7 +356,7 @@ function scheduleRender() {
 
 function resolveRenderState(atTime = state.directorTime) {
   if (!state.director.enabled) return state;
-  const resolved = evaluateDirector(state.director, atTime, state, state.directorLiveOverrides);
+  const resolved = evaluateDirector(state.director, atTime, state);
   const animationSpeed = Number(resolved.params.speed3d ?? state.speed3d);
   return {
     ...state,
@@ -722,9 +718,7 @@ function activatePanel(panelId) {
   const directorOpen = panelId === 'panel-director';
   document.body.toggleAttribute('data-director-open', directorOpen);
   const dock = $('directorDock');
-  const livePads = $('directorLivePads');
   if (dock) dock.hidden = !directorOpen;
-  if (livePads) livePads.hidden = !directorOpen;
   if (directorOpen) { directorUI?.render(); }
   resizeCanvas();
 
@@ -1329,7 +1323,6 @@ function applyPreset(p) {
   state.director = normalizeDirector(p.director);
   state.directorTime = 0;
   state.selectedDirectorSceneId = state.director.scenes[0].id;
-  state.directorLiveOverrides = {};
   if (state.director.unsupportedVersion) {
     setPresetStatus('Aquest preset usa una versió més nova del Director; es carrega la composició base amb Director desactivat.');
   }
@@ -1414,70 +1407,6 @@ const shaperPresetPanel = createPresetPanel({
   localKey:      'shaper-presets-v1',
   setStatus:     setPresetStatus,
 });
-
-// --- Director live behavior + gesture recording (Task 8) ---
-
-function setLiveBehavior(type, value) {
-  const activeSceneId = evaluateDirector(state.director, state.directorTime, state).sceneId;
-  const scene = state.director.scenes.find((item) => item.id === activeSceneId);
-  const behavior = scene?.behaviors.find((item) => item.type === type);
-  if (!behavior) return;
-  const field = type === 'attract' ? 'strength' : 'progress';
-  const baseValue = Number(behavior.params[field]) || 0;
-  const liveValue = type === 'attract' ? value * Math.max(1, Math.abs(baseValue)) : Math.max(0, value);
-  state.directorActiveLive = { ...state.directorActiveLive, [type]: { sceneId: scene.id, behaviorId: behavior.id, field, baseValue } };
-  state.directorLiveOverrides = { ...state.directorLiveOverrides, [behavior.id]: { params: { [field]: liveValue } } };
-  if (state.directorRecording) {
-    const path = `${scene.id}|behavior:${behavior.id}:${field}`;
-    const list = state.directorRecordedSamples[path] || [];
-    state.directorRecordedSamples = { ...state.directorRecordedSamples, [path]: [...list, { time: state.directorTime, value: liveValue }] };
-  }
-  scheduleRender();
-}
-
-function clearLiveBehavior(type) {
-  const active = state.directorActiveLive[type];
-  if (!active) return;
-  const scene = state.director.scenes.find((item) => item.id === active.sceneId);
-  const behavior = scene?.behaviors.find((item) => item.id === active.behaviorId);
-  if (!scene || !behavior) return;
-  const { field, baseValue } = active;
-  if (state.directorRecording) {
-    const path = `${scene.id}|behavior:${behavior.id}:${field}`;
-    const list = state.directorRecordedSamples[path] || [];
-    state.directorRecordedSamples = { ...state.directorRecordedSamples, [path]: [...list, { time: state.directorTime, value: baseValue }] };
-  }
-  const next = { ...state.directorLiveOverrides }; delete next[behavior.id];
-  state.directorLiveOverrides = next;
-  const activeNext = { ...state.directorActiveLive }; delete activeNext[type];
-  state.directorActiveLive = activeNext;
-  scheduleRender();
-}
-
-function finishDirectorRecording() {
-  let director = normalizeDirector(state.director);
-  for (const [compoundPath, samples] of Object.entries(state.directorRecordedSamples)) {
-    const separator = compoundPath.indexOf('|');
-    const sceneId = compoundPath.slice(0, separator);
-    const path = compoundPath.slice(separator + 1);
-    const sceneIndex = director.scenes.findIndex((scene) => scene.id === sceneId);
-    if (sceneIndex < 0) continue;
-    const sceneStart = director.scenes.slice(0, sceneIndex).reduce((sum, scene) => sum + scene.duration, 0);
-    const scene = director.scenes[sceneIndex];
-    const frames = simplifySamples(samples, 0.02).map((frame) => ({
-      time: Math.max(0, Math.min(scene.duration, frame.time - sceneStart)),
-      value: frame.value, easing: 'linear',
-    }));
-    const scenes = director.scenes.slice();
-    scenes[sceneIndex] = { ...scene, automations: { ...scene.automations, [path]: frames } };
-    director = { ...director, scenes };
-  }
-  state.director = director;
-  state.directorRecording = false;
-  state.directorRecordedSamples = {};
-  $('directorRecord').setAttribute('aria-pressed', 'false');
-  directorUI.render();
-}
 
 // --- Director scene editing helpers ---
 function replaceDirectorScene(nextScene) {
@@ -1676,27 +1605,6 @@ function wireDirector() {
     });
   }
 
-  // REC button — start/stop gesture recording
-  const recBtn = $('directorRecord');
-  if (recBtn) {
-    recBtn.addEventListener('click', () => {
-      if (state.directorRecording) {
-        finishDirectorRecording();
-        announce('Gravació aturada');
-      } else {
-        state.directorRecording = true;
-        state.directorRecordedSamples = {};
-        $('directorRecord').setAttribute('aria-pressed', 'true');
-        announce('Gravant');
-      }
-    });
-  }
-
-  // Live pads — mount into #directorLivePads
-  mountLivePads($('directorLivePads'), {
-    onLiveStart: (type, value) => setLiveBehavior(type, value),
-    onLiveEnd:   (type)        => clearLiveBehavior(type),
-  });
 }
 
 // --- Character Map ---

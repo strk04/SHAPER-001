@@ -1,5 +1,9 @@
 # Decisions — SHAPER 001
 
+## 2026-06-29 — Director sense capa live de performance
+
+Per a l’ús real d’aquest projecte, el Director queda orientat a coreografia d’escenes i no a performance en viu. Es retiren `ATTRACT`, `REPEL`, `EXPLODE`, `REC` i tota la lògica de live gesture recording. Racional: aquests conceptes introduïen una segona jerarquia mental dins la UI i dificultaven entendre què era escena, què era comportament i què era acció temporal. Conseqüència: Director queda reduït a escenes, comportaments, keyframes i transport; la base és més clara i més fàcil d’explicar.
+
 ## 2026-06-29 — Crear o duplicar escena selecciona l’escena nova
 
 Quan l’usuari prem **Afegeix** o **Duplica** dins Director, la selecció passa automàticament a l’escena creada. Racional: el flux mental és “he creat una escena, ara l’edito”; mantenir `Escena 1` seleccionada feia que la columna 2 semblés incorrecta i convertia “Durada segons” en un control ambigu. Conseqüència: les accions d’escena es centralitzen en `applySceneAction()` perquè el comportament sigui testejable i no quedi dispers dins el wiring de `main.js`.

@@ -4,52 +4,76 @@ _Actualitzat: 2026-06-29_
 
 ## Estat actual
 
-Microfix aplicat al Director: quan l’usuari fa **Afegeix** o **Duplica** escena, la columna 2 passa automàticament a editar l’escena acabada de crear. Abans es quedava seleccionada `Escena 1`, cosa que feia pensar que la durada o els controls no corresponien a la nova escena.
+Director s’ha simplificat per a ús no-live:
+
+- fora `ATTRACT`, `REPEL`, `EXPLODE`
+- fora `REC`
+- fora tota la maquinària interna de live overrides i gesture recording
+
+Queden:
+
+- escenes
+- durada i transició per escena
+- comportaments (`Deriva`, `Òrbita`, `Atracció`, `Explosió`)
+- keyframes / rombos
+- transport normal (`Atura`, `Hold`, `Reverse`, `Loop`, `Timeline`)
 
 ## Canvis d’aquesta sessió
 
-- `director.js`
-  - Afegit `applySceneAction(input, selectedSceneId, action)` com a helper pur per centralitzar accions d’escena i selecció.
-  - `add` selecciona la nova última escena.
-  - `duplicate` selecciona la còpia inserida just després de l’escena original.
-  - `left`, `right` i `delete` conserven el comportament anterior de selecció.
+- `index.html`
+  - eliminat `#directorLivePads`
+  - eliminat botó `#directorRecord`
 - `main.js`
-  - `handleDirectorSceneAction()` ara usa `applySceneAction()` en lloc de mantenir la lògica manual dins la UI wiring.
-- `tests/director.test.mjs`
-  - Afegit test TDD: `scene actions select the newly created scene`.
+  - eliminat estat live (`directorLiveOverrides`, `directorRecording`, `directorRecordedSamples`, `directorActiveLive`)
+  - eliminat wiring de `REC` i live pads
+  - `evaluateDirector()` es crida sense overrides live
+- `director-ui.js`
+  - eliminat `mountLivePads()`
+- `director.js`
+  - eliminat `simplifySamples()`
+  - `evaluateDirector()` simplificat: sense paràmetre `liveOverrides`
+- `styles.css`
+  - eliminats estils de live pads
+- `tests/`
+  - afegit test que garanteix que Director ja no exposa controls live
+  - eliminat el test de `simplifySamples()`
 
 ## Verificació feta
 
 ```bash
-node --test tests/director.test.mjs   # 18 pass
-node --test tests/*.test.mjs          # 29 pass
+node --test tests/director.test.mjs
+node --test tests/project-wiring.test.mjs
+node --test tests/*.test.mjs
 node --check main.js
 node --check director.js
 node --check director-ui.js
 ```
 
+Resultat: 29 tests pass.
+
 ## Estat git
 
-Canvis locals no commitejats:
+Canvis locals pendents de commit/push:
 
 - `director.js`
+- `director-ui.js`
+- `index.html`
 - `main.js`
+- `styles.css`
 - `tests/director.test.mjs`
+- `tests/project-wiring.test.mjs`
 - `docs/HANDOFF.md`
 - `docs/STATUS.md`
 - `docs/progress.md`
 - `docs/decisions.md`
 
-No s’ha fet push ni commit en aquesta sessió.
-
 ## Properes passes recomanades
 
-1. Provar manualment al navegador: Director → Afegeix → confirmar que la columna 2 mostra `Escena 2`.
-2. Provar Duplica → confirmar que la columna 2 mostra la còpia.
-3. Si és correcte, commitejar el microfix.
-4. Continuar simplificant la UX de Director perquè el procés sigui “escenes + comportament + durada” abans de mostrar automatització avançada.
+1. Verificació visual ràpida del panell Director després de la simplificació.
+2. Decidir si els rombos s’han de veure només dins la pestanya `Director`.
+3. Millora pendent guardada: veure clarament `temps`, `valor` i `easing` dels keyframes.
 
 ## Riscos / notes
 
-- El fix és petit i cobert per test unitari, però encara falta verificació visual real al navegador.
-- La confusió de procés de Director no queda resolta del tot amb aquest fix; només elimina el cas més enganyós de selecció.
+- `Hold` i `Reverse` continuen existint; no són live, però encara poden ser conceptualment confusos.
+- La documentació històrica de `docs/superpowers/` encara parla de live recording perquè és l’especificació original, no l’estat actual del producte.

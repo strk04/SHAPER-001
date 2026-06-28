@@ -12,16 +12,20 @@ Projecte vanilla JS zero-build. La URL canònica live continua sent `/shaper/` d
 
 ## Motion Director
 
-Director està implementat localment amb:
+Director està implementat localment com a sistema d’escenes amb:
 
-- escenes seqüencials;
-- durada per escena;
-- comportaments deterministes;
-- keyframes / automatització;
-- pads en viu;
-- export offline frame-exact.
+- durada per escena
+- transició + easing per escena
+- comportaments deterministes
+- keyframes / automatització
+- transport de timeline
+- export offline frame-exact
 
-La sessió actual ha corregit la selecció després de crear escenes: **Afegeix** i **Duplica** ara seleccionen automàticament l’escena nova.
+La sessió actual ha eliminat la capa de live performance:
+
+- no hi ha `ATTRACT`, `REPEL`, `EXPLODE`
+- no hi ha `REC`
+- no hi ha live pads ni gravació de gestos
 
 ## Verificació actual
 
@@ -36,10 +40,6 @@ node --check director-ui.js
 
 ## Pendent
 
-- Verificació visual al navegador del flux Director:
-  - crear escena;
-  - duplicar escena;
-  - editar durada;
-  - confirmar que la columna 2 correspon a l’escena seleccionada.
-- Decidir si la UX del Director s’ha de simplificar cap a un flux guiat: `Escena → Comportament → Durada → Play`.
-- Commit/push del microfix si la prova visual és correcta.
+- Verificació visual del flux simplificat de Director.
+- Decidir si els rombos d’automatització s’han d’amagar fora de la pestanya `Director`.
+- Fer visible el valor dels keyframes seleccionats.

@@ -20,6 +20,7 @@ Director està implementat localment com a sistema d’escenes amb:
 - keyframes / automatització
 - transport de timeline
 - export offline frame-exact
+- accions d'escena mínimes (`Afegeix`, `Elimina`)
 
 La sessió actual ha eliminat la capa de live performance:
 
@@ -32,7 +33,7 @@ La sessió actual ha eliminat la capa de live performance:
 Última verificació executada el 2026-06-29:
 
 ```bash
-node --test tests/*.test.mjs   # 29 pass
+node --test tests/*.test.mjs   # 30 pass
 node --check main.js
 node --check director.js
 node --check director-ui.js

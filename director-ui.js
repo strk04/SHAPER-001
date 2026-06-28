@@ -320,9 +320,6 @@ export function mountDirectorUI({
     sceneEditEl.innerHTML = `
       <div class="director-scene-actions" role="group" aria-label="Accions d'escena">
         <button type="button" data-director-action="add" aria-label="Afegeix escena"><span aria-hidden="true">+</span> Afegeix</button>
-        <button type="button" data-director-action="duplicate" aria-label="Duplica escena">Duplica</button>
-        <button type="button" data-director-action="left" aria-label="Mou escena a l'esquerra"><span aria-hidden="true">←</span></button>
-        <button type="button" data-director-action="right" aria-label="Mou escena a la dreta"><span aria-hidden="true">→</span></button>
         <button type="button" data-director-action="delete" aria-label="Elimina escena">Elimina</button>
       </div>
       <div role="group" aria-label="Propietats de l'escena">

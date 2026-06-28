@@ -31,3 +31,12 @@ test('director excludes live performance controls', async () => {
   assert.doesNotMatch(ui, /ATTRACT|REPEL|EXPLODE/);
   assert.doesNotMatch(director, /liveOverrides|simplifySamples/);
 });
+
+test('director scene UI keeps only add and delete actions', async () => {
+  const ui = await readFile(new URL('../director-ui.js', import.meta.url), 'utf8');
+  assert.match(ui, /data-director-action="add"/);
+  assert.match(ui, /data-director-action="delete"/);
+  assert.doesNotMatch(ui, /data-director-action="duplicate"/);
+  assert.doesNotMatch(ui, /data-director-action="left"/);
+  assert.doesNotMatch(ui, /data-director-action="right"/);
+});

@@ -17,6 +17,7 @@ Queden:
 - comportaments (`Deriva`, `Òrbita`, `Atracció`, `Explosió`)
 - keyframes / rombos
 - transport normal (`Atura`, `Hold`, `Reverse`, `Loop`, `Timeline`)
+- accions d'escena mínimes (`Afegeix`, `Elimina`)
 
 ## Canvis d’aquesta sessió
 
@@ -49,7 +50,7 @@ node --check director.js
 node --check director-ui.js
 ```
 
-Resultat: 29 tests pass.
+Resultat: 30 tests pass.
 
 ## Estat git
 
@@ -72,6 +73,16 @@ Canvis locals pendents de commit/push:
 1. Verificació visual ràpida del panell Director després de la simplificació.
 2. Decidir si els rombos s’han de veure només dins la pestanya `Director`.
 3. Millora pendent guardada: veure clarament `temps`, `valor` i `easing` dels keyframes.
+
+## Actualització addicional
+
+També s’han eliminat de la UI d’escena els botons:
+
+- `Duplica`
+- `←`
+- `→`
+
+L’inspector d’escena queda reduït a `Afegeix` i `Elimina`.
 
 ## Riscos / notes
 

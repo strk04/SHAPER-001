@@ -1,5 +1,9 @@
 # Decisions — SHAPER 001
 
+## 2026-06-29 — Accions d'escena reduïdes a `Afegeix` i `Elimina`
+
+La UI d'escenes del Director elimina `Duplica`, `←` i `→`. Racional: en la fase actual, aquestes tres accions afegeixen soroll visual i decisions secundàries a una eina que encara s'està simplificant conceptualment. Conseqüència: la UI d'escena queda més llegible i el flux principal passa a ser crear, editar i eliminar; la lògica interna de duplicar/moure es conserva per ara, però deixa de formar part de l'experiència visible.
+
 ## 2026-06-29 — Director sense capa live de performance
 
 Per a l’ús real d’aquest projecte, el Director queda orientat a coreografia d’escenes i no a performance en viu. Es retiren `ATTRACT`, `REPEL`, `EXPLODE`, `REC` i tota la lògica de live gesture recording. Racional: aquests conceptes introduïen una segona jerarquia mental dins la UI i dificultaven entendre què era escena, què era comportament i què era acció temporal. Conseqüència: Director queda reduït a escenes, comportaments, keyframes i transport; la base és més clara i més fàcil d’explicar.

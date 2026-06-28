@@ -368,3 +368,23 @@
 
 - Validació visual del Director simplificat.
 - Decidir si `Hold` i `Reverse` es mantenen o també es simplifiquen.
+
+---
+
+## 2026-06-29 — Director: només `Afegeix` i `Elimina` a les escenes
+
+### Fet
+
+- Eliminats de la UI d’escena els botons `Duplica`, `←` i `→`.
+- L’inspector d’escena queda amb accions mínimes: `Afegeix` i `Elimina`.
+- Afegit test de wiring per evitar que aquests botons reapareguin.
+
+### Verificat
+
+- `node --test tests/project-wiring.test.mjs` → 4 pass.
+- `node --test tests/*.test.mjs` → 30 pass.
+- `node --check director-ui.js`
+
+### Pendent
+
+- Validació visual ràpida del nou inspector d’escena simplificat.

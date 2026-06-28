@@ -1,5 +1,9 @@
 # Decisions — SHAPER 001
 
+## 2026-06-29 — `Reverse`, `Loop` i `Timeline` passen a ser controls generals de la columna 2
+
+`Reverse` i `Loop` no s’han de presentar com a propietats d’escena sinó com a estat global del Director, i `Timeline` tampoc ha de competir visualment amb els comportaments dins el dock. Per això s’eliminen `Atura` i `Hold` i es traslladen `Reverse`, `Loop` i `Timeline` al final de la columna 2 dins un bloc general. Conseqüència: el dock inferior queda dedicat només a la timeline, i la jerarquia conceptual és més clara: escenes i comportaments a la columna 2, reproducció global al bloc general.
+
 ## 2026-06-29 — Accions d'escena reduïdes a `Afegeix` i `Elimina`
 
 La UI d'escenes del Director elimina `Duplica`, `←` i `→`. Racional: en la fase actual, aquestes tres accions afegeixen soroll visual i decisions secundàries a una eina que encara s'està simplificant conceptualment. Conseqüència: la UI d'escena queda més llegible i el flux principal passa a ser crear, editar i eliminar; la lògica interna de duplicar/moure es conserva per ara, però deixa de formar part de l'experiència visible.

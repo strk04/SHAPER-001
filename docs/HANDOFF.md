@@ -9,6 +9,7 @@ Director s’ha simplificat per a ús no-live:
 - fora `ATTRACT`, `REPEL`, `EXPLODE`
 - fora `REC`
 - fora tota la maquinària interna de live overrides i gesture recording
+- fora `Atura` i `Hold`
 
 Queden:
 
@@ -16,7 +17,7 @@ Queden:
 - durada i transició per escena
 - comportaments (`Deriva`, `Òrbita`, `Atracció`, `Explosió`)
 - keyframes / rombos
-- transport normal (`Atura`, `Hold`, `Reverse`, `Loop`, `Timeline`)
+- controls generals (`Reverse`, `Loop`, `Timeline`) al final de la columna 2
 - accions d'escena mínimes (`Afegeix`, `Elimina`)
 
 ## Canvis d’aquesta sessió
@@ -38,6 +39,16 @@ Queden:
 - `tests/`
   - afegit test que garanteix que Director ja no exposa controls live
   - eliminat el test de `simplifySamples()`
+- `director-ui.js`
+  - afegit bloc `General` al final de la columna 2 amb `Reverse`, `Loop` i `Timeline`
+- `index.html`
+  - eliminats `Atura`, `Hold`, `Reverse`, `Loop` i `Timeline` del dock
+- `main.js`
+  - eliminat wiring de `Atura` i `Hold`
+- `styles.css`
+  - eliminat CSS antic de `director-transport`
+- `tests/project-wiring.test.mjs`
+  - afegit test que garanteix que els controls generals viuen a la columna 2 i no al dock
 
 ## Verificació feta
 
@@ -50,18 +61,16 @@ node --check director.js
 node --check director-ui.js
 ```
 
-Resultat: 30 tests pass.
+Resultat: 31 tests pass.
 
 ## Estat git
 
 Canvis locals pendents de commit/push:
 
-- `director.js`
 - `director-ui.js`
 - `index.html`
 - `main.js`
 - `styles.css`
-- `tests/director.test.mjs`
 - `tests/project-wiring.test.mjs`
 - `docs/HANDOFF.md`
 - `docs/STATUS.md`
@@ -70,7 +79,7 @@ Canvis locals pendents de commit/push:
 
 ## Properes passes recomanades
 
-1. Verificació visual ràpida del panell Director després de la simplificació.
+1. Verificació visual ràpida del panell Director després del trasllat de controls generals.
 2. Decidir si els rombos s’han de veure només dins la pestanya `Director`.
 3. Millora pendent guardada: veure clarament `temps`, `valor` i `easing` dels keyframes.
 
@@ -86,5 +95,5 @@ L’inspector d’escena queda reduït a `Afegeix` i `Elimina`.
 
 ## Riscos / notes
 
-- `Hold` i `Reverse` continuen existint; no són live, però encara poden ser conceptualment confusos.
+- `Reverse` i `Loop` continuen sent globals del Director, no per-escena.
 - La documentació històrica de `docs/superpowers/` encara parla de live recording perquè és l’especificació original, no l’estat actual del producte.

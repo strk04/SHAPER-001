@@ -811,10 +811,6 @@ body[data-director-collapsed] .director-dock { height: auto; }
 body[data-director-collapsed] #directorTimeline { display: none; }
 body[data-director-collapsed][data-director-open] .stage { padding-bottom: 52px; }
 
-.director-transport {
-  display: flex; gap: var(--space-1); margin-bottom: var(--space-2); flex-wrap: wrap;
-}
-
 .director-scenes { display: flex; min-height: 44px; }
 
 /* Contrast fix: boundaries on the dark dock use --rule-on-dark, never --ink-3 */
@@ -854,11 +850,18 @@ body[data-nav-collapsed] .director-dock { left: var(--sidebar-width); }
 
 /* Scene action + behavior palette buttons (in sidebar, not dock) */
 .director-scene-actions,
-.director-behavior-palette {
+.director-behavior-palette,
+.director-general-actions {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-1);
   margin: var(--space-2) 0;
+}
+
+.director-general {
+  border-top: 1px solid var(--paper-3);
+  margin-top: var(--space-3);
+  padding-top: var(--space-2);
 }
 
 /* Behavior items */

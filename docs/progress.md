@@ -1,5 +1,18 @@
 # Progress — SHAPER 001
 
+## 2026-06-29 — Controls generals del Director a la columna 2
+
+### Fet
+- Eliminats `Atura` i `Hold` de la UI i del wiring de `main.js`.
+- `Reverse`, `Loop` i `Timeline` es mouen al final de la columna 2 com a bloc general del Director.
+- El dock inferior queda reduït a timeline + resize handle; s’elimina també el CSS antic de `director-transport`.
+- Afegit test de wiring per garantir que aquests controls ja no viuen al dock i que `Atura`/`Hold` no existeixen.
+- Verificació completa: `node --test tests/*.test.mjs` → 31 pass; `node --check main.js`, `director.js`, `director-ui.js` OK.
+
+### Pendent
+- Validació visual ràpida del nou bloc `General` dins Director.
+- Decidir si els rombos d’automatització s’han de veure només a la pestanya `Director`.
+
 ## 2026-06-23 — Documentació tècnica del sistema
 
 ### Fet

@@ -91,6 +91,14 @@ export function mountDirectorUI({
     <label class="sr-only" for="directorPlayhead">Temps del Director</label>
     <input id="directorPlayhead" type="range" min="0" max="0" step="0.01" value="0" aria-valuetext="0.00 s de 0.00 s">
     <div id="directorSceneEditArea"></div>
+    <div class="director-general" role="group" aria-label="Opcions generals del Director">
+      <h4 class="panel-title">General</h4>
+      <div class="director-general-actions">
+        <button type="button" id="directorReverse" aria-pressed="false">Reverse</button>
+        <button type="button" id="directorLoop" aria-pressed="true">Loop</button>
+        <button type="button" id="directorCollapse" aria-expanded="true" aria-controls="directorTimeline">Timeline</button>
+      </div>
+    </div>
     <div id="directorStatus" aria-live="polite" class="sr-only"></div>
   `;
 
@@ -106,6 +114,9 @@ export function mountDirectorUI({
   const timeOutput  = inspector.querySelector('#directorTimeOutput');
   const playhead    = inspector.querySelector('#directorPlayhead');
   const sceneEditEl = inspector.querySelector('#directorSceneEditArea');
+  const reverseBtn  = inspector.querySelector('#directorReverse');
+  const loopBtn     = inspector.querySelector('#directorLoop');
+  const collapseBtn = inspector.querySelector('#directorCollapse');
   const scenesEl    = timeline.querySelector('#directorScenes');
   const lanesEl     = timeline.querySelector('#directorLanes');
 
@@ -395,6 +406,10 @@ export function mountDirectorUI({
 
     // Active scene name
     sceneNameEl.textContent = vm.activeScene ? vm.activeScene.name : '';
+
+    if (reverseBtn) reverseBtn.setAttribute('aria-pressed', String((state.directorRate ?? 1) < 0));
+    if (loopBtn) loopBtn.setAttribute('aria-pressed', String(vm.director.loop !== false));
+    if (collapseBtn) collapseBtn.setAttribute('aria-expanded', String(!document.body.hasAttribute('data-director-collapsed')));
 
     // Time output
     const time = vm.time ?? 0;

@@ -1561,31 +1561,6 @@ function wireDirector() {
     });
   }
 
-  // Stop button
-  const stopBtn = $('directorStop');
-  if (stopBtn) {
-    stopBtn.addEventListener('click', () => {
-      pause();
-      state.directorTime = 0;
-      render(0);
-      directorUI.render();
-    });
-  }
-
-  // Hold (play/pause) toggle
-  const holdBtn = $('directorHold');
-  if (holdBtn) {
-    holdBtn.addEventListener('click', () => {
-      if (playing) {
-        pause();
-        holdBtn.setAttribute('aria-pressed', 'true');
-      } else {
-        play();
-        holdBtn.setAttribute('aria-pressed', 'false');
-      }
-    });
-  }
-
   // Reverse direction toggle
   const reverseBtn = $('directorReverse');
   if (reverseBtn) {

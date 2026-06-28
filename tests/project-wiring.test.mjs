@@ -40,3 +40,23 @@ test('director scene UI keeps only add and delete actions', async () => {
   assert.doesNotMatch(ui, /data-director-action="left"/);
   assert.doesNotMatch(ui, /data-director-action="right"/);
 });
+
+test('director general controls live in column 2, not in dock transport', async () => {
+  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  const ui = await readFile(new URL('../director-ui.js', import.meta.url), 'utf8');
+  const main = await readFile(new URL('../main.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(html, /id="directorStop"/);
+  assert.doesNotMatch(html, /id="directorHold"/);
+  assert.doesNotMatch(html, /id="directorReverse"/);
+  assert.doesNotMatch(html, /id="directorLoop"/);
+  assert.doesNotMatch(html, /id="directorCollapse"/);
+  assert.doesNotMatch(html, /director-transport/);
+  assert.match(ui, /id="directorReverse"/);
+  assert.match(ui, /id="directorLoop"/);
+  assert.match(ui, /id="directorCollapse"/);
+  assert.match(main, /directorReverse/);
+  assert.match(main, /directorLoop/);
+  assert.match(main, /directorCollapse/);
+  assert.doesNotMatch(main, /directorStop/);
+  assert.doesNotMatch(main, /directorHold/);
+});

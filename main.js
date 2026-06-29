@@ -714,11 +714,8 @@ function activatePanel(panelId) {
     scheduleRender();
   }
 
-  // Director dock open/close
   const directorOpen = panelId === 'panel-director';
-  document.body.toggleAttribute('data-director-open', directorOpen);
-  const dock = $('directorDock');
-  if (dock) dock.hidden = !directorOpen;
+  document.body.toggleAttribute('data-director-panel-active', directorOpen);
   if (directorOpen) { directorUI?.render(); }
   resizeCanvas();
 
@@ -1515,49 +1512,6 @@ function wireDirector() {
       replaceDirectorScene(upsertKeyframe(scene, path, { time: localTime, value, easing: kind === 'hold' ? 'hold' : 'linear' }));
     },
   });
-
-  const resizeHandle = $('directorResize');
-  let resizeStart = null;
-  if (resizeHandle) {
-    resizeHandle.addEventListener('pointerdown', (event) => {
-      resizeStart = { y: event.clientY, height: $('directorDock').getBoundingClientRect().height };
-      resizeHandle.setPointerCapture(event.pointerId);
-    });
-    resizeHandle.addEventListener('pointermove', (event) => {
-      if (!resizeStart) return;
-      const height = Math.max(140, Math.min(480, resizeStart.height + resizeStart.y - event.clientY));
-      document.body.style.setProperty('--director-dock-height', `${height}px`);
-      resizeHandle.setAttribute('aria-valuenow', String(Math.round(height)));
-      resizeCanvas();
-    });
-    resizeHandle.addEventListener('pointerup', () => { resizeStart = null; });
-    resizeHandle.addEventListener('pointercancel', () => { resizeStart = null; });
-    resizeHandle.addEventListener('keydown', (event) => {
-      if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
-      const current = Number(resizeHandle.getAttribute('aria-valuenow')) || 220;
-      const height = Math.max(140, Math.min(480, current + (event.key === 'ArrowUp' ? 10 : -10)));
-      document.body.style.setProperty('--director-dock-height', `${height}px`);
-      resizeHandle.setAttribute('aria-valuenow', String(height));
-      resizeCanvas();
-      event.preventDefault();
-    });
-  }
-
-  // Collapse toggle
-  const collapseBtn = $('directorCollapse');
-  if (collapseBtn) {
-    collapseBtn.addEventListener('click', () => {
-      const collapsed = document.body.hasAttribute('data-director-collapsed');
-      if (collapsed) {
-        document.body.removeAttribute('data-director-collapsed');
-        collapseBtn.setAttribute('aria-expanded', 'true');
-      } else {
-        document.body.setAttribute('data-director-collapsed', '');
-        collapseBtn.setAttribute('aria-expanded', 'false');
-      }
-      resizeCanvas();
-    });
-  }
 
   // Reverse direction toggle
   const reverseBtn = $('directorReverse');

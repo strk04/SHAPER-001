@@ -4,43 +4,42 @@ _Actualitzat: 2026-06-29_
 
 ## Estat general
 
-Projecte vanilla JS zero-build. La URL canònica live continua sent `/shaper/` dins Pixel Perfect.
+Projecte vanilla JS zero-build. Flux habitual de publicació:
 
-- **Live:** https://q-pp-001.vercel.app/shaper/
-- **Repo:** https://github.com/strk04/SHAPER-001
-- **Deploy habitual:** editar a `17 SHAPER 001/` → copiar a `02 Pixel Perfect/shaper/` → push PP001
+- editar a `17 SHAPER 001/`
+- sincronitzar a `02 Pixel Perfect/shaper/`
+- commit + push als dos repos
 
 ## Motion Director
 
-Director està implementat localment com a sistema d’escenes amb:
+Director està simplificat per a ús no-live i actualment inclou:
 
+- activació global
+- escenes
 - durada per escena
 - transició + easing per escena
-- un únic moviment visible per escena, triat amb desplegable
-- el moviment seleccionat desplega els seus ajustos i paràmetres
+- un únic moviment visible per escena
+- ajustos del moviment a la columna 2
 - keyframes / automatització
-- timeline al dock
-- controls globals (`Reverse`, `Loop`, `Timeline`) al final de la columna 2
-- export offline frame-exact
-- accions d'escena mínimes (`Nova escena`, `Eliminar`)
-- unitats de durada compactes (`seg`) inline al costat dels dos camps
-- camps de durada amb amplada comuna fixa
-- hi ha una spec pendent de validació per substituir el dock del timeline per una versió inline sota el canvas
+- controls globals `Reverse` i `Loop`
+- timeline inline sota el canvas, a la columna 3
 
-La sessió actual ha eliminat la capa de live performance:
+Ja no hi ha:
 
-- no hi ha `ATTRACT`, `REPEL`, `EXPLODE`
-- no hi ha `REC`
-- no hi ha live pads ni gravació de gestos
-- no hi ha `Atura` ni `Hold`
-- la columna 2 s’ha simplificat a activació global + `Nova escena` + fitxa única de l’escena activa
+- `ATTRACT`, `REPEL`, `EXPLODE`
+- `REC`
+- `Atura`
+- `Hold`
+- dock inferior de timeline
+- resize handle del timeline
+- botó `Timeline` a la columna 2
 
 ## Verificació actual
 
 Última verificació executada el 2026-06-29:
 
 ```bash
-node --test tests/*.test.mjs   # 33 pass
+node --test tests/*.test.mjs   # 34 pass
 node --check main.js
 node --check director.js
 node --check director-ui.js
@@ -48,7 +47,6 @@ node --check director-ui.js
 
 ## Pendent
 
-- Verificació visual del flux simplificat de Director.
-- Decidir si els rombos d’automatització s’han d’amagar fora de la pestanya `Director`.
-- Valorar si el desplegable `Moviment` necessita també opció “cap”.
-- Fer visible el valor dels keyframes seleccionats.
+- Validació visual ràpida del timeline inline nou.
+- Decidir si més endavant la timeline ha de mostrar keyframes de totes les escenes o només de l’escena activa.
+- Millora futura pendent: inspecció més clara de valors/easing dels keyframes.

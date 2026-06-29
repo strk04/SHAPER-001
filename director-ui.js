@@ -58,6 +58,23 @@ const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 }[char]));
 
+const shortSceneLabel = (index) => `E${String(index + 1).padStart(2, '0')}`;
+
+const keyframeLabel = (path) => {
+  if (path.startsWith('param:')) return path.slice(6);
+  if (path.startsWith('behavior:')) return path.split(':')[2] || path;
+  return path;
+};
+
+const keyframeValue = (value) => {
+  if (typeof value === 'number') {
+    const rounded = Math.round(value * 100) / 100;
+    return Number.isInteger(rounded) ? String(rounded) : String(rounded);
+  }
+  if (value == null || value === '') return '—';
+  return String(value);
+};
+
 // ── DOM Mount ────────────────────────────────────────────────────────────────
 
 /**
@@ -90,7 +107,6 @@ export function mountDirectorUI({
       <div class="director-general-actions">
         <button type="button" id="directorReverse" aria-pressed="false">Reverse</button>
         <button type="button" id="directorLoop" aria-pressed="true">Loop</button>
-        <button type="button" id="directorCollapse" aria-expanded="true" aria-controls="directorTimeline">Timeline</button>
       </div>
     </div>
     <div id="directorStatus" aria-live="polite" class="sr-only"></div>
@@ -98,8 +114,13 @@ export function mountDirectorUI({
 
   // ── Timeline ───────────────────────────────────────────────────────────────
   timeline.innerHTML = `
-    <div class="director-scenes" role="radiogroup" aria-label="Escenes" id="directorScenes"></div>
-    <div id="directorLanes" class="director-lanes"></div>
+    <div class="director-inline-timeline">
+      <div class="director-scenes-wrap">
+        <div class="director-scenes" role="radiogroup" aria-label="Escenes" id="directorScenes"></div>
+        <div id="directorPlayhead" class="director-playhead" aria-hidden="true"></div>
+      </div>
+      <div id="directorLanes" class="director-lanes"></div>
+    </div>
   `;
 
   // Element refs
@@ -107,8 +128,8 @@ export function mountDirectorUI({
   const sceneEditEl = inspector.querySelector('#directorSceneEditArea');
   const reverseBtn  = inspector.querySelector('#directorReverse');
   const loopBtn     = inspector.querySelector('#directorLoop');
-  const collapseBtn = inspector.querySelector('#directorCollapse');
   const scenesEl    = timeline.querySelector('#directorScenes');
+  const playheadEl  = timeline.querySelector('#directorPlayhead');
   const lanesEl     = timeline.querySelector('#directorLanes');
 
   // ── Listener: enabled checkbox ─────────────────────────────────────────────
@@ -190,7 +211,7 @@ export function mountDirectorUI({
     const { scenes, activeScene, duration } = vm;
     scenesEl.innerHTML = '';
 
-    scenes.forEach((scene) => {
+    scenes.forEach((scene, index) => {
       const isChecked = scene.id === activeScene.id;
       const pct = duration > 0 ? (scene.duration / duration) * 100 : (100 / scenes.length);
 
@@ -203,12 +224,8 @@ export function mountDirectorUI({
       if (isChecked) btn.setAttribute('aria-current', 'true');
       btn.setAttribute('tabindex', isChecked ? '0' : '-1');
       btn.style.width = `${pct}%`;
-
-      if (isChecked) {
-        btn.innerHTML = `<span class="director-scene-dot" aria-hidden="true">●</span>${escapeHtml(scene.name)}`;
-      } else {
-        btn.textContent = scene.name;
-      }
+      btn.setAttribute('aria-label', `${scene.name}, ${scene.duration.toFixed(1)} segons`);
+      btn.innerHTML = `<span class="director-scene-label">${shortSceneLabel(index)}</span>`;
 
       btn.addEventListener('click', () => {
         onSelectScene(scene.id);
@@ -216,6 +233,11 @@ export function mountDirectorUI({
 
       scenesEl.appendChild(btn);
     });
+
+    if (playheadEl) {
+      const pct = duration > 0 ? Math.max(0, Math.min(100, ((vm.time ?? 0) / duration) * 100)) : 0;
+      playheadEl.style.left = `${pct}%`;
+    }
   }
 
   // Arrow-key navigation on the radiogroup container
@@ -346,32 +368,52 @@ export function mountDirectorUI({
   }
 
   // ── Build automation lanes in timeline ────────────────────────────────────
-  function buildLanes(active, localTime) {
+  function buildLanes(vm, active, localTime) {
     if (!active || !lanesEl) return;
     const lt = localTime ?? 0;
-    const lanes = Object.entries(active.automations).map(([path, frames]) => {
-      const label = path.startsWith('param:') ? path.slice(6)
-        : path.startsWith('behavior:') ? path.split(':').slice(1).join(' · ')
-        : path;
-      const sorted = [...frames].sort((a, b) => a.time - b.time);
-      const buttons = sorted.map((frame) => {
-        const isCurrent = Math.abs(frame.time - lt) <= 0.0001;
-        const valStr = typeof frame.value === 'number' ? ` = ${frame.value.toFixed(2)}` : (frame.value != null ? ` = ${frame.value}` : '');
-        return `<button type="button" class="director-keyframe${isCurrent ? ' is-current' : ''}"
-          style="left:${(frame.time / active.duration) * 100}%"
-          data-keyframe-path="${escapeHtml(path)}"
-          data-keyframe-time="${frame.time}"
-          data-current="${isCurrent}"
-          aria-label="Elimina keyframe ${escapeHtml(label)}${escapeHtml(valStr)} a ${frame.time.toFixed(2)} s">
-          <span aria-hidden="true"></span>
-        </button>`;
-      }).join('');
-      return `<div class="director-lane" data-lane-path="${escapeHtml(path)}">
-        <span class="director-lane-label">${escapeHtml(label)}</span>
-        <div class="director-keyframes" tabindex="-1">${buttons}</div>
-      </div>`;
+    const total = vm.duration || active.duration || 1;
+    const entries = Object.entries(active.automations).flatMap(([path, frames]) => {
+      const label = keyframeLabel(path);
+      return [...frames]
+        .sort((a, b) => a.time - b.time)
+        .map((frame) => ({
+          path,
+          time: frame.time,
+          isCurrent: Math.abs(frame.time - lt) <= 0.0001,
+          label,
+          value: keyframeValue(frame.value),
+          left: ((active.start + frame.time) / total) * 100,
+        }));
+    }).sort((a, b) => a.left - b.left || a.time - b.time);
+
+    if (!entries.length) {
+      lanesEl.innerHTML = '<p class="director-empty-state">Sense rombos en aquesta escena.</p>';
+      return;
+    }
+
+    const rows = [];
+    const minGap = 9;
+    const buttons = entries.map((entry) => {
+      let row = rows.findIndex((lastLeft) => entry.left - lastLeft >= minGap);
+      if (row === -1) {
+        row = rows.length;
+        rows.push(entry.left);
+      } else {
+        rows[row] = entry.left;
+      }
+      return `<button type="button" class="director-keyframe${entry.isCurrent ? ' is-current' : ''}"
+        style="left:${entry.left}%; --director-keyframe-row:${row};"
+        data-keyframe-path="${escapeHtml(entry.path)}"
+        data-keyframe-time="${entry.time}"
+        data-current="${entry.isCurrent}"
+        aria-label="Elimina keyframe ${escapeHtml(entry.label)} ${escapeHtml(entry.value)} a ${entry.time.toFixed(2)} s">
+        <span aria-hidden="true" class="director-keyframe-diamond"></span>
+        <span class="director-keyframe-label">${escapeHtml(entry.label)}</span>
+        <span class="director-keyframe-value">${escapeHtml(entry.value)}</span>
+      </button>`;
     }).join('');
-    lanesEl.innerHTML = lanes;
+
+    lanesEl.innerHTML = `<div class="director-keyframes" style="--director-keyframe-rows:${Math.max(rows.length, 1)}" tabindex="-1">${buttons}</div>`;
   }
 
   // ── render() ──────────────────────────────────────────────────────────────
@@ -388,7 +430,6 @@ export function mountDirectorUI({
 
     if (reverseBtn) reverseBtn.setAttribute('aria-pressed', String((state.directorRate ?? 1) < 0));
     if (loopBtn) loopBtn.setAttribute('aria-pressed', String(vm.director.loop !== false));
-    if (collapseBtn) collapseBtn.setAttribute('aria-expanded', String(!document.body.hasAttribute('data-director-collapsed')));
 
     // Rebuild scene radiogroup
     buildScenes(vm);
@@ -398,7 +439,7 @@ export function mountDirectorUI({
     buildSceneInspector(vm.activeScene);
 
     // Rebuild automation lanes
-    buildLanes(vm.activeScene, localTime);
+    buildLanes(vm, vm.activeScene, localTime);
   }
 
   // ── setTime(time, sceneId) ─────────────────────────────────────────────────

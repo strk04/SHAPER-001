@@ -13,8 +13,11 @@ test('director UI is wired in HTML and CSS', async () => {
   const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
   const engine = await readFile(new URL('../engine.js', import.meta.url), 'utf8');
   assert.match(html, /id="panel-director"/);
-  assert.match(html, /id="directorDock"/);
-  assert.match(css, /\.director-dock/);
+  assert.match(html, /id="directorTimelineHost"/);
+  assert.match(html, /id="directorTimeline"/);
+  assert.doesNotMatch(html, /id="directorDock"/);
+  assert.doesNotMatch(html, /id="directorResize"/);
+  assert.match(css, /\.director-timeline-host/);
   assert.match(engine, /applyMotionBehaviors/);
   assert.match(engine, /clockMs/);
 });
@@ -53,10 +56,12 @@ test('director general controls live in column 2, not in dock transport', async 
   assert.doesNotMatch(html, /director-transport/);
   assert.match(ui, /id="directorReverse"/);
   assert.match(ui, /id="directorLoop"/);
-  assert.match(ui, /id="directorCollapse"/);
+  assert.doesNotMatch(ui, /id="directorCollapse"/);
   assert.match(main, /directorReverse/);
   assert.match(main, /directorLoop/);
-  assert.match(main, /directorCollapse/);
+  assert.doesNotMatch(main, /directorCollapse/);
+  assert.doesNotMatch(main, /directorResize/);
+  assert.doesNotMatch(main, /directorDock/);
   assert.doesNotMatch(main, /directorStop/);
   assert.doesNotMatch(main, /directorHold/);
 });
@@ -97,4 +102,18 @@ test('director movement selection still exposes movement parameters and adjustme
   assert.match(main, /updateBehavior/);
   assert.match(main, /onUpdateBehavior:/);
   assert.match(css, /\.director-movement-settings/);
+});
+
+test('director timeline is inline under canvas and shows keyframe label plus value', async () => {
+  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  const ui = await readFile(new URL('../director-ui.js', import.meta.url), 'utf8');
+  const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
+  assert.match(html, /<section id="directorTimelineHost" class="director-timeline-host" aria-label="Timeline del Director">/);
+  assert.match(ui, /director-inline-timeline/);
+  assert.match(ui, /director-keyframe-label/);
+  assert.match(ui, /director-keyframe-value/);
+  assert.doesNotMatch(ui, /director-lane-label/);
+  assert.match(css, /\.director-inline-timeline/);
+  assert.match(css, /\.director-keyframe-label/);
+  assert.match(css, /\.director-keyframe-value/);
 });

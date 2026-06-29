@@ -1,5 +1,24 @@
 # Progress — SHAPER 001
 
+## 2026-06-29 — Timeline inline implementat sota el canvas
+
+### Fet
+- Implementat el canvi de timeline del Director: fora dock, dins la columna 3, sota el canvas i a tota amplada.
+- Eliminats `directorDock`, `directorResize` i `directorCollapse` de l’HTML, CSS i wiring.
+- El botó `Timeline` desapareix de la columna 2; `Reverse` i `Loop` continuen com a controls globals.
+- `director-ui.js` renderitza ara una timeline mínima amb:
+  - trams d’escena `E01`, `E02`, `E03`...
+  - indicador de temps a la línia principal
+  - rombos mostrats com `paràmetre + valor`
+- Els keyframes es posicionen dins el tram global de l’escena activa i s’apilen verticalment quan cal.
+- Afegit pla d’implementació `docs/superpowers/plans/2026-06-29-director-inline-timeline-implementation.md`.
+- Afegits/actualitzats tests de wiring per blindar el timeline inline.
+- Verificació completa: `node --test tests/*.test.mjs` → 34 pass; `node --check main.js`, `director.js`, `director-ui.js` OK.
+
+### Pendent
+- Validació visual ràpida dins l’app.
+- Decidir si en una iteració futura s’han de veure keyframes de totes les escenes alhora.
+
 ## 2026-06-29 — Spec del timeline inline sota el canvas
 
 ### Fet

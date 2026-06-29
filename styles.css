@@ -788,57 +788,161 @@ output { color: var(--ink); }
   opacity: 0.7;
 }
 
-/* ── Director Dock ──────────────────────────────────────────────────────── */
-body[data-director-open] .stage { padding-bottom: var(--director-dock-height, 220px); }
-
-.director-dock {
-  position: fixed; z-index: 20; right: 0; bottom: 0;
-  left: calc(var(--app-menu-width) + var(--sidebar-width));
-  height: var(--director-dock-height, 220px);
-  padding: var(--space-3); overflow: auto;
-  border-top: 1px solid var(--rule);
-  background: var(--ink); color: var(--paper);
+/* ── Director timeline inline ───────────────────────────────────────────── */
+.stage {
+  grid-template-rows: minmax(0, 1fr) auto;
 }
 
-.director-dock[hidden] { display: none; }
-
-.director-resize {
-  position: absolute; top: 0; right: 0; left: 0; width: 100%; height: 8px;
-  padding: 0; border: 0; cursor: ns-resize; background: transparent;
+.director-timeline-host {
+  padding: var(--space-5) 26px var(--space-4);
+  background: var(--paper);
+  border-top: 1px solid var(--paper-3);
 }
 
-body[data-director-collapsed] .director-dock { height: auto; }
-body[data-director-collapsed] #directorTimeline { display: none; }
-body[data-director-collapsed][data-director-open] .stage { padding-bottom: 52px; }
+body:not([data-director-panel-active]) .director-timeline-host {
+  display: none;
+}
 
-.director-scenes { display: flex; min-height: 44px; }
+.director-inline-timeline {
+  display: grid;
+  gap: var(--space-5);
+}
 
-/* Contrast fix: boundaries on the dark dock use --rule-on-dark, never --ink-3 */
+.director-scenes-wrap {
+  position: relative;
+}
+
+.director-scenes {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  min-height: 44px;
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--ink);
+}
+
 .director-scene {
-  min-width: 48px; border: 1px solid var(--rule-on-dark);
-  color: var(--paper); background: transparent;
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink-4);
+  text-transform: none;
+  letter-spacing: 0;
 }
 
+.director-scene::before,
+.director-scene::after {
+  content: "";
+  position: absolute;
+  top: calc(var(--space-5) * -1 - 1px);
+  width: 2px;
+  height: 18px;
+  background: var(--ink);
+}
+
+.director-scene::before {
+  left: 0;
+}
+
+.director-scene::after {
+  right: 0;
+}
+
+.director-scene:hover,
 .director-scene.is-active {
-  background: var(--paper); color: var(--ink);
-  border-width: 2px; border-color: var(--paper); font-weight: 600;
+  background: transparent;
+  color: var(--ink);
 }
 
-.director-scene-dot { margin-right: 0.35em; }
-
-/* Dock-scoped focus ring: reverse rings so they show on black dock AND white active buttons */
-.director-dock :focus-visible {
-  box-shadow: 0 0 0 2px var(--ink), 0 0 0 4px var(--paper);
+.director-scene-label {
+  font-size: clamp(1.8rem, 2.2vw, 2.7rem);
+  line-height: 1;
 }
 
-/* Range on dark dock: thumb/filled track in --paper (21:1), empty track #8a8a8a */
-#directorPlayhead { width: 100%; accent-color: var(--paper); }
+.director-playhead {
+  position: absolute;
+  top: calc(var(--space-5) - 12px);
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--paper);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
 
-body[data-nav-collapsed] .director-dock { left: var(--sidebar-width); }
+.director-lanes {
+  position: relative;
+}
+
+.director-keyframes {
+  position: relative;
+  min-height: calc(var(--director-keyframe-rows, 1) * 78px);
+}
+
+.director-keyframe {
+  position: absolute;
+  top: calc(var(--director-keyframe-row, 0) * 78px);
+  transform: translateX(-50%);
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-width: 72px;
+  min-height: 56px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.director-keyframe:hover {
+  background: transparent;
+  color: var(--ink);
+}
+
+.director-keyframe-diamond::before {
+  content: "◇";
+  display: block;
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.director-keyframe.is-current .director-keyframe-diamond::before {
+  content: "◆";
+}
+
+.director-keyframe-label,
+.director-keyframe-value {
+  display: block;
+  line-height: 1.05;
+}
+
+.director-keyframe-label {
+  font-size: clamp(0.85rem, 1.1vw, 1rem);
+}
+
+.director-keyframe-value {
+  color: var(--ink);
+  font-size: clamp(0.95rem, 1.5vw, 1.2rem);
+}
+
+.director-empty-state {
+  margin: 0;
+  color: var(--ink-4);
+}
 
 @media (max-width: 860px) {
-  .director-dock { position: static; width: 100%; height: auto; }
-  body[data-director-open] .stage { padding-bottom: 0; }
+  .director-timeline-host {
+    padding-inline: var(--space-4);
+  }
 }
 
 /* Director inspector elements */
@@ -957,51 +1061,3 @@ body:not([data-director-enabled]) .automation-key-button { display: none; }
 }
 .automation-key-button[aria-pressed="false"] span::before { content: "◇"; }
 .automation-key-button[aria-pressed="true"]  span::before { content: "◆"; }
-
-/* Automation lanes in timeline (dark dock) */
-.director-lanes {
-  margin-top: var(--space-2);
-}
-.director-lane {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: 28px;
-  border-bottom: 1px solid var(--rule-on-dark);
-  font-size: var(--text-xs);
-  color: var(--paper);
-}
-.director-lane span {
-  min-width: 120px;
-  flex-shrink: 0;
-}
-.director-keyframes {
-  position: relative;
-  flex: 1;
-  height: 24px;
-}
-/* Keyframe diamond button: min 24×24 touch target, WCAG 2.5.8 */
-.director-keyframe {
-  position: absolute;
-  top: 0;
-  transform: translateX(-50%);
-  min-width: 24px;
-  min-height: 24px;
-  padding: 0;
-  border: 1px solid var(--rule-on-dark);
-  background: transparent;
-  color: var(--paper);
-  cursor: pointer;
-  font-size: 0.75rem;
-  line-height: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.director-keyframe span::before { content: "◇"; }
-.director-keyframe[data-current="true"] span::before { content: "◆"; }
-.director-keyframe[data-current="true"] { color: var(--paper); border-color: var(--paper); }
-.director-keyframe:hover { background: var(--paper); color: var(--ink); }
-.director-keyframe:focus-visible {
-  box-shadow: 0 0 0 2px var(--ink), 0 0 0 4px var(--paper);
-}

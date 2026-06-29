@@ -66,6 +66,34 @@ test('buildSVG serializes surface paths between text layers', () => {
   assert.match(svg, /<g[^>]*data-layer="text-back"[\s\S]*<g data-layer="surface"[\s\S]*<g[^>]*data-layer="text-front"/);
 });
 
+test('3D guides morph with the surface blend', () => {
+  const atBase = buildScene({
+    ...baseParams,
+    guides: true,
+    form: 'plane',
+    morphForm: 'sphere',
+    morphT: 0,
+  }, 640, 480);
+  const atTarget = buildScene({
+    ...baseParams,
+    guides: true,
+    form: 'plane',
+    morphForm: 'sphere',
+    morphT: 1,
+  }, 640, 480);
+  assert.ok(atBase.guides.length > 0);
+  assert.ok(atTarget.guides.length > 0);
+  assert.notEqual(atBase.guides, atTarget.guides);
+});
+
+test('buildSVG serializes guides behind or in front of the form', () => {
+  const behind = buildSVG({ ...baseParams, guides: true, guideLayer: 'back' }, 640, 480);
+  assert.match(behind, /data-layer="guides-back"[\s\S]*data-layer="text-back"[\s\S]*data-layer="surface"/);
+
+  const front = buildSVG({ ...baseParams, guides: true, guideLayer: 'front' }, 640, 480);
+  assert.match(front, /data-layer="surface"[\s\S]*data-layer="text-front"[\s\S]*data-layer="guides-front"/);
+});
+
 test('surface occlusion removes back-facing glyphs while preserving the surface', () => {
   const scene = buildScene({ ...baseParams, surfaceOcclusion: true }, 640, 480);
   assert.ok(scene.surfaces.length > 0);

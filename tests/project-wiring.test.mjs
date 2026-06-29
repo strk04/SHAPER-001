@@ -40,6 +40,18 @@ test('surface color controls are wired through UI state and presets', async () =
   assert.match(main, /resetFormViewDefaults\(\)/);
 });
 
+test('guide layer control is wired through UI state and presets', async () => {
+  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  const main = await readFile(new URL('../main.js', import.meta.url), 'utf8');
+  assert.match(html, /id="guideLayer"/);
+  assert.match(html, /value="back"[\s\S]*Darrere/);
+  assert.match(html, /value="front"[\s\S]*Davant/);
+  assert.match(main, /guideLayer:\s*'back'/);
+  assert.match(main, /\$\('guideLayer'\)\.addEventListener\('change'/);
+  assert.match(main, /'guideLayer'/);
+  assert.match(main, /\$\('guideLayer'\)\.value\s*=\s*state\.guideLayer/);
+});
+
 test('director excludes live performance controls', async () => {
   const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
   const main = await readFile(new URL('../main.js', import.meta.url), 'utf8');

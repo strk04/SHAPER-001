@@ -364,6 +364,7 @@ function read3DParams(params) {
     rainProb: num(params.rainProb, 0),
     rainSpeed: num(params.rainSpeed, 1),
     guides: !!params.guides,
+    guideLayer: params.guideLayer === 'front' ? 'front' : 'back',
     backfaceMirror: !!params.backfaceMirror,
     surfaceText: !!params.surfaceText,
     angleX: cam('angleX'),
@@ -1779,6 +1780,11 @@ function build3D(params, width, height) {
     P, glyphs, surfaces, fontSize, time, ax, ay, az, pulseScale, spd,
     width, height,
     instances,
+    formKey,
+    morphActive,
+    morphFrom,
+    morphTo,
+    morphMix,
   };
 }
 
@@ -1791,6 +1797,22 @@ function buildGuidesData(ctx) {
   const pj = (x, y, z) => {
     const rp = rotate3D({ x, y, z }, ax, ay, az);
     return project(rp, P, width, height);
+  };
+  const form = P.form === 'cluster' ? 'cube' : P.form;
+  const guideSurface = (u, v, inst = null) => {
+    const baseForm = ctx.morphActive ? ctx.morphFrom : form;
+    const a = surfaceMap(baseForm, u, v, P, inst);
+    if (!ctx.morphActive || ctx.morphMix <= 0) return a;
+    const b = surfaceMap(ctx.morphTo, u, v, P, inst);
+    const t = ctx.morphMix;
+    return {
+      x: a.x + (b.x - a.x) * t,
+      y: a.y + (b.y - a.y) * t,
+      z: a.z + (b.z - a.z) * t,
+      nx: a.nx + (b.nx - a.nx) * t,
+      ny: a.ny + (b.ny - a.ny) * t,
+      nz: a.nz + (b.nz - a.nz) * t,
+    };
   };
   const S = P.formSize, r = S / 2, h = S * P.aspect;
   let d = '';
@@ -1812,7 +1834,7 @@ function buildGuidesData(ctx) {
     let p = '';
     for (let i = 0; i <= steps; i++) {
       const t = i / steps;
-      const sm = surfaceMap(P.form, isV ? fixed : t, isV ? t : fixed, P, null);
+      const sm = guideSurface(isV ? fixed : t, isV ? t : fixed);
       const pr = pj(sm.x, sm.y, sm.z);
       p += (i === 0 ? 'M' : 'L') + pr.X.toFixed(2) + ' ' + pr.Y.toFixed(2);
     }
@@ -1828,7 +1850,8 @@ function buildGuidesData(ctx) {
     return s;
   };
 
-  const form = P.form === 'cluster' ? 'cube' : P.form;
+  if (ctx.morphActive) return isoGrid(4, 64);
+
   switch (form) {
     case 'cylinder': {
       d += ellipse(-h / 2, r) + ellipse(0, r) + ellipse(h / 2, r);
@@ -2507,6 +2530,7 @@ export function buildScene(params, width, height) {
     glyphs,
     surfaces: ctx.surfaces,
     guides: P.guides ? buildGuidesData(ctx) : '',
+    guideLayer: P.guideLayer,
     guideMeta: P.guideMeta,
     guideMetaData: P.guideMeta ? {
       formSize: Math.round(P.formSize),
@@ -2573,14 +2597,20 @@ export function buildSVG(params, width, height) {
     `<path d="${surfacePathSVG(surface)}" fill="${escXML(surface.color)}" opacity="${surface.opacity.toFixed(3)}"/>`
   ).join('');
 
-  const guides = scene.guides
+  const guidesPath = scene.guides
     ? `<path d="${scene.guides}" fill="none" stroke="${escXML(textColor)}" ` +
       `stroke-width="1" stroke-dasharray="4 4" opacity="0.5"/>`
+    : '';
+  const guidesBack = guidesPath && scene.guideLayer !== 'front'
+    ? `<g data-layer="guides-back">${guidesPath}</g>`
+    : '';
+  const guidesFront = guidesPath && scene.guideLayer === 'front'
+    ? `<g data-layer="guides-front">${guidesPath}</g>`
     : '';
 
   return (
     head +
-    guides +
+    guidesBack +
     `<g data-layer="text-back" font-family="${escXML(fontSpec.family)}" font-weight="${fontSpec.weight}" font-size="${fontSize}" fill="${escXML(textColor)}" text-anchor="middle">` +
     backText +
     `</g>` +
@@ -2590,6 +2620,7 @@ export function buildSVG(params, width, height) {
     `<g data-layer="text-front" font-family="${escXML(fontSpec.family)}" font-weight="${fontSpec.weight}" font-size="${fontSize}" fill="${escXML(textColor)}" text-anchor="middle">` +
     frontText +
     `</g>` +
+    guidesFront +
     `</svg>`
   );
 }
@@ -2611,8 +2642,8 @@ export function drawScene(ctx, scene, width, height, dpr) {
 
   // --- 3D ---
 
-  // Guides: dashed strokes under the text.
-  if (scene.guides) {
+  const drawGuides = () => {
+    if (!scene.guides) return;
     ctx.save();
     ctx.strokeStyle = scene.textColor;
     ctx.globalAlpha = 0.5;
@@ -2621,7 +2652,10 @@ export function drawScene(ctx, scene, width, height, dpr) {
     const path = new Path2D(scene.guides);
     ctx.stroke(path);
     ctx.restore();
-  }
+  };
+
+  // Guides can sit behind the form or above it.
+  if (scene.guideLayer !== 'front') drawGuides();
 
   // Glyphs use text-anchor:middle in SVG -> textAlign:center here; baseline
   // alphabetic matches SVG's default.
@@ -2687,6 +2721,8 @@ export function drawScene(ctx, scene, width, height, dpr) {
     if (!g.back) drawGlyph(g);
   }
   ctx.globalAlpha = 1;
+
+  if (scene.guideLayer === 'front') drawGuides();
 
   if (scene.guideMeta && scene.guideMetaData) {
     const md = scene.guideMetaData;

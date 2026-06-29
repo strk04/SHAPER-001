@@ -146,6 +146,7 @@ const state = {
   form: 'mobius',
   projection: 'isometric',
   guides: false,
+  guideLayer: 'back',
   backfaceMirror: false,
   surfaceText: true,
   regionSurface: true,
@@ -624,6 +625,8 @@ function updateEditorVisibility() {
   if (su3d) su3d.hidden = state.form !== 'custom-prism';
   const guideMetaRow = $('guideMetaRow');
   if (guideMetaRow) guideMetaRow.hidden = !state.guides;
+  const guideLayerRow = $('guideLayerRow');
+  if (guideLayerRow) guideLayerRow.hidden = !state.guides;
 
   const form = state.form;
   const visibleFormControls = new Set(FORM_3D_CONTROLS[form] || FORM_3D_CONTROLS.plane);
@@ -944,6 +947,10 @@ function wireControls() {
       scheduleRender();
     });
   }
+  $('guideLayer').addEventListener('change', (e) => {
+    state.guideLayer = e.target.value === 'front' ? 'front' : 'back';
+    scheduleRender();
+  });
   $('backfaceMirror').addEventListener('change', (e) => {
     state.backfaceMirror = e.target.checked;
     scheduleRender();
@@ -1322,7 +1329,7 @@ function capturePreset() {
   const snap = { v: 1 };
   Object.keys(SLIDERS).forEach((k) => { snap[k] = state[k]; });
   ['text', 'font', 'textColor', 'bgColor', 'surfaceColor', 'surfaceOcclusion', 'hardWrap',
-   'mode', 'form', 'projection', 'guides',
+   'mode', 'form', 'projection', 'guides', 'guideLayer',
    'backfaceMirror', 'surfaceText', 'regionSurface', 'regionCaps', 'regionVolume',
    'wrapMode', 'capsWrapMode', 'canvasW', 'canvasH',
    'opacityMode', 'blinkMode', 'blinkFade', 'sizeMode',
@@ -1363,6 +1370,7 @@ function applyPreset(p) {
   if (p.form       != null) { state.form       = p.form;       $('form').value       = p.form;       updateEditorVisibility(); }
   if (p.projection != null) { state.projection = p.projection; $('projection').value = p.projection; updateFovEnabled(); updateEditorVisibility(); }
   if (p.guides          != null) { state.guides          = p.guides;          $('guides').checked          = p.guides; }
+  if (p.guideLayer      != null) { state.guideLayer      = p.guideLayer === 'front' ? 'front' : 'back'; $('guideLayer').value = state.guideLayer; }
   if (p.backfaceMirror  != null) { state.backfaceMirror  = p.backfaceMirror;  $('backfaceMirror').checked  = p.backfaceMirror; }
   if (p.surfaceText     != null) { state.surfaceText      = p.surfaceText;     $('surfaceText').checked     = p.surfaceText; }
   if (p.regionSurface   != null) { state.regionSurface   = p.regionSurface;   const el=$('regionSurface');   if(el) el.checked = p.regionSurface; }
@@ -1752,6 +1760,7 @@ function init() {
   $('surfaceColor').value = state.surfaceColor;
   $('surfaceOcclusion').checked = state.surfaceOcclusion;
   $('guides').checked = state.guides;
+  $('guideLayer').value = state.guideLayer;
   $('backfaceMirror').checked = state.backfaceMirror;
   $('surfaceText').checked = state.surfaceText;
   const rSel = $('regionSurface'); if (rSel) rSel.checked = state.regionSurface;

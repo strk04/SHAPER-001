@@ -202,6 +202,14 @@ El panel no es construeix fins al primer click. ~2800 botons en 23 blocs → cos
 
 `18 SHAPER 002` és una còpia física de tots els fitxers de `17 SHAPER 001`. `.git` reinicialitzat buit (sense remote) per evitar push accidental a `strk04/SHAPER-001`. Les dues apps no comparteixen cap fitxer ni repositori.
 
+## 2026-06-29 — Guies durant morphing com a graella paramètrica
+
+Durant morphing, les guies especifiques de cada forma base queden substituides per una graella paramètrica comuna interpolada entre forma origen i forma desti.
+
+Racional: les guies especifiques de formes tancades (arestes, meridians, eixos, perfils) no comparteixen topologia entre totes les destinacions possibles. Una graella UV comuna manté continuitat visual i evita que les guies quedin congelades mentre la forma canvia.
+
+Conseqüència: sense morph actiu, cada forma conserva les seves guies actuals; amb morph actiu, la guia prioritza continuitat del blend per sobre de detalls singulars de cada forma.
+
 
 
 ## 2026-06-15 — Formes planes: dos bugs estructurals a `engine.js`

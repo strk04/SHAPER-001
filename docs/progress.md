@@ -527,3 +527,27 @@
 - Sincronitzat a `02 Pixel Perfect/shaper/`.
 - Pujat a `strk04/PIxel-Perfect` (`77fe08a`).
 - Verificat dins PP: `node --test tests/*.test.mjs` -> 13 pass, `node --check engine.js`, `node --check main.js`.
+
+---
+
+## 2026-06-29 — Guies amb morphing i capa frontal/posterior
+
+### Fet
+
+- Les guies 3D ara reben el mateix context de morphing que la superficie i la tipografia.
+- Quan hi ha morph actiu, les guies es dibuixen com una graella paramètrica interpolada entre forma origen i desti.
+- Afegit selector `Capa guies` amb opcions `Darrere` i `Davant`.
+- El canvas i l'export SVG respecten la capa triada amb `guides-back` o `guides-front`.
+- Els presets capturen i restauren `guideLayer`.
+- Afegits tests de motor per morphing/capes i tests de wiring UI/presets.
+
+### Verificat
+
+- `node --check engine.js`
+- `node --check main.js`
+- `node --test tests/*.test.mjs` -> 42 pass
+
+### Pixel Perfect
+
+- Sincronitzat a `02 Pixel Perfect/shaper/`.
+- Verificat dins PP: `node --test tests/*.test.mjs` -> 16 pass, `node --check engine.js`, `node --check main.js`.

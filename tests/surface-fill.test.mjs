@@ -94,6 +94,84 @@ test('buildSVG serializes guides behind or in front of the form', () => {
   assert.match(front, /data-layer="surface"[\s\S]*data-layer="text-front"[\s\S]*data-layer="guides-front"/);
 });
 
+test('guide and meta colors are independent from text color', () => {
+  const svg = buildSVG({
+    ...baseParams,
+    guides: true,
+    textColor: '#111111',
+    guideColor: '#ff00aa',
+  }, 640, 480);
+  assert.match(svg, /stroke="#ff00aa"/);
+
+  const originalPath2D = globalThis.Path2D;
+  globalThis.Path2D = class Path2D {
+    constructor(d) { this.d = d; }
+  };
+  try {
+    const calls = [];
+    const ctx = {
+      set fillStyle(value) { calls.push(['fillStyle', value]); },
+      get fillStyle() { return '#000'; },
+      set strokeStyle(value) { calls.push(['strokeStyle', value]); },
+      get strokeStyle() { return '#000'; },
+      set globalAlpha(value) { calls.push(['globalAlpha', value]); },
+      get globalAlpha() { return 1; },
+      set font(value) { calls.push(['font', value]); },
+      get font() { return ''; },
+      set textAlign(value) { calls.push(['textAlign', value]); },
+      get textAlign() { return 'left'; },
+      set textBaseline(value) { calls.push(['textBaseline', value]); },
+      get textBaseline() { return 'alphabetic'; },
+      set lineWidth(value) { calls.push(['lineWidth', value]); },
+      get lineWidth() { return 1; },
+      setTransform: () => {},
+      fillRect: () => {},
+      save: () => {},
+      restore: () => {},
+      setLineDash: () => {},
+      stroke: () => calls.push(['stroke']),
+      fillText: () => calls.push(['fillText']),
+      beginPath: () => {},
+      moveTo: () => {},
+      lineTo: () => {},
+      closePath: () => {},
+      fill: () => {},
+    };
+    drawScene(ctx, {
+      bgColor: '#fff',
+      textColor: '#111',
+      guideColor: '#ff00aa',
+      guideMetaColor: '#00aa55',
+      fontSize: 24,
+      fontSpec: { family: 'Courier', weight: '400' },
+      guides: 'M0 0L10 10',
+      guideLayer: 'front',
+      guideMeta: true,
+      guideMetaData: {
+        formSize: 320,
+        angleX: 0,
+        angleY: 0,
+        speed3d: 0,
+        fps: 60,
+        t: 0,
+      },
+      glyphs: [],
+      surfaces: [],
+      blinkMode: 'none',
+      blinkRate: 2,
+      blinkFade: 0,
+      accentMode: 'none',
+      accentColors: ['#111'],
+      clockMs: 0,
+    }, 640, 480, 1);
+
+    assert.ok(calls.some(([name, value]) => name === 'strokeStyle' && value === '#ff00aa'));
+    assert.ok(calls.some(([name, value]) => name === 'fillStyle' && value === '#00aa55'));
+  } finally {
+    globalThis.Path2D = originalPath2D;
+  }
+});
+
 test('front guides draw as a literal 2D layer over glyph transforms', () => {
   const originalPath2D = globalThis.Path2D;
   globalThis.Path2D = class Path2D {

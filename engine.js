@@ -2457,6 +2457,8 @@ export function buildScene(params, width, height) {
   const { fontSize, textColor, bgColor } = params;
   const fontSpec = resolveFontSpec(params.font);
   const P3 = read3DParams(params);
+  const guideColor = params.guideColor || textColor;
+  const guideMetaColor = params.guideMetaColor || textColor;
 
   // --- 3D path ---
   const ctx = build3D(params, width, height);
@@ -2527,6 +2529,8 @@ export function buildScene(params, width, height) {
   return {
     mode: '3d',
     bgColor, textColor, fontSize, fontSpec, width, height,
+    guideColor,
+    guideMetaColor,
     glyphs,
     surfaces: ctx.surfaces,
     guides: P.guides ? buildGuidesData(ctx) : '',
@@ -2598,7 +2602,7 @@ export function buildSVG(params, width, height) {
   ).join('');
 
   const guidesPath = scene.guides
-    ? `<path d="${scene.guides}" fill="none" stroke="${escXML(textColor)}" ` +
+    ? `<path d="${scene.guides}" fill="none" stroke="${escXML(scene.guideColor || textColor)}" ` +
       `stroke-width="1" stroke-dasharray="4 4" opacity="0.5"/>`
     : '';
   const guidesBack = guidesPath && scene.guideLayer !== 'front'
@@ -2646,7 +2650,7 @@ export function drawScene(ctx, scene, width, height, dpr) {
     if (!scene.guides) return;
     ctx.save();
     ctx.setTransform(d, 0, 0, d, 0, 0);
-    ctx.strokeStyle = scene.textColor;
+    ctx.strokeStyle = scene.guideColor || scene.textColor;
     ctx.globalAlpha = 0.5;
     ctx.lineWidth = 1;
     ctx.setLineDash([4, 4]);
@@ -2729,7 +2733,7 @@ export function drawScene(ctx, scene, width, height, dpr) {
     const md = scene.guideMetaData;
     const fs = scene.fontSpec;
     ctx.setTransform(d, 0, 0, d, 0, 0);
-    ctx.fillStyle = scene.textColor;
+    ctx.fillStyle = scene.guideMetaColor || scene.textColor;
     ctx.globalAlpha = 0.55;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';

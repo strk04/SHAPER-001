@@ -137,6 +137,8 @@ const state = {
   font: 'courier-regular',
   textColor: '#111111',
   bgColor: '#f4f4f4',
+  guideColor: '#111111',
+  guideMetaColor: '#111111',
   surfaceColor: '#d8d8d8',
   surfaceOcclusion: true,
   seed: 1,
@@ -867,6 +869,14 @@ function wireControls() {
     state.bgColor = e.target.value;
     scheduleRender();
   });
+  $('guideColor').addEventListener('input', (e) => {
+    state.guideColor = e.target.value;
+    scheduleRender();
+  });
+  $('guideMetaColor').addEventListener('input', (e) => {
+    state.guideMetaColor = e.target.value;
+    scheduleRender();
+  });
   $('surfaceColor').addEventListener('input', (e) => {
     state.surfaceColor = e.target.value;
     scheduleRender();
@@ -1328,7 +1338,7 @@ async function stopRecord() {
 function capturePreset() {
   const snap = { v: 1 };
   Object.keys(SLIDERS).forEach((k) => { snap[k] = state[k]; });
-  ['text', 'font', 'textColor', 'bgColor', 'surfaceColor', 'surfaceOcclusion', 'hardWrap',
+  ['text', 'font', 'textColor', 'bgColor', 'guideColor', 'guideMetaColor', 'surfaceColor', 'surfaceOcclusion', 'hardWrap',
    'mode', 'form', 'projection', 'guides', 'guideLayer',
    'backfaceMirror', 'surfaceText', 'regionSurface', 'regionCaps', 'regionVolume',
    'wrapMode', 'capsWrapMode', 'canvasW', 'canvasH',
@@ -1358,6 +1368,8 @@ function applyPreset(p) {
   if (p.font    != null) { state.font    = p.font;    $('font').value    = p.font; }
   if (p.textColor != null) { state.textColor = p.textColor; $('textColor').value = p.textColor; }
   if (p.bgColor   != null) { state.bgColor   = p.bgColor;   $('bgColor').value   = p.bgColor; }
+  if (p.guideColor != null) { state.guideColor = p.guideColor; $('guideColor').value = p.guideColor; }
+  if (p.guideMetaColor != null) { state.guideMetaColor = p.guideMetaColor; $('guideMetaColor').value = p.guideMetaColor; }
   if (p.surfaceColor != null) { state.surfaceColor = p.surfaceColor; $('surfaceColor').value = p.surfaceColor; }
   if (p.surfaceOcclusion != null) { state.surfaceOcclusion = p.surfaceOcclusion; $('surfaceOcclusion').checked = p.surfaceOcclusion; }
   if (p.hardWrap  != null) { state.hardWrap  = p.hardWrap;  $('hardWrap').checked  = p.hardWrap; }
@@ -1758,6 +1770,8 @@ function init() {
   $('form').value = state.form;
   $('projection').value = state.projection;
   $('surfaceColor').value = state.surfaceColor;
+  $('guideColor').value = state.guideColor;
+  $('guideMetaColor').value = state.guideMetaColor;
   $('surfaceOcclusion').checked = state.surfaceOcclusion;
   $('guides').checked = state.guides;
   $('guideLayer').value = state.guideLayer;

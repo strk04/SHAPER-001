@@ -572,3 +572,26 @@
 
 - Sincronitzat a `02 Pixel Perfect/shaper/`.
 - Verificat dins PP: `node --test tests/*.test.mjs` -> 17 pass, `node --check engine.js`, `node --check main.js`.
+
+---
+
+## 2026-06-29 — Colors propis per guies i meta
+
+### Fet
+
+- Afegits controls `Color de guies` i `Color meta guies` al panell `Colors`.
+- `buildScene()`, `buildSVG()` i `drawScene()` usen `guideColor` per les guies, independentment del color del text.
+- El text de meta usa `guideMetaColor`, també independent del color del text.
+- Els presets capturen i restauren `guideColor` i `guideMetaColor`.
+- Afegits tests de motor/canvas/SVG i wiring UI/presets.
+
+### Verificat
+
+- `node --check engine.js`
+- `node --check main.js`
+- `node --test tests/*.test.mjs` -> 44 pass
+
+### Pixel Perfect
+
+- Sincronitzat a `02 Pixel Perfect/shaper/`.
+- Verificat dins PP: `node --test tests/*.test.mjs` -> 18 pass, `node --check engine.js`, `node --check main.js`.

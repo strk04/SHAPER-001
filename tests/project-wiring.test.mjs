@@ -44,12 +44,22 @@ test('guide layer control is wired through UI state and presets', async () => {
   const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
   const main = await readFile(new URL('../main.js', import.meta.url), 'utf8');
   assert.match(html, /id="guideLayer"/);
+  assert.match(html, /id="guideColor"/);
+  assert.match(html, /id="guideMetaColor"/);
   assert.match(html, /value="back"[\s\S]*Darrere/);
   assert.match(html, /value="front"[\s\S]*Davant/);
   assert.match(main, /guideLayer:\s*'back'/);
+  assert.match(main, /guideColor:\s*'#111111'/);
+  assert.match(main, /guideMetaColor:\s*'#111111'/);
   assert.match(main, /\$\('guideLayer'\)\.addEventListener\('change'/);
+  assert.match(main, /\$\('guideColor'\)\.addEventListener\('input'/);
+  assert.match(main, /\$\('guideMetaColor'\)\.addEventListener\('input'/);
   assert.match(main, /'guideLayer'/);
+  assert.match(main, /'guideColor'/);
+  assert.match(main, /'guideMetaColor'/);
   assert.match(main, /\$\('guideLayer'\)\.value\s*=\s*state\.guideLayer/);
+  assert.match(main, /\$\('guideColor'\)\.value\s*=\s*state\.guideColor/);
+  assert.match(main, /\$\('guideMetaColor'\)\.value\s*=\s*state\.guideMetaColor/);
 });
 
 test('director excludes live performance controls', async () => {

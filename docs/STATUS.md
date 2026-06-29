@@ -17,6 +17,7 @@ Director està implementat localment com a sistema d’escenes amb:
 - durada per escena
 - transició + easing per escena
 - un únic moviment visible per escena, triat amb desplegable
+- el moviment seleccionat desplega els seus ajustos i paràmetres
 - keyframes / automatització
 - timeline al dock
 - controls globals (`Reverse`, `Loop`, `Timeline`) al final de la columna 2
@@ -38,7 +39,7 @@ La sessió actual ha eliminat la capa de live performance:
 Última verificació executada el 2026-06-29:
 
 ```bash
-node --test tests/*.test.mjs   # 32 pass
+node --test tests/*.test.mjs   # 33 pass
 node --check main.js
 node --check director.js
 node --check director-ui.js

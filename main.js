@@ -3,7 +3,7 @@ import { buildSVG, buildScene, drawScene, DEFAULT_CUSTOM_OUTLINE } from './engin
 import { encodeDirectorFrames } from './export-video.js';
 import { store as _ghStore } from './presets-github.js';
 import { createPresetPanel } from './preset-panel.js';
-import { DEFAULT_DIRECTOR, advanceDirectorTime, evaluateDirector, normalizeDirector, normalizeScene, totalDuration, applySceneAction, setSceneMovement, upsertKeyframe, removeKeyframe, AUTOMATABLE_PARAMS } from './director.js';
+import { DEFAULT_DIRECTOR, advanceDirectorTime, evaluateDirector, normalizeDirector, normalizeScene, totalDuration, applySceneAction, setSceneMovement, updateBehavior, upsertKeyframe, removeKeyframe, AUTOMATABLE_PARAMS } from './director.js';
 import { mountDirectorUI, AUTOMATION_CONTROL_IDS } from './director-ui.js';
 
 // Slider definitions: key -> { label, default }
@@ -1426,6 +1426,7 @@ function handleDirectorSceneAction(action) {
 function updateSelectedSceneDuration(duration) { replaceDirectorScene(normalizeScene({ ...selectedDirectorScene(), duration })); }
 function updateSelectedTransition(patch) { const s = selectedDirectorScene(); replaceDirectorScene(normalizeScene({ ...s, transition: { ...s.transition, ...patch } })); }
 function updateSelectedSceneMovement(type) { replaceDirectorScene(setSceneMovement(selectedDirectorScene(), type)); }
+function updateSelectedBehavior(id, patch) { replaceDirectorScene(updateBehavior(selectedDirectorScene(), id, patch)); }
 
 function updateAutomationButtonStates() {
   document.body.toggleAttribute('data-director-enabled', !!state.director?.enabled);
@@ -1484,6 +1485,7 @@ function wireDirector() {
     onSceneDuration: updateSelectedSceneDuration,
     onSceneMovement: updateSelectedSceneMovement,
     onTransitionChange: updateSelectedTransition,
+    onUpdateBehavior: updateSelectedBehavior,
     onRemoveKeyframe: (path, time) => {
       replaceDirectorScene(removeKeyframe(selectedDirectorScene(), path, time));
     },

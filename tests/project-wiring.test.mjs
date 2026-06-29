@@ -85,3 +85,16 @@ test('director sidebar shows the active scene card after global controls', async
   assert.match(css, /\.director-duration-field input[\s\S]*width:/);
   assert.match(css, /border-top: 1px solid var\(--paper-3\)/);
 });
+
+test('director movement selection still exposes movement parameters and adjustments', async () => {
+  const ui = await readFile(new URL('../director-ui.js', import.meta.url), 'utf8');
+  const main = await readFile(new URL('../main.js', import.meta.url), 'utf8');
+  const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
+  assert.match(ui, /director-movement-settings/);
+  assert.match(ui, /data-behavior-id/);
+  assert.match(ui, /<span>intensity<\/span>/);
+  assert.match(ui, /<span>cohesion<\/span>/);
+  assert.match(main, /updateBehavior/);
+  assert.match(main, /onUpdateBehavior:/);
+  assert.match(css, /\.director-movement-settings/);
+});

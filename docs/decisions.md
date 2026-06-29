@@ -1,5 +1,9 @@
 # Decisions — SHAPER 001
 
+## 2026-06-29 — `Moviment` desplega els ajustos del moviment actiu, però no la pila completa antiga
+
+La simplificació de la columna 2 no ha d’implicar perdre editabilitat del moviment. Per això, el desplegable `Moviment` manté un únic moviment visible per escena, però sota seu es renderitzen els ajustos del moviment actiu (`intensity`, `cohesion` i paràmetres específics). Racional: és el punt d’equilibri entre claredat de la UI i control real de l’animació. Conseqüència: no reintroduïm la vella pila de múltiples comportaments a la sidebar, però tampoc deixem el moviment com una elecció “cega” sense controls.
+
 ## 2026-06-29 — Les dues durades mostren `seg` inline després del camp
 
 `Durada total` i `Durada transició` deixen de mostrar la unitat `segons` sota del camp i passen a compartir el mateix patró visual: caixa numèrica + `seg` a la dreta. Racional: és més compacte, més consistent i evita que un dels dos camps sembli tenir una estructura diferent de l’altre. Conseqüència: la unitat queda associada visualment al valor i la fitxa d’escena respira millor en vertical.

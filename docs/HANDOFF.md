@@ -62,15 +62,17 @@ Queden:
   - afegit `setSceneMovement()` per reduir cada escena a un únic moviment visible i netejar automatitzacions de comportament antigues
 - `main.js`
   - afegit wiring per al desplegable `Moviment`
-  - eliminats callbacks antics de comportaments que ja no s’exposen a la sidebar
+  - el moviment seleccionat torna a exposar ajustos propis via `onUpdateBehavior`
 - `styles.css`
   - nous blocs `.director-scene-toolbar` i `.director-scene-card`
   - eliminat CSS orfe de la fitxa antiga de comportaments
   - `Durada total` i `Durada transició` ara mostren `seg` inline a la dreta del camp
   - els dos inputs de durada comparteixen ara la mateixa amplada fixa
+  - nou bloc `.director-movement-settings` per als ajustos del moviment actiu
 - `tests/project-wiring.test.mjs`
   - afegit test que blinda la nova jerarquia de la columna 2 del Director
   - ampliat per blindar el patró `input + seg` a les dues durades
+  - ampliat perquè `Moviment` segueixi desplegant paràmetres i ajustos
 
 ## Verificació feta
 
@@ -83,7 +85,7 @@ node --check director.js
 node --check director-ui.js
 ```
 
-Resultat: 32 tests pass.
+Resultat: 33 tests pass.
 
 ## Estat git
 
@@ -102,7 +104,7 @@ Canvis locals pendents de commit/push:
 
 ## Properes passes recomanades
 
-1. Verificació visual ràpida del nou flux de columna 2 (`Activa` → `Nova escena` → fitxa activa → `General`).
+1. Verificació visual ràpida del nou flux de columna 2 (`Activa` → `Nova escena` → fitxa activa → ajustos del moviment → `General`).
 2. Decidir si els rombos s’han de veure només dins la pestanya `Director`.
 3. Valorar si el desplegable `Moviment` ha de permetre també un estat “cap”.
 4. Revisar si `seg` inline té prou aire visual al costat del camp.
@@ -116,7 +118,7 @@ També s’han eliminat de la UI d’escena els botons:
 - `←`
 - `→`
 
-I ara la fitxa queda reduïda a `Moviment`, durades, easing i `Eliminar`, mentre `Nova escena` viu fora de la fitxa.
+I ara la fitxa queda reduïda a `Moviment`, els seus ajustos, durades, easing i `Eliminar`, mentre `Nova escena` viu fora de la fitxa.
 
 ## Riscos / notes
 

@@ -9,9 +9,10 @@
 - `Durada total` i `Durada transició` passen de mostrar `segons` sota el camp a mostrar `seg` inline a la dreta, amb les dues caixes unificades visualment.
 - Ajust final: les dues caixes de durada comparteixen també la mateixa amplada fixa.
 - Afegit `setSceneMovement()` a `director.js` perquè cada escena tingui un únic moviment visible i es netegin automatitzacions antigues de comportaments en canviar-lo.
+- Recuperat el desplegament dels ajustos del moviment seleccionat (`intensity`, `cohesion` i paràmetres específics) sense tornar a la vella pila completa de comportaments.
 - Netejat wiring i CSS orfes de la sidebar antiga de comportaments.
 - Afegit test de wiring de la nova columna 2.
-- Verificació completa: `node --test tests/*.test.mjs` → 32 pass; `node --check main.js`, `director.js`, `director-ui.js` OK.
+- Verificació completa: `node --test tests/*.test.mjs` → 33 pass; `node --check main.js`, `director.js`, `director-ui.js` OK.
 
 ### Pendent
 - Validació visual ràpida del nou flux real dins l’app.

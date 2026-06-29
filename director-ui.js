@@ -20,10 +20,18 @@ export function directorViewModel(input, selectedSceneId, time) {
   };
 }
 
+const BEHAVIOR_FIELDS = Object.freeze({
+  drift: ['angle', 'elevation', 'distance', 'speed', 'phase'],
+  orbit: ['centerX', 'centerY', 'centerZ', 'radius', 'speed', 'phase', 'depth', 'spread'],
+  attract: ['targetX', 'targetY', 'targetZ', 'strength', 'radius', 'falloff'],
+  explode: ['centerX', 'centerY', 'centerZ', 'distance', 'spread', 'progress'],
+});
+
 const BEHAVIOR_LABELS = Object.freeze({
   drift: 'Deriva', orbit: 'Òrbita', attract: 'Atracció', explode: 'Explosió',
 });
 const MOVEMENT_OPTIONS = Object.entries(BEHAVIOR_LABELS);
+const behaviorLabel = (type) => BEHAVIOR_LABELS[type] || type;
 
 // Maps AUTOMATABLE_PARAMS key → actual element id in index.html / built by buildSliders()
 export const AUTOMATION_CONTROL_IDS = Object.freeze({
@@ -57,7 +65,7 @@ const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({
  *   inspector, timeline, getState,
  *   onSelectScene, onSeek, onToggleEnabled,
  *   onSceneAction, onSceneDuration, onSceneMovement, onTransitionChange,
- *   onAddKeyframe,
+ *   onAddKeyframe, onUpdateBehavior,
  * })
  * Returns { render, setTime }
  */
@@ -65,7 +73,7 @@ export function mountDirectorUI({
   inspector, timeline, getState,
   onSelectScene, onSeek, onToggleEnabled,
   onSceneAction, onSceneDuration, onSceneMovement, onTransitionChange,
-  onToggleKeyframe, onRemoveKeyframe,
+  onUpdateBehavior, onToggleKeyframe, onRemoveKeyframe,
 }) {
   if (!inspector || !timeline) return { render: () => {}, setTime: () => {} };
 
@@ -122,6 +130,16 @@ export function mountDirectorUI({
     }
   });
 
+  inspector.addEventListener('input', (event) => {
+    const { target } = event;
+    const field = target.dataset?.behaviorField;
+    if (target.type !== 'range' || (field !== 'intensity' && field !== 'cohesion')) return;
+    const txt = Number(target.value).toFixed(2);
+    target.setAttribute('aria-valuetext', txt);
+    const out = target.parentElement?.querySelector('output.director-value');
+    if (out) out.textContent = txt;
+  });
+
   inspector.addEventListener('change', (event) => {
     const { target } = event;
     if (target.id === 'directorSceneBehavior' && onSceneMovement) {
@@ -139,6 +157,17 @@ export function mountDirectorUI({
     if (target.id === 'directorTransitionEasing' && onTransitionChange) {
       onTransitionChange({ easing: target.value });
       return;
+    }
+    const movementSettings = target.closest('[data-behavior-id]');
+    if (movementSettings && target.dataset.behaviorField && onUpdateBehavior) {
+      const id = movementSettings.dataset.behaviorId;
+      if (target.dataset.behaviorField === 'intensity') {
+        onUpdateBehavior(id, { intensity: Number(target.value) });
+      } else if (target.dataset.behaviorField === 'cohesion') {
+        onUpdateBehavior(id, { cohesion: Number(target.value) });
+      } else {
+        onUpdateBehavior(id, { params: { [target.dataset.behaviorField]: Number(target.value) } });
+      }
     }
   });
 
@@ -218,10 +247,61 @@ export function mountDirectorUI({
   // ── Build scene inspector panel ────────────────────────────────────────────
   function buildSceneInspector(active) {
     if (!active) { sceneEditEl.innerHTML = ''; return; }
-    const movement = active.behaviors[0]?.type || '';
+    const behavior = active.behaviors[0] || null;
+    const movement = behavior?.type || '';
     const movementOptions = MOVEMENT_OPTIONS.map(([value, label]) => `
       <option value="${value}"${movement === value ? ' selected' : ''}>${label}</option>
     `).join('');
+    let movementSettings = '';
+    if (behavior) {
+      const fields = BEHAVIOR_FIELDS[behavior.type] || [];
+      const fieldInputs = fields.map((field) => {
+        const kfPath = `behavior:${behavior.id}:${field}`;
+        return `
+          <label class="control-row" for="bfield-${escapeHtml(behavior.id)}-${field}">
+            <span>${escapeHtml(field)}</span>
+            <span class="director-field-input">
+              <input id="bfield-${escapeHtml(behavior.id)}-${field}"
+                type="number" step="any"
+                value="${Number.isFinite(behavior.params[field]) ? behavior.params[field] : 0}"
+                data-behavior-field="${escapeHtml(field)}">
+              <button type="button" class="automation-key-button"
+                data-keyframe-path="${escapeHtml(kfPath)}"
+                data-keyframe-field="${escapeHtml(field)}"
+                aria-label="Keyframe a ${escapeHtml(field)}"
+                aria-pressed="false">
+                <span aria-hidden="true"></span>
+              </button>
+            </span>
+          </label>`;
+      }).join('');
+      const intensityTxt = Number(behavior.intensity).toFixed(2);
+      const cohesionTxt = Number(behavior.cohesion).toFixed(2);
+      movementSettings = `
+        <div class="director-movement-settings director-behavior-item" role="group" aria-label="Ajustos del moviment ${escapeHtml(behaviorLabel(behavior.type))}" data-behavior-id="${escapeHtml(behavior.id)}">
+          <h5 class="director-settings-title">Ajustos</h5>
+          <label class="control-row" for="bintensity-${escapeHtml(behavior.id)}">
+            <span>intensity</span>
+            <span class="director-field-input">
+              <input id="bintensity-${escapeHtml(behavior.id)}" type="range" min="0" max="1" step="0.01"
+                value="${behavior.intensity}" data-behavior-field="intensity"
+                aria-valuetext="${intensityTxt}">
+              <output class="director-value" for="bintensity-${escapeHtml(behavior.id)}" aria-live="off">${intensityTxt}</output>
+            </span>
+          </label>
+          <label class="control-row" for="bcohesion-${escapeHtml(behavior.id)}">
+            <span>cohesion</span>
+            <span class="director-field-input">
+              <input id="bcohesion-${escapeHtml(behavior.id)}" type="range" min="0" max="1" step="0.01"
+                value="${behavior.cohesion}" data-behavior-field="cohesion"
+                aria-valuetext="${cohesionTxt}">
+              <output class="director-value" for="bcohesion-${escapeHtml(behavior.id)}" aria-live="off">${cohesionTxt}</output>
+            </span>
+          </label>
+          ${fieldInputs}
+        </div>
+      `;
+    }
 
     sceneEditEl.innerHTML = `
       <div class="director-scene-toolbar" role="group" aria-label="Accions globals d'escena">
@@ -261,6 +341,7 @@ export function mountDirectorUI({
           <button type="button" data-director-action="delete" aria-label="Elimina escena">Elimina</button>
         </div>
       </div>
+      ${movementSettings}
     `;
   }
 

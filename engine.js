@@ -320,6 +320,18 @@ function escXML(s) {
 // cycles-per-second = pulseSpeed * PULSE_RATE must be <= 2 => PULSE_RATE <= 1.
 export const PULSE_RATE = 1.0;
 const clamp01 = (value) => Math.max(0, Math.min(1, Number(value) || 0));
+const FORM_ZOOM_SCALE = {
+  dini: 1.8,
+  'boy-surface': 1.25,
+  'roman-surface': 3.6,
+  'klein-bottle': 1.5,
+  'knot-27': 1.7,
+  'lissajous-3d': 1.25,
+  'cardioid-rev': 2,
+  seifert: 2.4,
+  swallowtail: 1.8,
+  oloid: 1.35,
+};
 
 const CAM_NEUTRAL = {
   fov: 60, zoom: 1,
@@ -378,6 +390,8 @@ function read3DParams(params) {
     regionVolume:  !!params.regionVolume,
     surfaceColor: params.surfaceColor || '#d8d8d8',
     surfaceTransparency: clamp01(num(params.surfaceTransparency, 0.25)),
+    surfaceOcclusion: params.surfaceOcclusion !== false,
+    formZoomScale: FORM_ZOOM_SCALE[params.form || 'plane'] || 1,
     capsFontScale:     Math.max(0.1, num(params.capsFontScale,     1)),
     capsOpacity:       Math.max(0, Math.min(1, num(params.capsOpacity,       1))),
     capsWrapMode:      params.capsWrapMode || null,
@@ -987,7 +1001,7 @@ function surfaceMap(form, u, v, P, inst) {
 
 // Isometric basis (orthographic). Returns screen-space X,Y plus raw depth.
 function projectIso(p, P, width, height) {
-  const k = (0.45 * Math.min(width, height) * P.zoom) / FORM_SIZE_BASE;
+  const k = (0.45 * Math.min(width, height) * P.zoom * (P.formZoomScale || 1)) / FORM_SIZE_BASE;
   // Classic 2:1-ish iso: rotate the already-rotated point onto the iso plane.
   const X = (p.x - p.z) * Math.cos(Math.PI / 6);
   const Y = (p.x + p.z) * Math.sin(Math.PI / 6) - p.y;
@@ -1006,7 +1020,7 @@ function projectPersp(p, P, width, height) {
   const focal = (Math.min(width, height) * 0.5) / Math.tan(fovRad / 2);
   const cz = dist + p.z; // distance from camera along view axis
   const denom = cz > 1 ? cz : 1;
-  const f = (focal * P.zoom) / denom;
+  const f = (focal * P.zoom * (P.formZoomScale || 1)) / denom;
   return {
     X: width / 2 + p.x * f,
     Y: height / 2 - p.y * f,
@@ -2446,6 +2460,7 @@ export function buildScene(params, width, height) {
     // depthFade: opacity = 1 - depthFade*(1-depth) (far glyphs fade), floor 0.15
     let op = 1 - P.depthFade * (1 - g.depth);
     const back = g.back;
+    if (P.surfaceOcclusion && back) continue;
     if (P.backfaceMirror && back) op *= 0.55;
     op = Math.max(0.15, op);
 

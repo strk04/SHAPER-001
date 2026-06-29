@@ -1,5 +1,21 @@
 # Decisions — SHAPER 001
 
+## 2026-06-29 — Oclusio posterior independent de la transparencia
+
+La transparencia de superficie i l'oclusio de la tipografia posterior passen a ser controls separats. `Transparencia superficie` controla nomes l'alpha visual de la malla; `Oculta text posterior` decideix si els glifs back-facing es dibuixen o no.
+
+Racional: una superficie translucida pot ser esteticament util, pero l'usuari necessita que el cos de la forma pugui amagar text posterior de manera fiable. Separar els dos conceptes evita que una transparencia baixa sigui l'unica manera d'obtenir oclusio.
+
+Conseqüencies: amb el checkbox actiu, el text posterior desapareix completament encara que la superficie sigui semitransparent. Si es desactiva, es recupera el comportament anterior de veure glifs posteriors a traves de la malla.
+
+## 2026-06-29 — Les formes restauren mida i zoom base en canviar
+
+Quan l'usuari canvia de forma, `Mida de forma` i `Zoom` tornen als defaults compartits (`413` i `1`). A mes, algunes formes matematiques tenen un factor intern de zoom per compensar definicions parametrices que ocupen molt menys espai visual que una esfera o un cub.
+
+Racional: el flux creatiu no ha d'obligar a fer super zoom cada cop que es prova una forma nova. El mateix set inicial de controls ha de donar una distancia de treball acceptable en totes les formes.
+
+Conseqüencies: els sliders visibles continuen mostrant els mateixos valors base per totes les formes, mentre que el motor aplica una escala interna nomes a formes petites. Si una forma concreta queda massa gran o massa petita, el mapa `FORM_ZOOM_SCALE` és el punt d'ajust.
+
 ## 2026-06-29 — Superficies 3D com a capa entre text posterior i frontal
 
 El color de superficie s'aplica a totes les formes 3D, no nomes a les formes tancades. La transparencia es controla amb slider (`0` opac, `1` invisible) i per defecte queda a `0.25`.

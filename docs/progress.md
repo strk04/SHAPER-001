@@ -501,3 +501,29 @@
 
 - Revisar qualitat d'oclusio en formes amb normals aproximades si es detecta algun cas visual estrany.
 - Sincronitzat a `02 Pixel Perfect/shaper/` i pujat a `strk04/PIxel-Perfect` (`0fba175`).
+
+---
+
+## 2026-06-29 — Oclusio posterior i normalitzacio de mida de formes
+
+### Fet
+
+- Afegit checkbox `Oculta text posterior`, actiu per defecte.
+- Quan esta actiu, `buildScene()` descarta els glifs back-facing abans de pintar/exportar.
+- El control es desa i restaura en presets amb `surfaceOcclusion`.
+- En canviar de forma, `formSize` i `zoom` tornen als valors base (`413`, `1`).
+- Afegit factor intern `FORM_ZOOM_SCALE` per formes que sortien massa petites amb els mateixos paràmetres (`roman-surface`, `dini`, `seifert`, `cardioid-rev`, etc.).
+- Afegits tests per oclusio posterior, normalitzacio visual de `roman-surface` i wiring UI/presets.
+
+### Verificat
+
+- `node --check engine.js`
+- `node --check main.js`
+- `node --test tests/*.test.mjs` -> 39 pass
+- Verificacio local a `http://127.0.0.1:8097`: checkbox visible/actiu, canvas renderitzat, i canvi a `roman-surface` restaura `formSize=413` i `zoom=1`.
+
+### Pixel Perfect
+
+- Sincronitzat a `02 Pixel Perfect/shaper/`.
+- Pujat a `strk04/PIxel-Perfect` (`77fe08a`).
+- Verificat dins PP: `node --test tests/*.test.mjs` -> 13 pass, `node --check engine.js`, `node --check main.js`.

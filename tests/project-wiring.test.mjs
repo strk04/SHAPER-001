@@ -26,12 +26,18 @@ test('surface color controls are wired through UI state and presets', async () =
   const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
   const main = await readFile(new URL('../main.js', import.meta.url), 'utf8');
   assert.match(html, /id="surfaceColor"/);
+  assert.match(html, /id="surfaceOcclusion"/);
   assert.match(html, /data-key="surfaceTransparency"/);
   assert.match(main, /surfaceTransparency:\s*\{\s*label:\s*'Transparència superfície'/);
   assert.match(main, /surfaceColor:\s*'#d8d8d8'/);
+  assert.match(main, /surfaceOcclusion:\s*true/);
   assert.match(main, /\$\('surfaceColor'\)\.addEventListener\('input'/);
+  assert.match(main, /\$\('surfaceOcclusion'\)\.addEventListener\('change'/);
   assert.match(main, /'surfaceColor'/);
+  assert.match(main, /'surfaceOcclusion'/);
   assert.match(main, /\$\('surfaceColor'\)\.value\s*=\s*state\.surfaceColor/);
+  assert.match(main, /\$\('surfaceOcclusion'\)\.checked\s*=\s*state\.surfaceOcclusion/);
+  assert.match(main, /resetFormViewDefaults\(\)/);
 });
 
 test('director excludes live performance controls', async () => {

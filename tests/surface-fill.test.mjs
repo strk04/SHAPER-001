@@ -48,6 +48,7 @@ const baseParams = {
   regionSurface: true,
   surfaceColor: '#336699',
   surfaceTransparency: 0.25,
+  surfaceOcclusion: false,
 };
 
 test('buildScene adds colored surface tiles with alpha derived from transparency', () => {
@@ -63,4 +64,18 @@ test('buildSVG serializes surface paths between text layers', () => {
   const svg = buildSVG(baseParams, 640, 480);
   assert.match(svg, /<path d="M[^"]+Z" fill="#336699" opacity="0\.750"\/>/);
   assert.match(svg, /<g[^>]*data-layer="text-back"[\s\S]*<g data-layer="surface"[\s\S]*<g[^>]*data-layer="text-front"/);
+});
+
+test('surface occlusion removes back-facing glyphs while preserving the surface', () => {
+  const scene = buildScene({ ...baseParams, surfaceOcclusion: true }, 640, 480);
+  assert.ok(scene.surfaces.length > 0);
+  assert.equal(scene.glyphs.some((glyph) => glyph.back), false);
+  assert.ok(scene.glyphs.some((glyph) => !glyph.back));
+});
+
+test('small mathematical forms get a normalized visual zoom', () => {
+  const roman = buildScene({ ...baseParams, form: 'roman-surface' }, 640, 480);
+  const pts = roman.surfaces.flatMap((surface) => surface.points);
+  const width = Math.max(...pts.map((pt) => pt.X)) - Math.min(...pts.map((pt) => pt.X));
+  assert.ok(width >= 220);
 });

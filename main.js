@@ -138,6 +138,7 @@ const state = {
   textColor: '#111111',
   bgColor: '#f4f4f4',
   surfaceColor: '#d8d8d8',
+  surfaceOcclusion: true,
   seed: 1,
   hardWrap: false,
   mode: '3d',
@@ -215,6 +216,13 @@ function syncOutput(key) {
   const ref = sliderRefs[key];
   if (!ref) return;
   ref.output.textContent = formatSliderValue(key, state[key]);
+}
+
+function resetFormViewDefaults() {
+  state.formSize = SLIDERS.formSize.def;
+  state.zoom = SLIDERS.zoom.def;
+  syncSliderUI('formSize');
+  syncSliderUI('zoom');
 }
 
 function buildSliders() {
@@ -860,6 +868,10 @@ function wireControls() {
     state.surfaceColor = e.target.value;
     scheduleRender();
   });
+  $('surfaceOcclusion').addEventListener('change', (e) => {
+    state.surfaceOcclusion = e.target.checked;
+    scheduleRender();
+  });
 
   const opacityModeEl = $('opacityMode');
   if (opacityModeEl) {
@@ -900,6 +912,7 @@ function wireControls() {
   // --- 3D selects + checkboxes ---
   $('form').addEventListener('change', (e) => {
     state.form = e.target.value;
+    resetFormViewDefaults();
     updateEditorVisibility();
     // Flat surfaces (plane, wave-plane, saddle) viewed edge-on with arbitrary
     // inherited angles. Reset to face-on when switching to these forms.
@@ -1308,7 +1321,7 @@ async function stopRecord() {
 function capturePreset() {
   const snap = { v: 1 };
   Object.keys(SLIDERS).forEach((k) => { snap[k] = state[k]; });
-  ['text', 'font', 'textColor', 'bgColor', 'surfaceColor', 'hardWrap',
+  ['text', 'font', 'textColor', 'bgColor', 'surfaceColor', 'surfaceOcclusion', 'hardWrap',
    'mode', 'form', 'projection', 'guides',
    'backfaceMirror', 'surfaceText', 'regionSurface', 'regionCaps', 'regionVolume',
    'wrapMode', 'capsWrapMode', 'canvasW', 'canvasH',
@@ -1339,6 +1352,7 @@ function applyPreset(p) {
   if (p.textColor != null) { state.textColor = p.textColor; $('textColor').value = p.textColor; }
   if (p.bgColor   != null) { state.bgColor   = p.bgColor;   $('bgColor').value   = p.bgColor; }
   if (p.surfaceColor != null) { state.surfaceColor = p.surfaceColor; $('surfaceColor').value = p.surfaceColor; }
+  if (p.surfaceOcclusion != null) { state.surfaceOcclusion = p.surfaceOcclusion; $('surfaceOcclusion').checked = p.surfaceOcclusion; }
   if (p.hardWrap  != null) { state.hardWrap  = p.hardWrap;  $('hardWrap').checked  = p.hardWrap; }
   if (p.speed3d != null) { state.speed3d = p.speed3d; syncSliderUI('speed3d'); }
   if (p.mode != null) {
@@ -1736,6 +1750,7 @@ function init() {
   $('form').value = state.form;
   $('projection').value = state.projection;
   $('surfaceColor').value = state.surfaceColor;
+  $('surfaceOcclusion').checked = state.surfaceOcclusion;
   $('guides').checked = state.guides;
   $('backfaceMirror').checked = state.backfaceMirror;
   $('surfaceText').checked = state.surfaceText;

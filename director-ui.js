@@ -75,6 +75,12 @@ const keyframeValue = (value) => {
   return String(value);
 };
 
+const syncPlayhead = (playheadEl, duration, time) => {
+  if (!playheadEl) return;
+  const pct = duration > 0 ? Math.max(0, Math.min(100, ((time ?? 0) / duration) * 100)) : 0;
+  playheadEl.style.left = `${pct}%`;
+};
+
 // ── DOM Mount ────────────────────────────────────────────────────────────────
 
 /**
@@ -234,10 +240,7 @@ export function mountDirectorUI({
       scenesEl.appendChild(btn);
     });
 
-    if (playheadEl) {
-      const pct = duration > 0 ? Math.max(0, Math.min(100, ((vm.time ?? 0) / duration) * 100)) : 0;
-      playheadEl.style.left = `${pct}%`;
-    }
+    syncPlayhead(playheadEl, duration, vm.time ?? 0);
   }
 
   // Arrow-key navigation on the radiogroup container
@@ -387,7 +390,7 @@ export function mountDirectorUI({
     }).sort((a, b) => a.left - b.left || a.time - b.time);
 
     if (!entries.length) {
-      lanesEl.innerHTML = '<p class="director-empty-state">Sense rombos en aquesta escena.</p>';
+      lanesEl.innerHTML = '';
       return;
     }
 
@@ -449,6 +452,9 @@ export function mountDirectorUI({
     radios.forEach((btn) => {
       btn.classList.toggle('is-playing', btn.dataset.sceneId === sceneId);
     });
+    const state = getState();
+    const duration = totalDuration(state.director);
+    syncPlayhead(playheadEl, duration, time);
   }
 
   return { render, setTime };

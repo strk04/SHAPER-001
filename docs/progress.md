@@ -14,10 +14,15 @@
 - Afegit pla d’implementació `docs/superpowers/plans/2026-06-29-director-inline-timeline-implementation.md`.
 - Afegits/actualitzats tests de wiring per blindar el timeline inline.
 - Verificació completa: `node --test tests/*.test.mjs` → 34 pass; `node --check main.js`, `director.js`, `director-ui.js` OK.
+- Poliment posterior:
+  - eliminat el missatge buit `Sense rombos en aquesta escena.`
+  - `E01 / E02 / ...` reduïts a la mida de text estàndard del projecte
+  - playhead del timeline corregit perquè es mogui mentre avança el Director
 
 ### Pendent
 - Validació visual ràpida dins l’app.
 - Decidir si en una iteració futura s’han de veure keyframes de totes les escenes alhora.
+- Possible següent millora: guies visuals per als ajustos de moviment (`target`, `radius`, `center`, etc.).
 
 ## 2026-06-29 — Spec del timeline inline sota el canvas
 

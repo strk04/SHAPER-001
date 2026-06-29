@@ -10,6 +10,10 @@ _Actualitzat: 2026-06-29_
 - `Reverse` i `Loop` es mantenen com a controls globals del Director.
 - Els keyframes del timeline es mostren en format mínim: rombo + `paràmetre` + `valor`.
 - S’ha eliminat tota la lògica antiga de `directorDock`, `directorResize` i `directorCollapse`.
+- Ajust posterior de poliment:
+  - fora el text `Sense rombos en aquesta escena.`
+  - `E01 / E02 / ...` passen a mida de text normal del sistema
+  - la bola del timeline torna a seguir el temps real del Director durant la reproducció
 
 ## Estat actual
 

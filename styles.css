@@ -861,8 +861,8 @@ body:not([data-director-panel-active]) .director-timeline-host {
 }
 
 .director-scene-label {
-  font-size: clamp(1.8rem, 2.2vw, 2.7rem);
-  line-height: 1;
+  font-size: var(--text-xs);
+  line-height: var(--leading);
 }
 
 .director-playhead {

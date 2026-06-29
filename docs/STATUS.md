@@ -23,6 +23,7 @@ Director està simplificat per a ús no-live i actualment inclou:
 - keyframes / automatització
 - controls globals `Reverse` i `Loop`
 - timeline inline sota el canvas, a la columna 3
+- indicador de temps del timeline sincronitzat amb la reproducció
 
 Ja no hi ha:
 
@@ -49,4 +50,4 @@ node --check director-ui.js
 
 - Validació visual ràpida del timeline inline nou.
 - Decidir si més endavant la timeline ha de mostrar keyframes de totes les escenes o només de l’escena activa.
-- Millora futura pendent: inspecció més clara de valors/easing dels keyframes.
+- Millora futura pendent: guies visuals dels ajustos de moviment (target, radius, centre, vector...).

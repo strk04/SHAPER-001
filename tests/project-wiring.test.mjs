@@ -113,7 +113,13 @@ test('director timeline is inline under canvas and shows keyframe label plus val
   assert.match(ui, /director-keyframe-label/);
   assert.match(ui, /director-keyframe-value/);
   assert.doesNotMatch(ui, /director-lane-label/);
+  assert.doesNotMatch(ui, /Sense rombos en aquesta escena\./);
+  assert.match(ui, /const syncPlayhead = \(playheadEl, duration, time\) =>/);
+  assert.match(ui, /playheadEl\.style\.left = `\$\{pct\}%`/);
+  assert.match(ui, /syncPlayhead\(playheadEl, duration, vm\.time \?\? 0\)/);
+  assert.match(ui, /syncPlayhead\(playheadEl, duration, time\)/);
   assert.match(css, /\.director-inline-timeline/);
   assert.match(css, /\.director-keyframe-label/);
   assert.match(css, /\.director-keyframe-value/);
+  assert.match(css, /\.director-scene-label\s*\{[\s\S]*font-size:\s*var\(--text-xs\)/);
 });

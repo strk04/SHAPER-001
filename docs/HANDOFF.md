@@ -6,6 +6,7 @@ _Actualitzat: 2026-06-29_
 
 - Quan `Morph` esta actiu, les guies 3D tambe fan morphing: passen pel mateix blend parametric de superficie que la forma.
 - Afegit selector `Capa guies` amb opcions `Darrere` i `Davant`; per defecte continua a `Darrere`.
+- En canvas, `Davant` ara es dibuixa com una capa 2D literal per sobre de tot, resetejant la transformacio abans del traç.
 - L'export SVG separa les guies en capes `guides-back` o `guides-front` segons el selector.
 - Afegit color de superficie 3D configurable a `Colors`.
 - Afegit slider `Transparencia superficie` (`0` opac, `1` invisible), amb valor per defecte `0.25`.
@@ -22,7 +23,7 @@ _Actualitzat: 2026-06-29_
 
 - La superficie es veu per defecte en gris clar translucid (`#d8d8d8`, transparencia `0.25`).
 - Amb morph actiu, les guies canvien de geometria amb el blend de forma.
-- Les guies poden quedar visualment darrere o davant de la superficie i la tipografia.
+- Les guies poden quedar visualment darrere o davant de la superficie i la tipografia; `Davant` equival a posar la capa de guies per sobre en 2D.
 - En formes tancades, la superficie pot ser translucida pero la tipografia posterior queda oculta si `Oculta text posterior` esta actiu.
 - En formes obertes, la mateixa logica funciona com una lamina acolorida.
 - Verificacio visual local feta amb `php -S 127.0.0.1:8097`: controls visibles, reset de forma comprovat i canvas renderitzat.
@@ -32,7 +33,7 @@ _Actualitzat: 2026-06-29_
 ```bash
 node --check engine.js
 node --check main.js
-node --test tests/*.test.mjs   # 42 pass
+node --test tests/*.test.mjs   # 43 pass
 ```
 
 ## Fitxers importants

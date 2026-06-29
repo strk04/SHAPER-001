@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildScene, buildSVG } from '../engine.js';
+import { buildScene, buildSVG, drawScene } from '../engine.js';
 
 const baseParams = {
   text: 'ABC',
@@ -92,6 +92,65 @@ test('buildSVG serializes guides behind or in front of the form', () => {
 
   const front = buildSVG({ ...baseParams, guides: true, guideLayer: 'front' }, 640, 480);
   assert.match(front, /data-layer="surface"[\s\S]*data-layer="text-front"[\s\S]*data-layer="guides-front"/);
+});
+
+test('front guides draw as a literal 2D layer over glyph transforms', () => {
+  const originalPath2D = globalThis.Path2D;
+  globalThis.Path2D = class Path2D {
+    constructor(d) { this.d = d; }
+  };
+  try {
+    const calls = [];
+    const ctx = {
+      setTransform: (...args) => calls.push(['setTransform', args]),
+      fillRect: () => {},
+      save: () => calls.push(['save']),
+      restore: () => calls.push(['restore']),
+      setLineDash: () => {},
+      stroke: () => calls.push(['stroke']),
+      fillText: () => calls.push(['fillText']),
+      beginPath: () => {},
+      moveTo: () => {},
+      lineTo: () => {},
+      closePath: () => {},
+      fill: () => {},
+    };
+    drawScene(ctx, {
+      bgColor: '#fff',
+      textColor: '#111',
+      fontSize: 24,
+      fontSpec: { family: 'Courier', weight: '400' },
+      guides: 'M0 0L10 10',
+      guideLayer: 'front',
+      guideMeta: false,
+      glyphs: [{
+        ch: 'A',
+        matrix: null,
+        fontSize: 24,
+        opacity: 1,
+        back: false,
+        mirrored: false,
+        X: 320,
+        Y: 240,
+      }],
+      surfaces: [],
+      blinkMode: 'none',
+      blinkRate: 2,
+      blinkFade: 0,
+      accentMode: 'none',
+      accentColors: ['#111'],
+      clockMs: 0,
+    }, 640, 480, 1);
+
+    const strokeIndex = calls.findIndex(([name]) => name === 'stroke');
+    const transformsBeforeStroke = calls
+      .slice(0, strokeIndex)
+      .filter(([name]) => name === 'setTransform')
+      .map(([, args]) => args);
+    assert.deepEqual(transformsBeforeStroke.at(-1), [1, 0, 0, 1, 0, 0]);
+  } finally {
+    globalThis.Path2D = originalPath2D;
+  }
 });
 
 test('surface occlusion removes back-facing glyphs while preserving the surface', () => {

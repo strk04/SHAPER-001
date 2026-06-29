@@ -551,3 +551,24 @@
 
 - Sincronitzat a `02 Pixel Perfect/shaper/`.
 - Verificat dins PP: `node --test tests/*.test.mjs` -> 16 pass, `node --check engine.js`, `node --check main.js`.
+
+---
+
+## 2026-06-29 — Guies davant com a capa 2D literal
+
+### Fet
+
+- Corregit el render canvas de `Capa guies: Davant`.
+- El traç de guies reseteja la transformacio del canvas abans de pintar-se, evitant heretar la matriu de l'ultim glif.
+- Afegit test que comprova que les guies davanteres es pinten sobre una transformacio 2D plana.
+
+### Verificat
+
+- `node --check engine.js`
+- `node --check main.js`
+- `node --test tests/*.test.mjs` -> 43 pass
+
+### Pixel Perfect
+
+- Sincronitzat a `02 Pixel Perfect/shaper/`.
+- Verificat dins PP: `node --test tests/*.test.mjs` -> 17 pass, `node --check engine.js`, `node --check main.js`.

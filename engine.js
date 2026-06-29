@@ -2645,6 +2645,7 @@ export function drawScene(ctx, scene, width, height, dpr) {
   const drawGuides = () => {
     if (!scene.guides) return;
     ctx.save();
+    ctx.setTransform(d, 0, 0, d, 0, 0);
     ctx.strokeStyle = scene.textColor;
     ctx.globalAlpha = 0.5;
     ctx.lineWidth = 1;

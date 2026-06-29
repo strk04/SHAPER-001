@@ -24,6 +24,9 @@ Director està simplificat per a ús no-live i actualment inclou:
 - controls globals `Reverse` i `Loop`
 - timeline inline sota el canvas, a la columna 3
 - indicador de temps del timeline sincronitzat amb la reproducció
+- playhead draggable
+- keyframes editables des de la columna 2
+- menú contextual de supressió sobre rombos
 
 Ja no hi ha:
 

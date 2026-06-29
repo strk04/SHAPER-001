@@ -1,5 +1,13 @@
 # Decisions — SHAPER 001
 
+## 2026-06-29 — Els rombos del timeline passen de ser destructius a ser editables
+
+El clic principal sobre un rombo ja no elimina el keyframe. A partir d’ara el clic selecciona el rombo i obre una fitxa d’edició a la columna 2, mentre que l’eliminació es mou a una acció explícita (`Eliminar`) i a un menú contextual amb botó dret. Racional: l’acció principal d’un keyframe ha de ser entendre’l i modificar-lo, no destruir-lo accidentalment. Conseqüència: el timeline esdevé una eina usable de control, i el valor/temps/easing passen a ser editables sense haver de recrear el rombo.
+
+## 2026-06-29 — El playhead del Director es pot arrossegar directament
+
+La bola del timeline deixa de ser només un indicador passiu i passa a ser un control draggable de seek. Racional: sense scrubbing directe, els keyframes es poden veure però costa molt llegir què fan realment. Conseqüència: el temps del Director es pot moure endavant i endarrere des del mateix timeline, fent molt més clara la relació entre rombo i resultat visual.
+
 ## 2026-06-29 — El timeline del Director deixa el dock i passa sota el canvas
 
 El timeline del Director deixa d’existir com a dock negre separat i passa a viure dins la columna 3, sota el canvas, ocupant tota l’amplada disponible. Racional: el dock actual introdueix una jerarquia visual massa pesada i separa artificialment el temps del preview principal. Conseqüència: desapareixen el bloc inferior actual i el control `Timeline` de la columna 2, i el nou timeline adopta una lectura més directa d’escenes i keyframes.

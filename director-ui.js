@@ -81,6 +81,16 @@ const syncPlayhead = (playheadEl, duration, time) => {
   playheadEl.style.left = `${pct}%`;
 };
 
+const keyframeInputType = (value) => typeof value === 'number' ? 'number' : 'text';
+
+const findSelectedKeyframe = (state, activeScene) => {
+  const selected = state.selectedDirectorKeyframe;
+  if (!selected || !activeScene || selected.sceneId !== activeScene.id) return null;
+  const frames = activeScene.automations?.[selected.path] || [];
+  const frame = frames.find((item) => Math.abs(item.time - selected.time) <= 0.0001);
+  return frame ? { ...selected, frame } : null;
+};
+
 // ── DOM Mount ────────────────────────────────────────────────────────────────
 
 /**
@@ -96,7 +106,7 @@ export function mountDirectorUI({
   inspector, timeline, getState,
   onSelectScene, onSeek, onToggleEnabled,
   onSceneAction, onSceneDuration, onSceneMovement, onTransitionChange,
-  onUpdateBehavior, onToggleKeyframe, onRemoveKeyframe,
+  onUpdateBehavior, onToggleKeyframe, onSelectKeyframe, onUpdateKeyframe, onRemoveKeyframe,
 }) {
   if (!inspector || !timeline) return { render: () => {}, setTime: () => {} };
 
@@ -126,6 +136,7 @@ export function mountDirectorUI({
         <div id="directorPlayhead" class="director-playhead" aria-hidden="true"></div>
       </div>
       <div id="directorLanes" class="director-lanes"></div>
+      <div id="directorKeyframeMenu" class="director-keyframe-menu" hidden></div>
     </div>
   `;
 
@@ -137,6 +148,8 @@ export function mountDirectorUI({
   const scenesEl    = timeline.querySelector('#directorScenes');
   const playheadEl  = timeline.querySelector('#directorPlayhead');
   const lanesEl     = timeline.querySelector('#directorLanes');
+  const keyframeMenuEl = timeline.querySelector('#directorKeyframeMenu');
+  let playheadDragging = false;
 
   // ── Listener: enabled checkbox ─────────────────────────────────────────────
   enabledCb.addEventListener('change', () => {
@@ -149,6 +162,11 @@ export function mountDirectorUI({
     const actionBtn = event.target.closest('[data-director-action]');
     if (actionBtn && onSceneAction) {
       onSceneAction(actionBtn.dataset.directorAction);
+      return;
+    }
+    const deleteKeyframeBtn = event.target.closest('[data-director-keyframe-delete]');
+    if (deleteKeyframeBtn && onRemoveKeyframe) {
+      onRemoveKeyframe(deleteKeyframeBtn.dataset.keyframePath, Number(deleteKeyframeBtn.dataset.keyframeTime));
       return;
     }
     const addKeyframeBtn = event.target.closest('[data-keyframe-path]');
@@ -169,6 +187,23 @@ export function mountDirectorUI({
 
   inspector.addEventListener('change', (event) => {
     const { target } = event;
+    if (target.dataset.keyframeEditorPath && onUpdateKeyframe) {
+      const path = target.dataset.keyframeEditorPath;
+      const time = Number(target.dataset.keyframeEditorTime);
+      if (target.id === 'directorKeyframeTime') {
+        onUpdateKeyframe(path, time, { time: Number(target.value) });
+        return;
+      }
+      if (target.id === 'directorKeyframeValue') {
+        const value = target.type === 'number' ? Number(target.value) : target.value;
+        onUpdateKeyframe(path, time, { value });
+        return;
+      }
+      if (target.id === 'directorKeyframeEasing') {
+        onUpdateKeyframe(path, time, { easing: target.value });
+        return;
+      }
+    }
     if (target.id === 'directorSceneBehavior' && onSceneMovement) {
       onSceneMovement(target.value);
       return;
@@ -198,18 +233,78 @@ export function mountDirectorUI({
     }
   });
 
-  // ── Timeline keyframe delete ───────────────────────────────────────────────
+  const hideKeyframeMenu = () => {
+    if (!keyframeMenuEl) return;
+    keyframeMenuEl.hidden = true;
+    keyframeMenuEl.innerHTML = '';
+  };
+
+  const seekFromClientX = (clientX) => {
+    const rect = scenesEl.getBoundingClientRect();
+    if (!(rect.width > 0)) return;
+    const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const duration = totalDuration(getState().director);
+    onSeek(pct * duration);
+  };
+
+  playheadEl?.addEventListener('pointerdown', (event) => {
+    playheadDragging = true;
+    playheadEl.setPointerCapture(event.pointerId);
+    seekFromClientX(event.clientX);
+    event.preventDefault();
+  });
+
+  playheadEl?.addEventListener('pointermove', (event) => {
+    if (!playheadDragging) return;
+    seekFromClientX(event.clientX);
+  });
+
+  playheadEl?.addEventListener('pointerup', (event) => {
+    playheadDragging = false;
+    playheadEl.releasePointerCapture?.(event.pointerId);
+  });
+
+  playheadEl?.addEventListener('pointercancel', () => {
+    playheadDragging = false;
+  });
+
+  // ── Timeline keyframe select / menu ────────────────────────────────────────
   lanesEl.addEventListener('click', (event) => {
     const btn = event.target.closest('[data-keyframe-path][data-keyframe-time]');
-    if (!btn || !onRemoveKeyframe) return;
+    hideKeyframeMenu();
+    if (!btn || !onSelectKeyframe) return;
+    onSelectKeyframe(btn.dataset.keyframePath, Number(btn.dataset.keyframeTime));
+    btn.focus();
+  });
+
+  lanesEl.addEventListener('contextmenu', (event) => {
+    const btn = event.target.closest('[data-keyframe-path][data-keyframe-time]');
+    if (!btn || !keyframeMenuEl) return;
+    event.preventDefault();
     const path = btn.dataset.keyframePath;
     const time = Number(btn.dataset.keyframeTime);
-    const label = btn.getAttribute('aria-label') || `Keyframe ${path} a ${time.toFixed(2)} s`;
-    const focusTarget = btn.nextElementSibling ?? btn.previousElementSibling ?? btn.closest('.director-keyframes');
-    onRemoveKeyframe(path, time);
-    focusTarget?.focus();
-    const statusEl = inspector.querySelector('#directorStatus');
-    if (statusEl) statusEl.textContent = `${label} eliminat.`;
+    onSelectKeyframe?.(path, time);
+    keyframeMenuEl.hidden = false;
+    keyframeMenuEl.style.left = `${event.clientX}px`;
+    keyframeMenuEl.style.top = `${event.clientY}px`;
+    keyframeMenuEl.innerHTML = `<button type="button" data-menu-delete data-keyframe-path="${escapeHtml(path)}" data-keyframe-time="${time}">Eliminar</button>`;
+  });
+
+  keyframeMenuEl?.addEventListener('click', (event) => {
+    const deleteBtn = event.target.closest('[data-menu-delete]');
+    if (!deleteBtn || !onRemoveKeyframe) return;
+    onRemoveKeyframe(deleteBtn.dataset.keyframePath, Number(deleteBtn.dataset.keyframeTime));
+    hideKeyframeMenu();
+  });
+
+  document.addEventListener('click', (event) => {
+    if (!keyframeMenuEl || keyframeMenuEl.hidden) return;
+    if (event.target.closest('.director-keyframe-menu')) return;
+    hideKeyframeMenu();
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') hideKeyframeMenu();
   });
 
   // ── Scene radiogroup: build + roving tabindex + keyboard ──────────────────
@@ -270,7 +365,7 @@ export function mountDirectorUI({
   });
 
   // ── Build scene inspector panel ────────────────────────────────────────────
-  function buildSceneInspector(active) {
+  function buildSceneInspector(active, selectedKeyframe) {
     if (!active) { sceneEditEl.innerHTML = ''; return; }
     const behavior = active.behaviors[0] || null;
     const movement = behavior?.type || '';
@@ -328,6 +423,49 @@ export function mountDirectorUI({
       `;
     }
 
+    let keyframeEditor = '';
+    if (selectedKeyframe) {
+      const { path, time, frame } = selectedKeyframe;
+      const inputType = keyframeInputType(frame.value);
+      keyframeEditor = `
+        <div class="director-keyframe-editor director-behavior-item" role="group" aria-label="Edició del rombo">
+          <h5 class="director-settings-title">Rombo</h5>
+          <label class="control-row"><span>Paràmetre</span>
+            <output class="director-keyframe-readonly">${escapeHtml(keyframeLabel(path))}</output>
+          </label>
+          <label class="control-row" for="directorKeyframeValue"><span>Valor</span>
+            <input id="directorKeyframeValue" type="${inputType}" ${inputType === 'number' ? 'step="any"' : ''}
+              value="${escapeHtml(frame.value ?? '')}"
+              data-keyframe-editor-path="${escapeHtml(path)}"
+              data-keyframe-editor-time="${time}">
+          </label>
+          <label class="control-row" for="directorKeyframeTime"><span>Temps</span>
+            <span class="director-duration-field">
+              <input id="directorKeyframeTime" type="number" min="0" max="${active.duration}" step="0.1" inputmode="decimal"
+                value="${time}"
+                data-keyframe-editor-path="${escapeHtml(path)}"
+                data-keyframe-editor-time="${time}">
+              <span class="director-inline-unit">seg</span>
+            </span>
+          </label>
+          <label class="control-row" for="directorKeyframeEasing"><span>Easing</span>
+            <select id="directorKeyframeEasing"
+              data-keyframe-editor-path="${escapeHtml(path)}"
+              data-keyframe-editor-time="${time}">
+              <option value="hold"${frame.easing === 'hold' ? ' selected' : ''}>hold</option>
+              <option value="linear"${frame.easing === 'linear' ? ' selected' : ''}>linear</option>
+              <option value="ease-in"${frame.easing === 'ease-in' ? ' selected' : ''}>ease-in</option>
+              <option value="ease-out"${frame.easing === 'ease-out' ? ' selected' : ''}>ease-out</option>
+              <option value="ease-in-out"${frame.easing === 'ease-in-out' ? ' selected' : ''}>ease-in-out</option>
+            </select>
+          </label>
+          <div class="director-scene-card-actions">
+            <button type="button" data-director-keyframe-delete data-keyframe-path="${escapeHtml(path)}" data-keyframe-time="${time}">Eliminar</button>
+          </div>
+        </div>
+      `;
+    }
+
     sceneEditEl.innerHTML = `
       <div class="director-scene-toolbar" role="group" aria-label="Accions globals d'escena">
         <button type="button" data-director-action="add" aria-label="Nova escena">Nova escena</button>
@@ -367,6 +505,7 @@ export function mountDirectorUI({
         </div>
       </div>
       ${movementSettings}
+      ${keyframeEditor}
     `;
   }
 
@@ -375,6 +514,7 @@ export function mountDirectorUI({
     if (!active || !lanesEl) return;
     const lt = localTime ?? 0;
     const total = vm.duration || active.duration || 1;
+    const selected = getState().selectedDirectorKeyframe;
     const entries = Object.entries(active.automations).flatMap(([path, frames]) => {
       const label = keyframeLabel(path);
       return [...frames]
@@ -383,6 +523,7 @@ export function mountDirectorUI({
           path,
           time: frame.time,
           isCurrent: Math.abs(frame.time - lt) <= 0.0001,
+          isSelected: selected?.sceneId === active.id && selected?.path === path && Math.abs(selected.time - frame.time) <= 0.0001,
           label,
           value: keyframeValue(frame.value),
           left: ((active.start + frame.time) / total) * 100,
@@ -404,12 +545,12 @@ export function mountDirectorUI({
       } else {
         rows[row] = entry.left;
       }
-      return `<button type="button" class="director-keyframe${entry.isCurrent ? ' is-current' : ''}"
+      return `<button type="button" class="director-keyframe${entry.isCurrent ? ' is-current' : ''}${entry.isSelected ? ' is-selected' : ''}"
         style="left:${entry.left}%; --director-keyframe-row:${row};"
         data-keyframe-path="${escapeHtml(entry.path)}"
         data-keyframe-time="${entry.time}"
         data-current="${entry.isCurrent}"
-        aria-label="Elimina keyframe ${escapeHtml(entry.label)} ${escapeHtml(entry.value)} a ${entry.time.toFixed(2)} s">
+        aria-label="Edita keyframe ${escapeHtml(entry.label)} ${escapeHtml(entry.value)} a ${entry.time.toFixed(2)} s">
         <span aria-hidden="true" class="director-keyframe-diamond"></span>
         <span class="director-keyframe-label">${escapeHtml(entry.label)}</span>
         <span class="director-keyframe-value">${escapeHtml(entry.value)}</span>
@@ -427,6 +568,7 @@ export function mountDirectorUI({
       state.selectedDirectorSceneId,
       state.directorTime ?? 0,
     );
+    const selectedKeyframe = findSelectedKeyframe(state, vm.activeScene);
 
     // Enabled checkbox
     enabledCb.checked = !!vm.director.enabled;
@@ -439,7 +581,7 @@ export function mountDirectorUI({
 
     // Rebuild scene inspector
     const localTime = Math.max(0, (vm.time ?? 0) - (vm.activeScene?.start ?? 0));
-    buildSceneInspector(vm.activeScene);
+    buildSceneInspector(vm.activeScene, selectedKeyframe);
 
     // Rebuild automation lanes
     buildLanes(vm, vm.activeScene, localTime);

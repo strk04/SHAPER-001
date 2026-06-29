@@ -19,6 +19,16 @@
   - `E01 / E02 / ...` reduïts a la mida de text estàndard del projecte
   - playhead del timeline corregit perquè es mogui mentre avança el Director
   - el botó `Loop` ara queda ressaltat amb negre sobre blanc quan està ON
+- Fase A de timeline usable:
+  - escrita la spec `docs/superpowers/specs/2026-06-29-director-timeline-interaction-design.md`
+  - escrit el pla `docs/superpowers/plans/2026-06-29-director-timeline-interaction-implementation.md`
+  - els rombos ja no s’esborren amb clic: ara se seleccionen
+  - la columna 2 mostra fitxa d’edició del rombo actiu (`valor`, `temps`, `easing`, `eliminar`)
+  - botó dret sobre rombo obre un menú contextual mínim d’eliminació
+  - el playhead es pot arrossegar endavant i endarrere
+  - labels i valors del timeline queden unificats al cos de text base
+  - els separadors d’escena es dibuixen una sola vegada
+  - en crear un rombo nou queda seleccionat automàticament per editar-lo al moment
 
 ### Pendent
 - Validació visual ràpida dins l’app.

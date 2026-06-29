@@ -836,7 +836,6 @@ body:not([data-director-panel-active]) .director-timeline-host {
   letter-spacing: 0;
 }
 
-.director-scene::before,
 .director-scene::after {
   content: "";
   position: absolute;
@@ -846,13 +845,17 @@ body:not([data-director-panel-active]) .director-timeline-host {
   background: var(--ink);
 }
 
-.director-scene::before {
+.director-scene:first-child::before {
+  content: "";
+  position: absolute;
+  top: calc(var(--space-5) * -1 - 1px);
   left: 0;
+  width: 2px;
+  height: 18px;
+  background: var(--ink);
 }
 
-.director-scene::after {
-  right: 0;
-}
+.director-scene::after { right: 0; }
 
 .director-scene:hover,
 .director-scene.is-active {
@@ -874,7 +877,9 @@ body:not([data-director-panel-active]) .director-timeline-host {
   border-radius: 999px;
   background: var(--paper);
   transform: translateX(-50%);
-  pointer-events: none;
+  cursor: ew-resize;
+  pointer-events: auto;
+  z-index: 2;
 }
 
 .director-lanes {
@@ -901,9 +906,11 @@ body:not([data-director-panel-active]) .director-timeline-host {
   color: var(--ink);
   text-transform: none;
   letter-spacing: 0;
+  text-align: center;
 }
 
-.director-keyframe:hover {
+.director-keyframe:hover,
+.director-keyframe.is-selected {
   background: transparent;
   color: var(--ink);
 }
@@ -926,17 +933,37 @@ body:not([data-director-panel-active]) .director-timeline-host {
 }
 
 .director-keyframe-label {
-  font-size: clamp(0.85rem, 1.1vw, 1rem);
+  font-size: var(--text-xs);
+  line-height: var(--leading);
 }
 
 .director-keyframe-value {
   color: var(--ink);
-  font-size: clamp(0.95rem, 1.5vw, 1.2rem);
+  font-size: var(--text-xs);
+  line-height: var(--leading);
 }
 
 .director-empty-state {
   margin: 0;
   color: var(--ink-4);
+}
+
+.director-keyframe-menu {
+  position: fixed;
+  z-index: 30;
+  min-width: 120px;
+  padding: var(--space-1);
+  border: 1px solid var(--paper-3);
+  border-radius: var(--radius);
+  background: var(--paper);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+}
+
+.director-keyframe-menu button {
+  width: 100%;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 @media (max-width: 860px) {
@@ -976,6 +1003,10 @@ body:not([data-director-panel-active]) .director-timeline-host {
 }
 
 .director-movement-settings {
+  margin-top: var(--space-3);
+}
+
+.director-keyframe-editor {
   margin-top: var(--space-3);
 }
 
@@ -1036,6 +1067,11 @@ body:not([data-director-panel-active]) .director-timeline-host {
   color: var(--ink-3);
   font-size: var(--text-xs);
   font-variant-numeric: tabular-nums;
+}
+
+.director-keyframe-readonly {
+  color: var(--ink);
+  font-size: var(--text-xs);
 }
 
 /* Automation keyframe diamond button — sidebar controls */

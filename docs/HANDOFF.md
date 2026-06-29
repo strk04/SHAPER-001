@@ -15,6 +15,12 @@ _Actualitzat: 2026-06-29_
   - `E01 / E02 / ...` passen a mida de text normal del sistema
   - la bola del timeline torna a seguir el temps real del Director durant la reproducció
   - el botó `Loop` queda invertit (negre/blanc) quan està actiu
+- Nova fase del timeline usable:
+  - clic a un rombo = seleccionar i editar
+  - botó dret sobre rombo = menú contextual `Eliminar`
+  - el rombo seleccionat obre fitxa d’edició a la columna 2 (`valor`, `temps`, `easing`)
+  - el playhead del timeline es pot arrossegar endavant i endarrere
+  - separadors d’escena corregits perquè no es vegin duplicats
 
 ## Estat actual
 
@@ -50,9 +56,10 @@ Resultat: 34 tests pass, checks OK.
 
 ## Següent pas útil
 
-- Fer una validació visual ràpida del timeline nou dins l’app i decidir si més endavant volem que mostri keyframes de totes les escenes alhora o només de l’escena activa.
+- Fer una validació visual ràpida del timeline usable nou dins l’app.
+- Si això queda bé, la següent iteració clara és afegir guies visuals dels moviments (`target`, `radius`, `center`, etc.).
 
 ## Riscos / notes
 
 - Ara mateix el timeline mostra els keyframes de l’escena activa posicionats dins el tram global de la seva escena.
-- No s’ha afegit drag de rombos ni inspecció detallada de `easing`; això continua fora d’abast.
+- Encara no hi ha drag directe dels rombos; la modificació es fa via fitxa d’edició.

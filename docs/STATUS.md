@@ -22,6 +22,7 @@ Director està implementat localment com a sistema d’escenes amb:
 - controls globals (`Reverse`, `Loop`, `Timeline`) al final de la columna 2
 - export offline frame-exact
 - accions d'escena mínimes (`Nova escena`, `Eliminar`)
+- unitats de durada compactes (`seg`) inline al costat dels dos camps
 
 La sessió actual ha eliminat la capa de live performance:
 

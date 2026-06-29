@@ -73,10 +73,14 @@ test('director sidebar shows the active scene card after global controls', async
   assert.match(ui, /<span>Durada total<\/span>/);
   assert.match(ui, /<span>Durada transició<\/span>/);
   assert.match(ui, /<span>Estil transició<\/span>/);
+  assert.match(ui, /director-duration-field/);
+  assert.match(ui, />seg<\/span>/);
+  assert.doesNotMatch(ui, />segons<\/span>/);
   assert.match(ui, /data-director-action="add"[\s\S]*director-scene-card/);
   assert.match(ui, /director-scene-card[\s\S]*data-director-action="delete"/);
   assert.doesNotMatch(ui, /director-scene-actions/);
   assert.match(css, /\.director-scene-toolbar/);
   assert.match(css, /\.director-scene-card/);
+  assert.match(css, /\.director-duration-field/);
   assert.match(css, /border-top: 1px solid var\(--paper-3\)/);
 });

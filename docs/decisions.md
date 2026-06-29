@@ -1,5 +1,9 @@
 # Decisions — SHAPER 001
 
+## 2026-06-29 — Les dues durades mostren `seg` inline després del camp
+
+`Durada total` i `Durada transició` deixen de mostrar la unitat `segons` sota del camp i passen a compartir el mateix patró visual: caixa numèrica + `seg` a la dreta. Racional: és més compacte, més consistent i evita que un dels dos camps sembli tenir una estructura diferent de l’altre. Conseqüència: la unitat queda associada visualment al valor i la fitxa d’escena respira millor en vertical.
+
 ## 2026-06-29 — La fitxa d’escena mostra un únic `Moviment` en lloc de la pila completa de comportaments
 
 La nova columna 2 no exposa ja la pila completa de comportaments ni els seus paràmetres avançats. En lloc d’això, cada escena presenta un únic desplegable `Moviment` amb `Deriva`, `Òrbita`, `Atracció` i `Explosió`. Racional: la UI demanada prioritza llegibilitat i onboarding sobre control fi, i la pila antiga afegia massa soroll conceptual. Conseqüència: la sidebar treballa amb el “moviment principal” de l’escena, i en canviar-lo es netegen les automatitzacions antigues de comportament per no deixar restes incoherents a la timeline.

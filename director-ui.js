@@ -23,7 +23,6 @@ export function directorViewModel(input, selectedSceneId, time) {
 const BEHAVIOR_LABELS = Object.freeze({
   drift: 'Deriva', orbit: 'Òrbita', attract: 'Atracció', explode: 'Explosió',
 });
-const behaviorLabel = (type) => BEHAVIOR_LABELS[type] || type;
 const MOVEMENT_OPTIONS = Object.entries(BEHAVIOR_LABELS);
 
 // Maps AUTOMATABLE_PARAMS key → actual element id in index.html / built by buildSliders()
@@ -236,15 +235,19 @@ export function mountDirectorUI({
           </select>
         </label>
         <label class="control-row" for="directorSceneDuration"><span>Durada total</span>
-          <input id="directorSceneDuration" type="number" min="0.1" max="3600" step="0.1" inputmode="decimal"
-            value="${active.duration}" aria-describedby="directorDurationUnit">
+          <span class="director-duration-field">
+            <input id="directorSceneDuration" type="number" min="0.1" max="3600" step="0.1" inputmode="decimal"
+              value="${active.duration}" aria-describedby="directorDurationUnit">
+            <span id="directorDurationUnit" class="director-inline-unit">seg</span>
+          </span>
         </label>
-        <span id="directorDurationUnit" class="control-unit">segons</span>
         <label class="control-row" for="directorTransitionDuration"><span>Durada transició</span>
-          <input id="directorTransitionDuration" type="number" min="0" max="${active.duration}" step="0.1" inputmode="decimal"
-            value="${active.transition.duration}" aria-describedby="directorTransitionUnit">
+          <span class="director-duration-field">
+            <input id="directorTransitionDuration" type="number" min="0" max="${active.duration}" step="0.1" inputmode="decimal"
+              value="${active.transition.duration}" aria-describedby="directorTransitionUnit">
+            <span id="directorTransitionUnit" class="director-inline-unit">seg</span>
+          </span>
         </label>
-        <span id="directorTransitionUnit" class="control-unit">segons</span>
         <label class="control-row" for="directorTransitionEasing"><span>Estil transició</span>
           <select id="directorTransitionEasing">
             <option value="hold"${active.transition.easing === 'hold' ? ' selected' : ''}>hold</option>

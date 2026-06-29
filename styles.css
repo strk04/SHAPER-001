@@ -871,13 +871,20 @@ body[data-nav-collapsed] .director-dock { left: var(--sidebar-width); }
   padding-top: var(--space-2);
 }
 
-/* Unit label below numeric input */
-.control-unit {
-  display: block;
-  font-size: var(--text-xs);
+.director-duration-field {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.director-duration-field input {
+  min-width: 0;
+}
+
+.director-inline-unit {
   color: var(--ink-3);
-  margin-top: -4px;
-  margin-bottom: var(--space-1);
+  font-size: var(--text-xs);
+  white-space: nowrap;
 }
 
 /* Automation keyframe diamond button — sidebar controls */

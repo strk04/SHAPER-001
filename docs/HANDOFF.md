@@ -66,8 +66,10 @@ Queden:
 - `styles.css`
   - nous blocs `.director-scene-toolbar` i `.director-scene-card`
   - eliminat CSS orfe de la fitxa antiga de comportaments
+  - `Durada total` i `Durada transició` ara mostren `seg` inline a la dreta del camp
 - `tests/project-wiring.test.mjs`
   - afegit test que blinda la nova jerarquia de la columna 2 del Director
+  - ampliat per blindar el patró `input + seg` a les dues durades
 
 ## Verificació feta
 
@@ -102,7 +104,8 @@ Canvis locals pendents de commit/push:
 1. Verificació visual ràpida del nou flux de columna 2 (`Activa` → `Nova escena` → fitxa activa → `General`).
 2. Decidir si els rombos s’han de veure només dins la pestanya `Director`.
 3. Valorar si el desplegable `Moviment` ha de permetre també un estat “cap”.
-4. Millora pendent guardada: veure clarament `temps`, `valor` i `easing` dels keyframes.
+4. Revisar si `seg` inline té prou aire visual al costat del camp.
+5. Millora pendent guardada: veure clarament `temps`, `valor` i `easing` dels keyframes.
 
 ## Actualització addicional
 

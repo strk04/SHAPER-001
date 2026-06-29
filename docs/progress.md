@@ -6,6 +6,7 @@
 - Implementada la nova jerarquia de la columna 2: `Activa mode Director` → `Nova escena` → fitxa única de l’escena activa → bloc `General`.
 - Eliminat el mini-playhead de la columna 2 per deixar la timeline només al dock.
 - La fitxa activa queda reduïda a `Moviment`, `Durada total`, `Durada transició`, `Estil transició` i `Eliminar`.
+- `Durada total` i `Durada transició` passen de mostrar `segons` sota el camp a mostrar `seg` inline a la dreta, amb les dues caixes unificades visualment.
 - Afegit `setSceneMovement()` a `director.js` perquè cada escena tingui un únic moviment visible i es netegin automatitzacions antigues de comportaments en canviar-lo.
 - Netejat wiring i CSS orfes de la sidebar antiga de comportaments.
 - Afegit test de wiring de la nova columna 2.

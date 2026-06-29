@@ -878,6 +878,7 @@ body[data-nav-collapsed] .director-dock { left: var(--sidebar-width); }
 }
 
 .director-duration-field input {
+  width: 72px;
   min-width: 0;
 }
 

@@ -23,6 +23,7 @@ Director està implementat localment com a sistema d’escenes amb:
 - export offline frame-exact
 - accions d'escena mínimes (`Nova escena`, `Eliminar`)
 - unitats de durada compactes (`seg`) inline al costat dels dos camps
+- camps de durada amb amplada comuna fixa
 
 La sessió actual ha eliminat la capa de live performance:
 

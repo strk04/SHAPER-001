@@ -82,5 +82,6 @@ test('director sidebar shows the active scene card after global controls', async
   assert.match(css, /\.director-scene-toolbar/);
   assert.match(css, /\.director-scene-card/);
   assert.match(css, /\.director-duration-field/);
+  assert.match(css, /\.director-duration-field input[\s\S]*width:/);
   assert.match(css, /border-top: 1px solid var\(--paper-3\)/);
 });

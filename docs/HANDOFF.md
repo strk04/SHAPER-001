@@ -67,6 +67,7 @@ Queden:
   - nous blocs `.director-scene-toolbar` i `.director-scene-card`
   - eliminat CSS orfe de la fitxa antiga de comportaments
   - `Durada total` i `Durada transició` ara mostren `seg` inline a la dreta del camp
+  - els dos inputs de durada comparteixen ara la mateixa amplada fixa
 - `tests/project-wiring.test.mjs`
   - afegit test que blinda la nova jerarquia de la columna 2 del Director
   - ampliat per blindar el patró `input + seg` a les dues durades

@@ -34,6 +34,7 @@ Director està simplificat per a ús no-live i actualment inclou:
 - El panell `Colors` inclou `Color de superficie` i `Transparencia superficie`.
 - La superficie es pinta entre glifs posteriors i frontals per ocultar text quan queda darrere del cos.
 - Per defecte: `#d8d8d8` amb transparencia `0.25`.
+- Sincronitzat a `02 Pixel Perfect/shaper/` i pujat a `strk04/PIxel-Perfect` (`0fba175`).
 
 Ja no hi ha:
 
@@ -59,4 +60,4 @@ node --check main.js
 
 - Decidir si més endavant la timeline ha de mostrar keyframes de totes les escenes o només de l’escena activa.
 - Millora futura pendent: guies visuals dels ajustos de moviment (target, radius, centre, vector...).
-- Sincronitzar els canvis recents a `02 Pixel Perfect/shaper/` si toca publicar.
+- Revisar deployment de Pixel Perfect si cal confirmar publicacio web.

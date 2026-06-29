@@ -500,4 +500,4 @@
 ### Pendent
 
 - Revisar qualitat d'oclusio en formes amb normals aproximades si es detecta algun cas visual estrany.
-- Sincronitzar a `02 Pixel Perfect/shaper/` quan toqui publicar.
+- Sincronitzat a `02 Pixel Perfect/shaper/` i pujat a `strk04/PIxel-Perfect` (`0fba175`).

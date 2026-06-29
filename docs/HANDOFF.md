@@ -10,6 +10,7 @@ _Actualitzat: 2026-06-29_
 - L'export SVG serialitza les mateixes capes: `text-back`, `surface`, `text-front`.
 - Els presets capturen i restauren `surfaceColor` i `surfaceTransparency`.
 - Afegits tests de motor i wiring.
+- Canvis sincronitzats i pujats també a `02 Pixel Perfect/shaper/` (`0fba175`).
 
 ## Estat actual
 
@@ -37,7 +38,7 @@ node --test tests/*.test.mjs   # 37 pass
 ## Seguent pas util
 
 - Si cal mes qualitat d'oclusio, revisar formes amb normals aproximades (`boy-surface`, `roman-surface`, etc.) i formes morfejades amb tapes.
-- Sincronitzar aquests canvis a `02 Pixel Perfect/shaper/` si el flux de publicacio ho requereix.
+- Si el deploy de Pixel Perfect no s'actualitza sol, revisar l'estat del deployment associat a `strk04/PIxel-Perfect`.
 
 ## Riscos / notes
 

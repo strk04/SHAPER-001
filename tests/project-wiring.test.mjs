@@ -48,6 +48,7 @@ test('director general controls live in column 2, not in dock transport', async 
   const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
   const ui = await readFile(new URL('../director-ui.js', import.meta.url), 'utf8');
   const main = await readFile(new URL('../main.js', import.meta.url), 'utf8');
+  const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
   assert.doesNotMatch(html, /id="directorStop"/);
   assert.doesNotMatch(html, /id="directorHold"/);
   assert.doesNotMatch(html, /id="directorReverse"/);
@@ -64,6 +65,8 @@ test('director general controls live in column 2, not in dock transport', async 
   assert.doesNotMatch(main, /directorDock/);
   assert.doesNotMatch(main, /directorStop/);
   assert.doesNotMatch(main, /directorHold/);
+  assert.match(css, /\.director-general-actions button\[aria-pressed="true"\][\s\S]*background:\s*var\(--ink\)/);
+  assert.match(css, /\.director-general-actions button\[aria-pressed="true"\][\s\S]*color:\s*var\(--paper\)/);
 });
 
 test('director sidebar shows the active scene card after global controls', async () => {

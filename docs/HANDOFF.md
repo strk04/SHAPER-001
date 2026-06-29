@@ -14,6 +14,7 @@ _Actualitzat: 2026-06-29_
   - fora el text `Sense rombos en aquesta escena.`
   - `E01 / E02 / ...` passen a mida de text normal del sistema
   - la bola del timeline torna a seguir el temps real del Director durant la reproducció
+  - el botó `Loop` queda invertit (negre/blanc) quan està actiu
 
 ## Estat actual
 

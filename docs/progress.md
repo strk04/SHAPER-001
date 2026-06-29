@@ -18,6 +18,7 @@
   - eliminat el missatge buit `Sense rombos en aquesta escena.`
   - `E01 / E02 / ...` reduïts a la mida de text estàndard del projecte
   - playhead del timeline corregit perquè es mogui mentre avança el Director
+  - el botó `Loop` ara queda ressaltat amb negre sobre blanc quan està ON
 
 ### Pendent
 - Validació visual ràpida dins l’app.

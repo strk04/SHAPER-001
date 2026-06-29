@@ -958,6 +958,12 @@ body:not([data-director-panel-active]) .director-timeline-host {
   margin-bottom: var(--space-3);
 }
 
+.director-general-actions button[aria-pressed="true"] {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+}
+
 .director-scene-card {
   display: grid;
   gap: var(--space-2);

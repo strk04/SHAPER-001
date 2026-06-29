@@ -1,5 +1,9 @@
 # Decisions — SHAPER 001
 
+## 2026-06-29 — La fitxa d’escena mostra un únic `Moviment` en lloc de la pila completa de comportaments
+
+La nova columna 2 no exposa ja la pila completa de comportaments ni els seus paràmetres avançats. En lloc d’això, cada escena presenta un únic desplegable `Moviment` amb `Deriva`, `Òrbita`, `Atracció` i `Explosió`. Racional: la UI demanada prioritza llegibilitat i onboarding sobre control fi, i la pila antiga afegia massa soroll conceptual. Conseqüència: la sidebar treballa amb el “moviment principal” de l’escena, i en canviar-lo es netegen les automatitzacions antigues de comportament per no deixar restes incoherents a la timeline.
+
 ## 2026-06-29 — La columna 2 de Director manté una sola escena oberta
 
 La UI d’escenes no passa a un model de múltiples fitxes desplegades. Es manté el patró actual d’una sola escena activa visible a la columna 2, però es reordena la jerarquia perquè primer apareguin els controls globals (`Activa mode Director`, `Nova escena`) i després la fitxa de l’escena activa. Racional: és la manera més simple de fer la interfície més llegible sense canviar el flux mental ni afegir soroll visual. Conseqüència: no cal introduir accordions, llistes llargues d’escenes ni una nova arquitectura de sidebar.

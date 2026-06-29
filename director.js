@@ -292,6 +292,26 @@ export function removeBehavior(sceneInput, id) {
   return { ...scene, behaviors: scene.behaviors.filter((behavior) => behavior.id !== id) };
 }
 
+export function setSceneMovement(sceneInput, type) {
+  const scene = normalizeScene(sceneInput);
+  const nextType = BEHAVIOR_DEFAULTS[type] ? type : '';
+  const current = scene.behaviors[0] || null;
+  const automations = Object.fromEntries(
+    Object.entries(scene.automations).filter(([path]) => !path.startsWith('behavior:')),
+  );
+  if (!nextType) return { ...scene, behaviors: [], automations };
+  const behavior = normalizeBehavior({
+    id: current?.id || `${nextType}-1`,
+    type: nextType,
+    enabled: true,
+    intensity: current?.intensity ?? 1,
+    cohesion: current?.cohesion ?? 1,
+    seedOffset: current?.seedOffset ?? 1,
+    params: current?.type === nextType ? current.params : BEHAVIOR_DEFAULTS[nextType],
+  }, 0);
+  return { ...scene, behaviors: [behavior], automations };
+}
+
 // ── Evaluation ───────────────────────────────────────────────────────────────
 
 export function evaluateDirector(input, absoluteTime, baseState = {}) {

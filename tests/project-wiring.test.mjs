@@ -60,3 +60,23 @@ test('director general controls live in column 2, not in dock transport', async 
   assert.doesNotMatch(main, /directorStop/);
   assert.doesNotMatch(main, /directorHold/);
 });
+
+test('director sidebar shows the active scene card after global controls', async () => {
+  const ui = await readFile(new URL('../director-ui.js', import.meta.url), 'utf8');
+  const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
+  assert.match(ui, /Activa mode Director/);
+  assert.match(ui, /data-director-action="add"[\s\S]*Nova escena/);
+  assert.match(ui, /director-scene-toolbar/);
+  assert.match(ui, /director-scene-card/);
+  assert.match(ui, /Escena \$\{escapeHtml\(active\.name\)\}/);
+  assert.match(ui, /<span>Moviment<\/span>/);
+  assert.match(ui, /<span>Durada total<\/span>/);
+  assert.match(ui, /<span>Durada transició<\/span>/);
+  assert.match(ui, /<span>Estil transició<\/span>/);
+  assert.match(ui, /data-director-action="add"[\s\S]*director-scene-card/);
+  assert.match(ui, /director-scene-card[\s\S]*data-director-action="delete"/);
+  assert.doesNotMatch(ui, /director-scene-actions/);
+  assert.match(css, /\.director-scene-toolbar/);
+  assert.match(css, /\.director-scene-card/);
+  assert.match(css, /border-top: 1px solid var\(--paper-3\)/);
+});

@@ -16,12 +16,12 @@ Director està implementat localment com a sistema d’escenes amb:
 
 - durada per escena
 - transició + easing per escena
-- comportaments deterministes
+- un únic moviment visible per escena, triat amb desplegable
 - keyframes / automatització
 - timeline al dock
 - controls globals (`Reverse`, `Loop`, `Timeline`) al final de la columna 2
 - export offline frame-exact
-- accions d'escena mínimes (`Afegeix`, `Elimina`)
+- accions d'escena mínimes (`Nova escena`, `Eliminar`)
 
 La sessió actual ha eliminat la capa de live performance:
 
@@ -29,14 +29,14 @@ La sessió actual ha eliminat la capa de live performance:
 - no hi ha `REC`
 - no hi ha live pads ni gravació de gestos
 - no hi ha `Atura` ni `Hold`
-- hi ha una spec pendent d’implementar per reordenar la fitxa d’escena a la columna 2 mantenint una sola escena oberta
+- la columna 2 s’ha simplificat a activació global + `Nova escena` + fitxa única de l’escena activa
 
 ## Verificació actual
 
 Última verificació executada el 2026-06-29:
 
 ```bash
-node --test tests/*.test.mjs   # 31 pass
+node --test tests/*.test.mjs   # 32 pass
 node --check main.js
 node --check director.js
 node --check director-ui.js
@@ -46,4 +46,5 @@ node --check director-ui.js
 
 - Verificació visual del flux simplificat de Director.
 - Decidir si els rombos d’automatització s’han d’amagar fora de la pestanya `Director`.
+- Valorar si el desplegable `Moviment` necessita també opció “cap”.
 - Fer visible el valor dels keyframes seleccionats.

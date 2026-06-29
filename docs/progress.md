@@ -1,5 +1,20 @@
 # Progress — SHAPER 001
 
+## 2026-06-29 — Implementació del nou layout d’escena a Director
+
+### Fet
+- Implementada la nova jerarquia de la columna 2: `Activa mode Director` → `Nova escena` → fitxa única de l’escena activa → bloc `General`.
+- Eliminat el mini-playhead de la columna 2 per deixar la timeline només al dock.
+- La fitxa activa queda reduïda a `Moviment`, `Durada total`, `Durada transició`, `Estil transició` i `Eliminar`.
+- Afegit `setSceneMovement()` a `director.js` perquè cada escena tingui un únic moviment visible i es netegin automatitzacions antigues de comportaments en canviar-lo.
+- Netejat wiring i CSS orfes de la sidebar antiga de comportaments.
+- Afegit test de wiring de la nova columna 2.
+- Verificació completa: `node --test tests/*.test.mjs` → 32 pass; `node --check main.js`, `director.js`, `director-ui.js` OK.
+
+### Pendent
+- Validació visual ràpida del nou flux real dins l’app.
+- Decidir si `Moviment` ha d’oferir un estat explícit “cap”.
+
 ## 2026-06-29 — Spec de reordenació de la UI d’escenes del Director
 
 ### Fet
@@ -8,8 +23,7 @@
 - Decidit que la UI seguirà els tokens i patrons visuals existents (`panel-title`, `control-row`, `--space-*`, `--paper-3`, `--radius`) en lloc d’introduir un component nou.
 
 ### Pendent
-- Revisió final de la spec per part de l’usuari.
-- Pla d’implementació i execució del canvi.
+- (res d’aquesta spec; ja implementada)
 
 ## 2026-06-29 — Controls generals del Director a la columna 2
 

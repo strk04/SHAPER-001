@@ -15,11 +15,10 @@ Queden:
 
 - escenes
 - durada i transició per escena
-- comportaments (`Deriva`, `Òrbita`, `Atracció`, `Explosió`)
+- un únic moviment visible per escena (`Deriva`, `Òrbita`, `Atracció`, `Explosió`)
 - keyframes / rombos
 - controls generals (`Reverse`, `Loop`, `Timeline`) al final de la columna 2
-- accions d'escena mínimes (`Afegeix`, `Elimina`)
-- spec nova escrita per reordenar la fitxa d’escena de la columna 2
+- accions d'escena mínimes (`Nova escena`, `Eliminar`)
 
 ## Canvis d’aquesta sessió
 
@@ -52,6 +51,23 @@ Queden:
   - afegit test que garanteix que els controls generals viuen a la columna 2 i no al dock
 - `docs/superpowers/specs/2026-06-29-director-scene-layout-design.md`
   - escrita la spec per a la nova jerarquia visual de la columna 2 del Director
+- `docs/superpowers/plans/2026-06-29-director-scene-layout-implementation.md`
+  - escrit el pla d’implementació i executat inline
+- `director-ui.js`
+  - eliminat el mini-playhead de la columna 2
+  - `Activa` passa a `Activa mode Director`
+  - `Nova escena` passa a viure fora de la fitxa d’escena
+  - la fitxa activa mostra només `Moviment`, `Durada total`, `Durada transició`, `Estil transició` i `Eliminar`
+- `director.js`
+  - afegit `setSceneMovement()` per reduir cada escena a un únic moviment visible i netejar automatitzacions de comportament antigues
+- `main.js`
+  - afegit wiring per al desplegable `Moviment`
+  - eliminats callbacks antics de comportaments que ja no s’exposen a la sidebar
+- `styles.css`
+  - nous blocs `.director-scene-toolbar` i `.director-scene-card`
+  - eliminat CSS orfe de la fitxa antiga de comportaments
+- `tests/project-wiring.test.mjs`
+  - afegit test que blinda la nova jerarquia de la columna 2 del Director
 
 ## Verificació feta
 
@@ -64,14 +80,14 @@ node --check director.js
 node --check director-ui.js
 ```
 
-Resultat: 31 tests pass. La spec nova encara no implica canvis de codi.
+Resultat: 32 tests pass.
 
 ## Estat git
 
 Canvis locals pendents de commit/push:
 
 - `director-ui.js`
-- `index.html`
+- `director.js`
 - `main.js`
 - `styles.css`
 - `tests/project-wiring.test.mjs`
@@ -79,12 +95,13 @@ Canvis locals pendents de commit/push:
 - `docs/STATUS.md`
 - `docs/progress.md`
 - `docs/decisions.md`
+- `docs/superpowers/plans/2026-06-29-director-scene-layout-implementation.md`
 
 ## Properes passes recomanades
 
-1. Verificació visual ràpida del panell Director després del trasllat de controls generals.
-2. Si l’usuari valida la spec `2026-06-29-director-scene-layout-design.md`, implementar-la.
-3. Decidir si els rombos s’han de veure només dins la pestanya `Director`.
+1. Verificació visual ràpida del nou flux de columna 2 (`Activa` → `Nova escena` → fitxa activa → `General`).
+2. Decidir si els rombos s’han de veure només dins la pestanya `Director`.
+3. Valorar si el desplegable `Moviment` ha de permetre també un estat “cap”.
 4. Millora pendent guardada: veure clarament `temps`, `valor` i `easing` dels keyframes.
 
 ## Actualització addicional
@@ -95,7 +112,7 @@ També s’han eliminat de la UI d’escena els botons:
 - `←`
 - `→`
 
-L’inspector d’escena queda reduït a `Afegeix` i `Elimina`.
+I ara la fitxa queda reduïda a `Moviment`, durades, easing i `Eliminar`, mentre `Nova escena` viu fora de la fitxa.
 
 ## Riscos / notes
 

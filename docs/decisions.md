@@ -1,5 +1,9 @@
 # Decisions — SHAPER 001
 
+## 2026-06-29 — La columna 2 de Director manté una sola escena oberta
+
+La UI d’escenes no passa a un model de múltiples fitxes desplegades. Es manté el patró actual d’una sola escena activa visible a la columna 2, però es reordena la jerarquia perquè primer apareguin els controls globals (`Activa mode Director`, `Nova escena`) i després la fitxa de l’escena activa. Racional: és la manera més simple de fer la interfície més llegible sense canviar el flux mental ni afegir soroll visual. Conseqüència: no cal introduir accordions, llistes llargues d’escenes ni una nova arquitectura de sidebar.
+
 ## 2026-06-29 — `Reverse`, `Loop` i `Timeline` passen a ser controls generals de la columna 2
 
 `Reverse` i `Loop` no s’han de presentar com a propietats d’escena sinó com a estat global del Director, i `Timeline` tampoc ha de competir visualment amb els comportaments dins el dock. Per això s’eliminen `Atura` i `Hold` i es traslladen `Reverse`, `Loop` i `Timeline` al final de la columna 2 dins un bloc general. Conseqüència: el dock inferior queda dedicat només a la timeline, i la jerarquia conceptual és més clara: escenes i comportaments a la columna 2, reproducció global al bloc general.

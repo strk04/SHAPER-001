@@ -19,6 +19,7 @@ Queden:
 - keyframes / rombos
 - controls generals (`Reverse`, `Loop`, `Timeline`) al final de la columna 2
 - accions d'escena mínimes (`Afegeix`, `Elimina`)
+- spec nova escrita per reordenar la fitxa d’escena de la columna 2
 
 ## Canvis d’aquesta sessió
 
@@ -49,6 +50,8 @@ Queden:
   - eliminat CSS antic de `director-transport`
 - `tests/project-wiring.test.mjs`
   - afegit test que garanteix que els controls generals viuen a la columna 2 i no al dock
+- `docs/superpowers/specs/2026-06-29-director-scene-layout-design.md`
+  - escrita la spec per a la nova jerarquia visual de la columna 2 del Director
 
 ## Verificació feta
 
@@ -61,7 +64,7 @@ node --check director.js
 node --check director-ui.js
 ```
 
-Resultat: 31 tests pass.
+Resultat: 31 tests pass. La spec nova encara no implica canvis de codi.
 
 ## Estat git
 
@@ -80,8 +83,9 @@ Canvis locals pendents de commit/push:
 ## Properes passes recomanades
 
 1. Verificació visual ràpida del panell Director després del trasllat de controls generals.
-2. Decidir si els rombos s’han de veure només dins la pestanya `Director`.
-3. Millora pendent guardada: veure clarament `temps`, `valor` i `easing` dels keyframes.
+2. Si l’usuari valida la spec `2026-06-29-director-scene-layout-design.md`, implementar-la.
+3. Decidir si els rombos s’han de veure només dins la pestanya `Director`.
+4. Millora pendent guardada: veure clarament `temps`, `valor` i `easing` dels keyframes.
 
 ## Actualització addicional
 

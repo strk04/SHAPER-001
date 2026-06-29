@@ -29,6 +29,7 @@ La sessió actual ha eliminat la capa de live performance:
 - no hi ha `REC`
 - no hi ha live pads ni gravació de gestos
 - no hi ha `Atura` ni `Hold`
+- hi ha una spec pendent d’implementar per reordenar la fitxa d’escena a la columna 2 mantenint una sola escena oberta
 
 ## Verificació actual
 

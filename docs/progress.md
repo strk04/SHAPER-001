@@ -1,5 +1,16 @@
 # Progress — SHAPER 001
 
+## 2026-06-29 — Spec de reordenació de la UI d’escenes del Director
+
+### Fet
+- Acordada una reordenació de la columna 2 de `Director` sense canviar el model actual d’una escena oberta cada vegada.
+- Escrita la spec `docs/superpowers/specs/2026-06-29-director-scene-layout-design.md`.
+- Decidit que la UI seguirà els tokens i patrons visuals existents (`panel-title`, `control-row`, `--space-*`, `--paper-3`, `--radius`) en lloc d’introduir un component nou.
+
+### Pendent
+- Revisió final de la spec per part de l’usuari.
+- Pla d’implementació i execució del canvi.
+
 ## 2026-06-29 — Controls generals del Director a la columna 2
 
 ### Fet

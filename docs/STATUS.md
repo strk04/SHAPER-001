@@ -28,6 +28,13 @@ Director està simplificat per a ús no-live i actualment inclou:
 - keyframes editables des de la columna 2
 - menú contextual de supressió sobre rombos
 
+## Superficies 3D
+
+- Les formes 3D tenen color de superficie configurable.
+- El panell `Colors` inclou `Color de superficie` i `Transparencia superficie`.
+- La superficie es pinta entre glifs posteriors i frontals per ocultar text quan queda darrere del cos.
+- Per defecte: `#d8d8d8` amb transparencia `0.25`.
+
 Ja no hi ha:
 
 - `ATTRACT`, `REPEL`, `EXPLODE`
@@ -43,14 +50,13 @@ Ja no hi ha:
 Última verificació executada el 2026-06-29:
 
 ```bash
-node --test tests/*.test.mjs   # 34 pass
+node --test tests/*.test.mjs   # 37 pass
+node --check engine.js
 node --check main.js
-node --check director.js
-node --check director-ui.js
 ```
 
 ## Pendent
 
-- Validació visual ràpida del timeline inline nou.
 - Decidir si més endavant la timeline ha de mostrar keyframes de totes les escenes o només de l’escena activa.
 - Millora futura pendent: guies visuals dels ajustos de moviment (target, radius, centre, vector...).
+- Sincronitzar els canvis recents a `02 Pixel Perfect/shaper/` si toca publicar.

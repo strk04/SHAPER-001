@@ -319,6 +319,7 @@ function escXML(s) {
 // pulse oscillation must stay <= 2 Hz. pulseSpeed max is 2, so
 // cycles-per-second = pulseSpeed * PULSE_RATE must be <= 2 => PULSE_RATE <= 1.
 export const PULSE_RATE = 1.0;
+const clamp01 = (value) => Math.max(0, Math.min(1, Number(value) || 0));
 
 const CAM_NEUTRAL = {
   fov: 60, zoom: 1,
@@ -375,6 +376,8 @@ function read3DParams(params) {
     regionSurface: params.regionSurface !== false,
     regionCaps:    !!params.regionCaps,
     regionVolume:  !!params.regionVolume,
+    surfaceColor: params.surfaceColor || '#d8d8d8',
+    surfaceTransparency: clamp01(num(params.surfaceTransparency, 0.25)),
     capsFontScale:     Math.max(0.1, num(params.capsFontScale,     1)),
     capsOpacity:       Math.max(0, Math.min(1, num(params.capsOpacity,       1))),
     capsWrapMode:      params.capsWrapMode || null,
@@ -1510,9 +1513,83 @@ function build3D(params, width, height) {
     return project(rp, P, width, height);
   };
 
+  const projectSurfacePoint = (pt) => {
+    if (!pt) return null;
+    let p = pt;
+    if (P.pulse > 0) {
+      p = { ...p, x: p.x * pulseScale, y: p.y * pulseScale, z: p.z * pulseScale };
+    }
+    const rp = rotate3D(p, ax, ay, az);
+    const pr = project(rp, P, width, height);
+    return { X: pr.X, Y: pr.Y, z: rp.z };
+  };
+
+  const buildSurfaceTiles = () => {
+    const opacity = 1 - P.surfaceTransparency;
+    if (opacity <= 0) return [];
+    const tiles = [];
+    const surfaceForm = P.form === 'cluster' || P.form === 'cube' ? 'box' : formKey;
+    const uSegments = surfaceForm === 'box' ? 36 : 32;
+    const vSegments = surfaceForm === 'box' ? 12 : 18;
+    const pushTile = (pts) => {
+      if (pts.some((pt) => !pt || !Number.isFinite(pt.X) || !Number.isFinite(pt.Y) || !Number.isFinite(pt.z))) return;
+      const area = Math.abs(pts.reduce((sum, pt, idx) => {
+        const next = pts[(idx + 1) % pts.length];
+        return sum + pt.X * next.Y - next.X * pt.Y;
+      }, 0)) / 2;
+      if (area < 0.05) return;
+      tiles.push({
+        points: pts.map((pt) => ({ X: pt.X, Y: pt.Y })),
+        z: pts.reduce((sum, pt) => sum + pt.z, 0) / pts.length,
+        color: P.surfaceColor,
+        opacity,
+      });
+    };
+
+    for (const inst of instances) {
+      for (let j = 0; j < vSegments; j++) {
+        const v0 = j / vSegments;
+        const v1 = (j + 1) / vSegments;
+        for (let i = 0; i < uSegments; i++) {
+          const u0 = i / uSegments;
+          const u1 = (i + 1) / uSegments;
+          const tile = [[u0, v0], [u1, v0], [u1, v1], [u0, v1]].map(([u, v]) => {
+            const pt = surfaceForm === formKey
+              ? morphSurface(u, v, inst)
+              : surfaceMap(surfaceForm, u, v, P, inst);
+            return projectSurfacePoint(pt);
+          });
+          pushTile(tile);
+        }
+      }
+
+      if (hasCaps(P.form)) {
+        const capSegments = 32;
+        const radialSegments = 8;
+        for (let capIdx = 0; capIdx < capCount(P.form); capIdx++) {
+          for (let rIdx = 0; rIdx < radialSegments; rIdx++) {
+            const v0 = rIdx / radialSegments;
+            const v1 = (rIdx + 1) / radialSegments;
+            for (let i = 0; i < capSegments; i++) {
+              const u0 = i / capSegments;
+              const u1 = (i + 1) / capSegments;
+              const tile = [[u0, v0], [u1, v0], [u1, v1], [u0, v1]]
+                .map(([u, v]) => projectSurfacePoint(capSurface(P.form, capIdx, u, v, P)));
+              pushTile(tile);
+            }
+          }
+        }
+      }
+    }
+
+    tiles.sort((a, b) => a.z - b.z);
+    return tiles;
+  };
+
   const motionBehaviors = Array.isArray(params.motionBehaviors) ? params.motionBehaviors : [];
   const motionTime = Number.isFinite(params.directorTime) ? params.directorTime : 0;
   const glyphs = [];
+  const surfaces = buildSurfaceTiles();
   const pendingGlyphs = [];
   let glyphIdentity = 0;
 
@@ -1685,7 +1762,7 @@ function build3D(params, width, height) {
   glyphs.sort((a, b) => a.z - b.z);
 
   return {
-    P, glyphs, fontSize, time, ax, ay, az, pulseScale, spd,
+    P, glyphs, surfaces, fontSize, time, ax, ay, az, pulseScale, spd,
     width, height,
     instances,
   };
@@ -2380,6 +2457,7 @@ export function buildScene(params, width, height) {
         matrix: g.matrixTransform,
         fontSize,
         opacity: op,
+        back,
         mirrored: false,
         X: g.X, Y: g.Y,
         accentT: g.accentT || 0,
@@ -2396,6 +2474,7 @@ export function buildScene(params, width, height) {
         matrix: null,
         fontSize: fs,
         opacity: op,
+        back,
         mirrored: !!(P.backfaceMirror && back),
         X: g.X, Y: g.Y,
         accentT: g.accentT || 0,
@@ -2411,6 +2490,7 @@ export function buildScene(params, width, height) {
     mode: '3d',
     bgColor, textColor, fontSize, fontSpec, width, height,
     glyphs,
+    surfaces: ctx.surfaces,
     guides: P.guides ? buildGuidesData(ctx) : '',
     guideMeta: P.guideMeta,
     guideMetaData: P.guideMeta ? {
@@ -2448,6 +2528,13 @@ function glyphTransformSVG(g) {
   return `translate(${g.X.toFixed(2)} ${g.Y.toFixed(2)})${g.mirrored ? ' scale(-1,1)' : ''}`;
 }
 
+function surfacePathSVG(surface) {
+  return surface.points.map((pt, idx) => {
+    const cmd = idx === 0 ? 'M' : 'L';
+    return `${cmd}${pt.X.toFixed(2)} ${pt.Y.toFixed(2)}`;
+  }).join(' ') + 'Z';
+}
+
 // Build an SVG string from params. textColor/bgColor are user-controlled.
 // Thin serializer over buildScene — output is byte-identical to before for the
 // 2D fast path, and geometry-identical for 3D.
@@ -2461,12 +2548,15 @@ export function buildSVG(params, width, height) {
     `<rect x="0" y="0" width="${width}" height="${height}" fill="${escXML(bgColor)}"/>`;
 
   // 3D serialization
-  let body = '';
-  for (const g of scene.glyphs) {
-    body +=
+  const textFor = (glyphs) => glyphs.map((g) =>
       `<text transform="${glyphTransformSVG(g)}" font-size="${g.fontSize.toFixed(2)}" ` +
-      `opacity="${g.opacity.toFixed(3)}">${escXML(g.ch)}</text>`;
-  }
+      `opacity="${g.opacity.toFixed(3)}">${escXML(g.ch)}</text>`
+  ).join('');
+  const backText = textFor(scene.glyphs.filter((g) => g.back));
+  const frontText = textFor(scene.glyphs.filter((g) => !g.back));
+  const surfaces = scene.surfaces.map((surface) =>
+    `<path d="${surfacePathSVG(surface)}" fill="${escXML(surface.color)}" opacity="${surface.opacity.toFixed(3)}"/>`
+  ).join('');
 
   const guides = scene.guides
     ? `<path d="${scene.guides}" fill="none" stroke="${escXML(textColor)}" ` +
@@ -2476,9 +2566,14 @@ export function buildSVG(params, width, height) {
   return (
     head +
     guides +
-    `<g font-family="${escXML(fontSpec.family)}" font-weight="${fontSpec.weight}" font-size="${fontSize}" fill="${escXML(textColor)}" ` +
-    `text-anchor="middle">` +
-    body +
+    `<g data-layer="text-back" font-family="${escXML(fontSpec.family)}" font-weight="${fontSpec.weight}" font-size="${fontSize}" fill="${escXML(textColor)}" text-anchor="middle">` +
+    backText +
+    `</g>` +
+    `<g data-layer="surface">` +
+    surfaces +
+    `</g>` +
+    `<g data-layer="text-front" font-family="${escXML(fontSpec.family)}" font-weight="${fontSpec.weight}" font-size="${fontSize}" fill="${escXML(textColor)}" text-anchor="middle">` +
+    frontText +
     `</g>` +
     `</svg>`
   );
@@ -2513,8 +2608,8 @@ export function drawScene(ctx, scene, width, height, dpr) {
     ctx.restore();
   }
 
-  // Glyphs (sorted back-to-front in buildScene). text-anchor:middle in SVG ->
-  // textAlign:center here; baseline alphabetic matches SVG's default.
+  // Glyphs use text-anchor:middle in SVG -> textAlign:center here; baseline
+  // alphabetic matches SVG's default.
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
   const fs3d = scene.fontSpec;
@@ -2525,8 +2620,9 @@ export function drawScene(ctx, scene, width, height, dpr) {
   const blinkFadeFactor3d = scene.blinkFade > 0 && scene.blinkMode !== 'none'
     ? 1 - scene.blinkFade * (1 - _cos3d) : 1;
   let lastFs = null;
-  for (const g of scene.glyphs) {
-    if (g.blinkT && blinkActive3d) continue;
+
+  const drawGlyph = (g) => {
+    if (g.blinkT && blinkActive3d) return;
     const baseOp = (g.blinkT && scene.blinkFade > 0) ? g.opacity * blinkFadeFactor3d : g.opacity;
     ctx.globalAlpha = baseOp * (g.extraOp !== undefined ? g.extraOp : 1);
     ctx.fillStyle = (hasAccent3d && g.accentT) ? scene.accentColors[g.accentT] : scene.textColor;
@@ -2552,6 +2648,28 @@ export function drawScene(ctx, scene, width, height, dpr) {
       lastFs = fs;
       ctx.fillText(g.ch, 0, 0);
     }
+  };
+
+  const drawSurface = (surface) => {
+    if (!surface.points.length || surface.opacity <= 0) return;
+    ctx.setTransform(d, 0, 0, d, 0, 0);
+    ctx.globalAlpha = surface.opacity;
+    ctx.fillStyle = surface.color;
+    ctx.beginPath();
+    ctx.moveTo(surface.points[0].X, surface.points[0].Y);
+    for (let i = 1; i < surface.points.length; i++) ctx.lineTo(surface.points[i].X, surface.points[i].Y);
+    ctx.closePath();
+    ctx.fill();
+  };
+
+  for (const g of scene.glyphs) {
+    if (g.back) drawGlyph(g);
+  }
+  for (const surface of scene.surfaces || []) {
+    drawSurface(surface);
+  }
+  for (const g of scene.glyphs) {
+    if (!g.back) drawGlyph(g);
   }
   ctx.globalAlpha = 1;
 

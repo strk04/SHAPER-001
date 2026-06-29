@@ -22,6 +22,18 @@ test('director UI is wired in HTML and CSS', async () => {
   assert.match(engine, /clockMs/);
 });
 
+test('surface color controls are wired through UI state and presets', async () => {
+  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  const main = await readFile(new URL('../main.js', import.meta.url), 'utf8');
+  assert.match(html, /id="surfaceColor"/);
+  assert.match(html, /data-key="surfaceTransparency"/);
+  assert.match(main, /surfaceTransparency:\s*\{\s*label:\s*'Transparència superfície'/);
+  assert.match(main, /surfaceColor:\s*'#d8d8d8'/);
+  assert.match(main, /\$\('surfaceColor'\)\.addEventListener\('input'/);
+  assert.match(main, /'surfaceColor'/);
+  assert.match(main, /\$\('surfaceColor'\)\.value\s*=\s*state\.surfaceColor/);
+});
+
 test('director excludes live performance controls', async () => {
   const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
   const main = await readFile(new URL('../main.js', import.meta.url), 'utf8');

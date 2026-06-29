@@ -475,3 +475,29 @@
 ### Pendent
 
 - Validació visual ràpida del nou inspector d’escena simplificat.
+
+---
+
+## 2026-06-29 — Superficies 3D amb color i transparencia
+
+### Fet
+
+- Afegit `Color de superficie` al panell `Colors`.
+- Afegit slider `Transparencia superficie` amb valor per defecte `0.25`.
+- `engine.js` genera una malla de superficie per totes les formes 3D.
+- El render pinta en capes: glifs posteriors, superficie, glifs frontals.
+- `buildSVG()` exporta les mateixes capes amb paths de superficie.
+- Els presets inclouen `surfaceColor` i `surfaceTransparency`.
+- Afegits tests `tests/surface-fill.test.mjs` i wiring a `tests/project-wiring.test.mjs`.
+
+### Verificat
+
+- `node --check engine.js`
+- `node --check main.js`
+- `node --test tests/*.test.mjs` -> 37 pass
+- Verificacio local a `http://127.0.0.1:8097`: controls visibles i canvas renderitzat.
+
+### Pendent
+
+- Revisar qualitat d'oclusio en formes amb normals aproximades si es detecta algun cas visual estrany.
+- Sincronitzar a `02 Pixel Perfect/shaper/` quan toqui publicar.

@@ -1,5 +1,13 @@
 # Decisions — SHAPER 001
 
+## 2026-06-29 — Superficies 3D com a capa entre text posterior i frontal
+
+El color de superficie s'aplica a totes les formes 3D, no nomes a les formes tancades. La transparencia es controla amb slider (`0` opac, `1` invisible) i per defecte queda a `0.25`.
+
+Racional: l'usuari vol que les formes tancades puguin tapar la tipografia quan roten, pero prefereix que el mecanisme funcioni amb totes les formes si es possible. La solucio 2.5D (glifs posteriors -> malla de superficie -> glifs frontals) dona l'efecte visual demanat sense introduir WebGL ni un z-buffer complet.
+
+Conseqüencies: les formes obertes funcionen com lamines acolorides. Les formes amb normals aproximades poden requerir ajustos futurs en casos visuals concrets. `cube` pinta la superficie com `box` per mostrar també cares superior/inferior, mentre el mapatge de glifs existent es manté.
+
 ## 2026-06-29 — Els rombos del timeline passen de ser destructius a ser editables
 
 El clic principal sobre un rombo ja no elimina el keyframe. A partir d’ara el clic selecciona el rombo i obre una fitxa d’edició a la columna 2, mentre que l’eliminació es mou a una acció explícita (`Eliminar`) i a un menú contextual amb botó dret. Racional: l’acció principal d’un keyframe ha de ser entendre’l i modificar-lo, no destruir-lo accidentalment. Conseqüència: el timeline esdevé una eina usable de control, i el valor/temps/easing passen a ser editables sense haver de recrear el rombo.

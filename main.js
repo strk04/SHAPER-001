@@ -25,6 +25,7 @@ const SLIDERS = {
   capsOpacity:       { label: 'Tapes — Opacitat', def: 1 },
   interiorFontScale: { label: 'Interior — Mida', def: 1 },
   interiorOpacity:   { label: 'Interior — Opacitat', def: 1 },
+  surfaceTransparency: { label: 'Transparència superfície', def: 0.25 },
   // --- Efectes: 0 = sense efecte ---
   amplitude:     { label: 'Amplitud', def: 0 },
   frequency:     { label: 'Freqüència', def: 0.001 },
@@ -136,6 +137,7 @@ const state = {
   font: 'courier-regular',
   textColor: '#111111',
   bgColor: '#f4f4f4',
+  surfaceColor: '#d8d8d8',
   seed: 1,
   hardWrap: false,
   mode: '3d',
@@ -201,7 +203,7 @@ function formatSliderValue(key, value) {
        'charOpacity', 'charSkew', 'densityMap',
        'opacityProb', 'blinkProb', 'sizeProb',
        'accentProb', 'accentProb2', 'accentProb3', 'accentProb4',
-       'morphScatter', 'morphSpeedVar'].includes(key)) {
+       'morphScatter', 'morphSpeedVar', 'surfaceTransparency'].includes(key)) {
     return n.toFixed(2).replace(/\.?0+$/, '');
   }
   if (['frequency'].includes(key)) return n.toFixed(3).replace(/\.?0+$/, '');
@@ -854,6 +856,10 @@ function wireControls() {
     state.bgColor = e.target.value;
     scheduleRender();
   });
+  $('surfaceColor').addEventListener('input', (e) => {
+    state.surfaceColor = e.target.value;
+    scheduleRender();
+  });
 
   const opacityModeEl = $('opacityMode');
   if (opacityModeEl) {
@@ -1302,7 +1308,7 @@ async function stopRecord() {
 function capturePreset() {
   const snap = { v: 1 };
   Object.keys(SLIDERS).forEach((k) => { snap[k] = state[k]; });
-  ['text', 'font', 'textColor', 'bgColor', 'hardWrap',
+  ['text', 'font', 'textColor', 'bgColor', 'surfaceColor', 'hardWrap',
    'mode', 'form', 'projection', 'guides',
    'backfaceMirror', 'surfaceText', 'regionSurface', 'regionCaps', 'regionVolume',
    'wrapMode', 'capsWrapMode', 'canvasW', 'canvasH',
@@ -1332,6 +1338,7 @@ function applyPreset(p) {
   if (p.font    != null) { state.font    = p.font;    $('font').value    = p.font; }
   if (p.textColor != null) { state.textColor = p.textColor; $('textColor').value = p.textColor; }
   if (p.bgColor   != null) { state.bgColor   = p.bgColor;   $('bgColor').value   = p.bgColor; }
+  if (p.surfaceColor != null) { state.surfaceColor = p.surfaceColor; $('surfaceColor').value = p.surfaceColor; }
   if (p.hardWrap  != null) { state.hardWrap  = p.hardWrap;  $('hardWrap').checked  = p.hardWrap; }
   if (p.speed3d != null) { state.speed3d = p.speed3d; syncSliderUI('speed3d'); }
   if (p.mode != null) {
@@ -1728,6 +1735,7 @@ function init() {
   $('font').value = state.font;
   $('form').value = state.form;
   $('projection').value = state.projection;
+  $('surfaceColor').value = state.surfaceColor;
   $('guides').checked = state.guides;
   $('backfaceMirror').checked = state.backfaceMirror;
   $('surfaceText').checked = state.surfaceText;

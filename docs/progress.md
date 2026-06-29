@@ -595,3 +595,25 @@
 
 - Sincronitzat a `02 Pixel Perfect/shaper/`.
 - Verificat dins PP: `node --test tests/*.test.mjs` -> 18 pass, `node --check engine.js`, `node --check main.js`.
+
+---
+
+## 2026-06-29 — Retirada de Tapes i Interior d'Estil 3D
+
+### Fet
+
+- Eliminats de `index.html` els controls `Tapes`, `Interior`, `Tapes — Aplicació`, `Mode interior` i els sliders associats.
+- Simplificat `main.js` perquè `updateEditorVisibility()`, listeners, init i presets ja no tractin `regionCaps` ni `regionVolume`.
+- Els presets nous ja no capturen ni restauren regions de tapes/interior.
+- Afegit test de wiring perquè aquests controls no tornin a aparèixer a `Estil 3D`.
+
+### Verificat
+
+- `node --check engine.js`
+- `node --check main.js`
+- `node --test tests/*.test.mjs` -> 45 pass
+
+### Pixel Perfect
+
+- Sincronitzat a `02 Pixel Perfect/shaper/`.
+- Verificat dins PP: `node --test tests/*.test.mjs` -> 19 pass, `node --check engine.js`, `node --check main.js`.

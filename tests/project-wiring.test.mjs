@@ -62,6 +62,24 @@ test('guide layer control is wired through UI state and presets', async () => {
   assert.match(main, /\$\('guideMetaColor'\)\.value\s*=\s*state\.guideMetaColor/);
 });
 
+test('3D style panel no longer exposes caps or interior controls', async () => {
+  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  const main = await readFile(new URL('../main.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(html, /id="regionCaps"/);
+  assert.doesNotMatch(html, /id="regionVolume"/);
+  assert.doesNotMatch(html, /id="capsWrapMode"/);
+  assert.doesNotMatch(html, /id="interiorMode"/);
+  assert.doesNotMatch(html, /data-key="capsFontScale"/);
+  assert.doesNotMatch(html, /data-key="capsOpacity"/);
+  assert.doesNotMatch(html, /data-key="interiorPlanes"/);
+  assert.doesNotMatch(html, /data-key="interiorFontScale"/);
+  assert.doesNotMatch(html, /data-key="interiorOpacity"/);
+  assert.doesNotMatch(main, /'regionCaps'/);
+  assert.doesNotMatch(main, /'regionVolume'/);
+  assert.doesNotMatch(main, /p\.regionCaps/);
+  assert.doesNotMatch(main, /p\.regionVolume/);
+});
+
 test('director excludes live performance controls', async () => {
   const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
   const main = await readFile(new URL('../main.js', import.meta.url), 'utf8');

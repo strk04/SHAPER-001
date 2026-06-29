@@ -20,11 +20,6 @@ const SLIDERS = {
   count:       { label: 'Quantitat', def: 1 },
   fov:         { label: 'Camp visual', def: 60 },
   zoom:        { label: 'Zoom', def: 1 },
-  interiorPlanes:    { label: 'Plans', def: 3 },
-  capsFontScale:     { label: 'Tapes — Mida', def: 1 },
-  capsOpacity:       { label: 'Tapes — Opacitat', def: 1 },
-  interiorFontScale: { label: 'Interior — Mida', def: 1 },
-  interiorOpacity:   { label: 'Interior — Opacitat', def: 1 },
   surfaceTransparency: { label: 'Transparència superfície', def: 0.25 },
   // --- Efectes: 0 = sense efecte ---
   amplitude:     { label: 'Amplitud', def: 0 },
@@ -75,15 +70,6 @@ const SLIDERS = {
   morphScatter:  { label: 'Dispersió aleatòria', def: 0 },
   morphSpeedVar: { label: 'Variació de velocitat', def: 0 },
 };
-
-const FORMS_WITH_CAPS = new Set(['cylinder', 'cone', 'star-prism', 'custom-prism']);
-const FORMS_WITH_INTERIOR = new Set([
-  'cylinder', 'helix', 'capsule',
-  'sphere', 'ellipsoid',
-  'cone',
-  'star-prism', 'custom-prism', 'cube', 'box',
-  'torus',
-]);
 
 const FORM_3D_CONTROLS = {
   plane:         ['formSize', 'aspect'],
@@ -152,10 +138,6 @@ const state = {
   backfaceMirror: false,
   surfaceText: true,
   regionSurface: true,
-  regionCaps: false,
-  regionVolume: false,
-  capsWrapMode: '',
-  interiorMode: 'cross-sections',
   vNorm: false,
   wrapMode: 'rings',
   t: 0,
@@ -637,35 +619,6 @@ function updateEditorVisibility() {
     if (el) el.hidden = !visibleFormControls.has(key);
   }
 
-  // Region checkboxes: only show Tapes/Interior for forms that support them.
-  const capsRow = document.querySelector('label[for="regionCaps"]');
-  const volRow  = document.querySelector('label[for="regionVolume"]');
-  const showCaps = FORMS_WITH_CAPS.has(form);
-  const showVol  = FORMS_WITH_INTERIOR.has(form);
-  if (capsRow) capsRow.hidden = !showCaps;
-  if (volRow)  volRow.hidden  = !showVol;
-  const regionFieldset = $('regionFieldset');
-  if (regionFieldset) regionFieldset.hidden = !showCaps && !showVol;
-
-  // Per-region atom controls.
-  const showCapControls = showCaps && state.regionCaps;
-  const showVolControls = showVol  && state.regionVolume;
-  const capsWrapRow = $('capsWrapModeRow');
-  if (capsWrapRow) capsWrapRow.hidden = !showCapControls;
-  for (const key of ['capsFontScale', 'capsOpacity']) {
-    const el = document.querySelector(`.slider[data-key="${key}"]`);
-    if (el) el.hidden = !showCapControls;
-  }
-  const interiorModeRow = $('interiorModeRow');
-  if (interiorModeRow) interiorModeRow.hidden = !showVolControls;
-  const showInteriorPlanes = showVolControls && state.interiorMode === 'cross-sections';
-  const interiorPlanesEl = document.querySelector('.slider[data-key="interiorPlanes"]');
-  if (interiorPlanesEl) interiorPlanesEl.hidden = !showInteriorPlanes;
-  for (const key of ['interiorFontScale', 'interiorOpacity']) {
-    const el = document.querySelector(`.slider[data-key="${key}"]`);
-    if (el) el.hidden = !showVolControls;
-  }
-
   // FOV: only relevant for perspective projection.
   const fovRow = document.querySelector('.slider[data-key="fov"]');
   if (fovRow) fovRow.hidden = state.projection !== 'perspective';
@@ -969,14 +922,10 @@ function wireControls() {
     state.surfaceText = e.target.checked;
     scheduleRender();
   });
-  ['regionSurface', 'regionCaps', 'regionVolume'].forEach((id) => {
+  ['regionSurface'].forEach((id) => {
     const el = $(id);
     if (el) el.addEventListener('change', (e) => { state[id] = e.target.checked; updateEditorVisibility(); scheduleRender(); });
   });
-  const capsWrapModeEl = $('capsWrapMode');
-  if (capsWrapModeEl) capsWrapModeEl.addEventListener('change', (e) => { state.capsWrapMode = e.target.value; scheduleRender(); });
-  const interiorModeEl = $('interiorMode');
-  if (interiorModeEl) interiorModeEl.addEventListener('change', (e) => { state.interiorMode = e.target.value; updateEditorVisibility(); scheduleRender(); });
 
   $('wrapMode').addEventListener('change', (e) => {
     state.wrapMode = e.target.value;
@@ -1340,8 +1289,8 @@ function capturePreset() {
   Object.keys(SLIDERS).forEach((k) => { snap[k] = state[k]; });
   ['text', 'font', 'textColor', 'bgColor', 'guideColor', 'guideMetaColor', 'surfaceColor', 'surfaceOcclusion', 'hardWrap',
    'mode', 'form', 'projection', 'guides', 'guideLayer',
-   'backfaceMirror', 'surfaceText', 'regionSurface', 'regionCaps', 'regionVolume',
-   'wrapMode', 'capsWrapMode', 'canvasW', 'canvasH',
+   'backfaceMirror', 'surfaceText', 'regionSurface',
+   'wrapMode', 'canvasW', 'canvasH',
    'opacityMode', 'blinkMode', 'blinkFade', 'sizeMode',
    'accentMode', 'accentMode2', 'accentMode3', 'accentMode4',
    'accentColor', 'accentColor2', 'accentColor3', 'accentColor4',
@@ -1386,12 +1335,7 @@ function applyPreset(p) {
   if (p.backfaceMirror  != null) { state.backfaceMirror  = p.backfaceMirror;  $('backfaceMirror').checked  = p.backfaceMirror; }
   if (p.surfaceText     != null) { state.surfaceText      = p.surfaceText;     $('surfaceText').checked     = p.surfaceText; }
   if (p.regionSurface   != null) { state.regionSurface   = p.regionSurface;   const el=$('regionSurface');   if(el) el.checked = p.regionSurface; }
-  if (p.regionCaps      != null) { state.regionCaps      = p.regionCaps;      const el=$('regionCaps');      if(el) el.checked = p.regionCaps; }
-  if (p.regionVolume    != null) { state.regionVolume    = p.regionVolume;    const el=$('regionVolume');    if(el) el.checked = p.regionVolume; }
   if (p.wrapMode        != null) { state.wrapMode         = p.wrapMode;        $('wrapMode').value          = p.wrapMode; updateEditorVisibility(); }
-  if (p.capsWrapMode    != null) { state.capsWrapMode     = p.capsWrapMode;    const el=$('capsWrapMode'); if(el) el.value = p.capsWrapMode; }
-  if (p.interiorMode    != null) { state.interiorMode     = p.interiorMode;    const el=$('interiorMode'); if(el) el.value = p.interiorMode; }
-  if (p.interiorPlanes  != null) { state.interiorPlanes   = p.interiorPlanes;  syncSliderUI('interiorPlanes'); }
   if (p.canvasW && p.canvasH) applyCanvasSize(p.canvasW, p.canvasH);
   if (p.blinkFade != null) {
     state.blinkFade = typeof p.blinkFade === 'number' ? p.blinkFade : (p.blinkFade ? 1 : 0);
@@ -1778,11 +1722,8 @@ function init() {
   $('backfaceMirror').checked = state.backfaceMirror;
   $('surfaceText').checked = state.surfaceText;
   const rSel = $('regionSurface'); if (rSel) rSel.checked = state.regionSurface;
-  const rCap = $('regionCaps');    if (rCap) rCap.checked = state.regionCaps;
-  const rVol = $('regionVolume');  if (rVol) rVol.checked = state.regionVolume;
 
   $('wrapMode').value = state.wrapMode;
-  const capsWrapEl = $('capsWrapMode'); if (capsWrapEl) capsWrapEl.value = state.capsWrapMode;
   // Sync format-select and renderInfo to default canvas size
   const formatSel = $('format-select');
   if (formatSel) {

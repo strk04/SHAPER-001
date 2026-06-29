@@ -25,6 +25,7 @@ Director està implementat localment com a sistema d’escenes amb:
 - accions d'escena mínimes (`Nova escena`, `Eliminar`)
 - unitats de durada compactes (`seg`) inline al costat dels dos camps
 - camps de durada amb amplada comuna fixa
+- hi ha una spec pendent de validació per substituir el dock del timeline per una versió inline sota el canvas
 
 La sessió actual ha eliminat la capa de live performance:
 

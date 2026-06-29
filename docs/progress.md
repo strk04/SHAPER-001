@@ -1,5 +1,16 @@
 # Progress — SHAPER 001
 
+## 2026-06-29 — Spec del timeline inline sota el canvas
+
+### Fet
+- Definida una nova direcció per al timeline del Director: fora dock, dins la columna 3, sota el canvas i a tota amplada.
+- Escrita la spec `docs/superpowers/specs/2026-06-29-director-inline-timeline-design.md`.
+- Decidit que el timeline nou mostrarà escenes a la línia principal i rombos amb `paràmetre + valor`, sense `easing`.
+
+### Pendent
+- Revisió final de la spec per part de l’usuari.
+- Pla d’implementació i execució del canvi.
+
 ## 2026-06-29 — Implementació del nou layout d’escena a Director
 
 ### Fet

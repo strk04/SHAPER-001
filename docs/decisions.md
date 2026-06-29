@@ -1,5 +1,13 @@
 # Decisions — SHAPER 001
 
+## 2026-06-29 — El timeline del Director deixa el dock i passa sota el canvas
+
+El timeline del Director deixa d’existir com a dock negre separat i passa a viure dins la columna 3, sota el canvas, ocupant tota l’amplada disponible. Racional: el dock actual introdueix una jerarquia visual massa pesada i separa artificialment el temps del preview principal. Conseqüència: desapareixen el bloc inferior actual i el control `Timeline` de la columna 2, i el nou timeline adopta una lectura més directa d’escenes i keyframes.
+
+## 2026-06-29 — Al timeline només es mostra `paràmetre + valor` per keyframe
+
+Els rombos del timeline no mostraran `easing` en aquesta iteració. Cada keyframe exposa únicament el nom del paràmetre i el seu valor. Racional: és la mínima informació útil per llegir la coreografia sense tornar a carregar la UI. Conseqüència: l’easing segueix existint com a dada del sistema, però no forma part de la lectura principal del timeline nou.
+
 ## 2026-06-29 — `Moviment` desplega els ajustos del moviment actiu, però no la pila completa antiga
 
 La simplificació de la columna 2 no ha d’implicar perdre editabilitat del moviment. Per això, el desplegable `Moviment` manté un únic moviment visible per escena, però sota seu es renderitzen els ajustos del moviment actiu (`intensity`, `cohesion` i paràmetres específics). Racional: és el punt d’equilibri entre claredat de la UI i control real de l’animació. Conseqüència: no reintroduïm la vella pila de múltiples comportaments a la sidebar, però tampoc deixem el moviment com una elecció “cega” sense controls.

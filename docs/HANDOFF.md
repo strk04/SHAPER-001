@@ -73,6 +73,8 @@ Queden:
   - afegit test que blinda la nova jerarquia de la columna 2 del Director
   - ampliat per blindar el patró `input + seg` a les dues durades
   - ampliat perquè `Moviment` segueixi desplegant paràmetres i ajustos
+- `docs/superpowers/specs/2026-06-29-director-inline-timeline-design.md`
+  - escrita la spec per moure el timeline a la columna 3 sota el canvas i substituir el dock actual
 
 ## Verificació feta
 
@@ -101,6 +103,7 @@ Canvis locals pendents de commit/push:
 - `docs/progress.md`
 - `docs/decisions.md`
 - `docs/superpowers/plans/2026-06-29-director-scene-layout-implementation.md`
+- `docs/superpowers/specs/2026-06-29-director-inline-timeline-design.md`
 
 ## Properes passes recomanades
 
@@ -108,7 +111,8 @@ Canvis locals pendents de commit/push:
 2. Decidir si els rombos s’han de veure només dins la pestanya `Director`.
 3. Valorar si el desplegable `Moviment` ha de permetre també un estat “cap”.
 4. Revisar si `seg` inline té prou aire visual al costat del camp.
-5. Millora pendent guardada: veure clarament `temps`, `valor` i `easing` dels keyframes.
+5. Si l’usuari valida la spec `2026-06-29-director-inline-timeline-design.md`, implementar el timeline inline a la columna 3.
+6. Millora pendent guardada: veure clarament `temps`, `valor` i `easing` dels keyframes.
 
 ## Actualització addicional
 

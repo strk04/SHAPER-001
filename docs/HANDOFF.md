@@ -4,6 +4,10 @@ _Actualitzat: 2026-06-30_
 
 ## Que ha canviat
 
+- Els presets ara es capturen amb un snapshot creatiu centralitzat a `preset-state.js`, en lloc d'una llista manual dispersa dins `main.js`.
+- El JSON de preset inclou `cameraEnabled`, `customOutline`, `guideMeta`, `vNorm`, `seed` i `director`, a més dels sliders i camps creatius ja existents.
+- Es deixen fora explícitament camps efímers com `fps`, `t`, `morphClock`, `directorTime`, `directorRate`, `selectedDirectorSceneId` i `selectedDirectorKeyframe`.
+- En carregar preset es restaura l'estat dels toggles de càmera i es sincronitza la UI amb `syncCameraToggleUI()`.
 - L'export MP4 amb durada fixa i Director desactivat ara es renderitza offline frame-exact, igual que el Director.
 - Afegit helper `resolveOfflineAnimationState()` per calcular `t`, `morphClock`, `directorTime` i `fps` des d'un snapshot base i un temps absolut d'export.
 - `main.js` reutilitza `drawResolvedState()` perquè l'export offline pugui pintar directament un estat resolt sense dependre del `requestAnimationFrame` del preview.
@@ -27,6 +31,7 @@ _Actualitzat: 2026-06-30_
 
 ## Estat actual
 
+- Els presets són més complets i reproduïbles: guarden la configuració creativa de càmera, seed, outline custom i Director. No guarden el temps actual de reproducció ni seleccions d'edició temporals.
 - Per obtenir MP4 fluid sense Director, seleccionar una durada fixa (`5 s`, `10 s`, etc.) fa una exportació offline amb mostreig uniforme. `Manual` continua capturant el canvas en temps real i pot dependre del rendiment del navegador.
 - La superficie es veu per defecte en gris clar translucid (`#d8d8d8`, transparencia `0.25`).
 - Les guies i la info meta poden tenir colors independents del text; per defecte continuen a `#111111`.
@@ -43,16 +48,19 @@ _Actualitzat: 2026-06-30_
 node --check engine.js
 node --check main.js
 node --check export-video.js
-node --test tests/*.test.mjs   # 47 pass
+node --check preset-state.js
+node --test tests/*.test.mjs   # 49 pass
 ```
 
 ## Fitxers importants
 
 - [engine.js](/Users/albert/Library/CloudStorage/GoogleDrive-albert@querida.si/Mi%20unidad/EN%20CURS/CC/17%20SHAPER%20001/engine.js)
 - [main.js](/Users/albert/Library/CloudStorage/GoogleDrive-albert@querida.si/Mi%20unidad/EN%20CURS/CC/17%20SHAPER%20001/main.js)
+- [preset-state.js](/Users/albert/Library/CloudStorage/GoogleDrive-albert@querida.si/Mi%20unidad/EN%20CURS/CC/17%20SHAPER%20001/preset-state.js)
 - [export-video.js](/Users/albert/Library/CloudStorage/GoogleDrive-albert@querida.si/Mi%20unidad/EN%20CURS/CC/17%20SHAPER%20001/export-video.js)
 - [index.html](/Users/albert/Library/CloudStorage/GoogleDrive-albert@querida.si/Mi%20unidad/EN%20CURS/CC/17%20SHAPER%20001/index.html)
 - [tests/export-video.test.mjs](/Users/albert/Library/CloudStorage/GoogleDrive-albert@querida.si/Mi%20unidad/EN%20CURS/CC/17%20SHAPER%20001/tests/export-video.test.mjs)
+- [tests/preset-state.test.mjs](/Users/albert/Library/CloudStorage/GoogleDrive-albert@querida.si/Mi%20unidad/EN%20CURS/CC/17%20SHAPER%20001/tests/preset-state.test.mjs)
 - [tests/surface-fill.test.mjs](/Users/albert/Library/CloudStorage/GoogleDrive-albert@querida.si/Mi%20unidad/EN%20CURS/CC/17%20SHAPER%20001/tests/surface-fill.test.mjs)
 - [tests/project-wiring.test.mjs](/Users/albert/Library/CloudStorage/GoogleDrive-albert@querida.si/Mi%20unidad/EN%20CURS/CC/17%20SHAPER%20001/tests/project-wiring.test.mjs)
 

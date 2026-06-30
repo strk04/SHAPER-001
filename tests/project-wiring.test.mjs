@@ -4,8 +4,13 @@ import { readFile } from 'node:fs/promises';
 
 test('preset capture and apply include director data', async () => {
   const source = await readFile(new URL('../main.js', import.meta.url), 'utf8');
-  assert.match(source, /snap\.director\s*=\s*structuredClone\(state\.director\)/);
+  const presetState = await readFile(new URL('../preset-state.js', import.meta.url), 'utf8');
+  assert.match(source, /captureCreativePreset\(state,\s*Object\.keys\(SLIDERS\)\)/);
+  assert.match(presetState, /'director'/);
+  assert.match(presetState, /'cameraEnabled'/);
+  assert.match(presetState, /'customOutline'/);
   assert.match(source, /state\.director\s*=\s*normalizeDirector\(p\.director\)/);
+  assert.match(source, /syncCameraToggleUI\(\)/);
 });
 
 test('director UI is wired in HTML and CSS', async () => {

@@ -3,6 +3,7 @@ import { buildSVG, buildScene, drawScene, DEFAULT_CUSTOM_OUTLINE } from './engin
 import { encodeDirectorFrames, resolveOfflineAnimationState } from './export-video.js';
 import { store as _ghStore } from './presets-github.js';
 import { createPresetPanel } from './preset-panel.js';
+import { captureCreativePreset } from './preset-state.js';
 import { DEFAULT_DIRECTOR, advanceDirectorTime, evaluateDirector, normalizeDirector, normalizeScene, totalDuration, applySceneAction, setSceneMovement, updateBehavior, upsertKeyframe, removeKeyframe, AUTOMATABLE_PARAMS } from './director.js';
 import { mountDirectorUI, AUTOMATION_CONTROL_IDS } from './director-ui.js';
 
@@ -280,6 +281,19 @@ function syncSliderUI(key) {
   ref.range.value = state[key];
   syncOutput(key);
   ref.range.setAttribute('aria-valuetext', ref.output.textContent);
+}
+
+function syncCameraToggleUI() {
+  document.querySelectorAll('.slider[data-cam-toggle]').forEach((host) => {
+    const key = host.dataset.key;
+    const enabled = state.cameraEnabled[key] !== false;
+    const toggleBtn = host.querySelector('.cam-toggle-btn');
+    if (toggleBtn) {
+      toggleBtn.textContent = enabled ? '[·]' : '[ ]';
+      toggleBtn.setAttribute('aria-pressed', String(enabled));
+    }
+    host.classList.toggle('cam-disabled', !enabled);
+  });
 }
 
 // --- Render (rAF debounced) ---
@@ -1313,20 +1327,7 @@ async function stopRecord() {
 // --- Presets ---
 
 function capturePreset() {
-  const snap = { v: 1 };
-  Object.keys(SLIDERS).forEach((k) => { snap[k] = state[k]; });
-  ['text', 'font', 'textColor', 'bgColor', 'guideColor', 'guideMetaColor', 'surfaceColor', 'surfaceOcclusion', 'hardWrap',
-   'mode', 'form', 'projection', 'guides', 'guideLayer',
-   'backfaceMirror', 'surfaceText', 'regionSurface',
-   'wrapMode', 'canvasW', 'canvasH',
-   'opacityMode', 'blinkMode', 'blinkFade', 'sizeMode',
-   'accentMode', 'accentMode2', 'accentMode3', 'accentMode4',
-   'accentColor', 'accentColor2', 'accentColor3', 'accentColor4',
-   'morphForm', 'morphForm2', 'morphForm3', 'morphAuto'].forEach((k) => {
-    snap[k] = state[k];
-  });
-  snap.director = structuredClone(state.director);
-  return snap;
+  return captureCreativePreset(state, Object.keys(SLIDERS));
 }
 
 function applyPreset(p) {
@@ -1349,6 +1350,15 @@ function applyPreset(p) {
   if (p.guideMetaColor != null) { state.guideMetaColor = p.guideMetaColor; $('guideMetaColor').value = p.guideMetaColor; }
   if (p.surfaceColor != null) { state.surfaceColor = p.surfaceColor; $('surfaceColor').value = p.surfaceColor; }
   if (p.surfaceOcclusion != null) { state.surfaceOcclusion = p.surfaceOcclusion; $('surfaceOcclusion').checked = p.surfaceOcclusion; }
+  if (p.seed != null && Number.isFinite(Number(p.seed))) { state.seed = Number(p.seed); }
+  if (p.cameraEnabled && typeof p.cameraEnabled === 'object') {
+    state.cameraEnabled = { ...state.cameraEnabled, ...p.cameraEnabled };
+    syncCameraToggleUI();
+  }
+  if (Array.isArray(p.customOutline) && p.customOutline.length >= 6) {
+    state.customOutline = p.customOutline.slice();
+    persistOutline();
+  }
   if (p.hardWrap  != null) { state.hardWrap  = p.hardWrap;  $('hardWrap').checked  = p.hardWrap; }
   if (p.speed3d != null) { state.speed3d = p.speed3d; syncSliderUI('speed3d'); }
   if (p.mode != null) {
@@ -1359,10 +1369,12 @@ function applyPreset(p) {
   if (p.form       != null) { state.form       = p.form;       $('form').value       = p.form;       updateEditorVisibility(); }
   if (p.projection != null) { state.projection = p.projection; $('projection').value = p.projection; updateFovEnabled(); updateEditorVisibility(); }
   if (p.guides          != null) { state.guides          = p.guides;          $('guides').checked          = p.guides; }
+  if (p.guideMeta       != null) { state.guideMeta       = p.guideMeta;       const el=$('guideMeta');      if(el) el.checked = p.guideMeta; }
   if (p.guideLayer      != null) { state.guideLayer      = p.guideLayer === 'front' ? 'front' : 'back'; $('guideLayer').value = state.guideLayer; }
   if (p.backfaceMirror  != null) { state.backfaceMirror  = p.backfaceMirror;  $('backfaceMirror').checked  = p.backfaceMirror; }
   if (p.surfaceText     != null) { state.surfaceText      = p.surfaceText;     $('surfaceText').checked     = p.surfaceText; }
   if (p.regionSurface   != null) { state.regionSurface   = p.regionSurface;   const el=$('regionSurface');   if(el) el.checked = p.regionSurface; }
+  if (p.vNorm           != null) { state.vNorm           = p.vNorm; }
   if (p.wrapMode        != null) { state.wrapMode         = p.wrapMode;        $('wrapMode').value          = p.wrapMode; updateEditorVisibility(); }
   if (p.canvasW && p.canvasH) applyCanvasSize(p.canvasW, p.canvasH);
   if (p.blinkFade != null) {
@@ -1752,6 +1764,7 @@ function init() {
   const rSel = $('regionSurface'); if (rSel) rSel.checked = state.regionSurface;
 
   $('wrapMode').value = state.wrapMode;
+  syncCameraToggleUI();
   // Sync format-select and renderInfo to default canvas size
   const formatSel = $('format-select');
   if (formatSel) {

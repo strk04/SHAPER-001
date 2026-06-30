@@ -34,6 +34,12 @@ Director està simplificat per a ús no-live i actualment inclou:
 - Sense Director, les durades fixes (`5 s`, `10 s`, `15 s`, `30 s`) també s'exporten offline amb mostreig uniforme per frame.
 - La gravació `Manual` continua sent real-time i depèn del rendiment del navegador.
 
+## Presets
+
+- Els presets usen un snapshot creatiu centralitzat a `preset-state.js`.
+- Es guarden sliders, seed, colors, modes, càmera, toggles de càmera, outline custom, morph, canvas i Director.
+- No es guarden camps efímers de sessió com `fps`, `t`, `morphClock`, `directorTime`, `directorRate` ni seleccions temporals del Director.
+
 ## Superficies 3D
 
 - Les formes 3D tenen color de superficie configurable.
@@ -66,7 +72,8 @@ Ultima verificacio executada el 2026-06-30:
 node --check engine.js
 node --check main.js
 node --check export-video.js
-node --test tests/*.test.mjs   # 47 pass
+node --check preset-state.js
+node --test tests/*.test.mjs   # 49 pass
 ```
 
 ## Pendent

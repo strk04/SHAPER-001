@@ -1,5 +1,20 @@
 # Progress — SHAPER 001
 
+## 2026-06-30 — Presets amb snapshot creatiu complet
+
+### Fet
+- Implementada la via 2 acordada: els presets ja no depenen d'una llista manual dispersa dins `capturePreset()`.
+- Afegit `preset-state.js` amb `CREATIVE_PRESET_EXTRA_KEYS`, `EPHEMERAL_PRESET_KEYS` i `captureCreativePreset()`.
+- El preset ara guarda `cameraEnabled`, `customOutline`, `guideMeta`, `vNorm`, `seed` i `director`, a més dels sliders i camps creatius existents.
+- Exclosos explícitament camps temporals: `fps`, `t`, `morphClock`, `directorTime`, `directorRate`, `selectedDirectorSceneId`, `selectedDirectorKeyframe`.
+- `applyPreset()` restaura els toggles de càmera, outline custom, seed, guia meta i `vNorm`; `syncCameraToggleUI()` manté la UI coherent.
+- Afegits tests a `tests/preset-state.test.mjs` i actualitzat el wiring test de presets.
+- Verificació completa: `node --test tests/*.test.mjs` → 49 pass; `node --check main.js`, `preset-state.js` OK.
+
+### Pendent
+- Provar manualment guardar/carregar un preset amb toggles de càmera desactivats i un outline custom.
+- Sincronitzar a `02 Pixel Perfect/shaper/` i pujar també el repo PP.
+
 ## 2026-06-30 — Export MP4 de durada fixa més fluid
 
 ### Fet

@@ -1,5 +1,13 @@
 # Decisions — SHAPER 001
 
+## 2026-06-30 — Els presets guarden un snapshot creatiu, no l'estat complet de sessió
+
+Els presets passen a usar `preset-state.js` com a contracte central de persistència. El JSON guarda els camps creatius/reproduïbles de la composició: sliders, seed, colors, modes, canvas, càmera, toggles de càmera, outline custom, morph i Director.
+
+Racional: bolcar literalment tot `state` també guardaria informació temporal o d'edició que no forma part de la peça, com el temps actual de reproducció, FPS, direcció de playback o el keyframe seleccionat. Separar `CREATIVE_PRESET_EXTRA_KEYS` i `EPHEMERAL_PRESET_KEYS` fa explícit què ha d'entrar en un preset i evita oblits com `cameraEnabled`.
+
+Conseqüències: els presets nous són més complets i reprodueixen millor una composició. Els presets antics continuen carregant perquè `applyPreset()` manté defaults quan falta un camp. Quan s'afegeixi un nou paràmetre creatiu que no sigui slider, s'ha d'afegir a `CREATIVE_PRESET_EXTRA_KEYS`; si és temporal, a `EPHEMERAL_PRESET_KEYS`.
+
 ## 2026-06-30 — Els MP4 amb durada fixa s'exporten offline també sense Director
 
 Les exportacions MP4 amb una durada seleccionada deixen de capturar el canvas del preview en temps real quan Director està desactivat. Ara prenen un snapshot de l'estat base i renderitzen cada frame a un temps absolut uniforme abans de codificar-lo.

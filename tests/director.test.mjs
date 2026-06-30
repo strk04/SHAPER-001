@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { DEFAULT_DIRECTOR, normalizeDirector, applySceneAction } from '../director.js';
 import {
   addScene, duplicateScene, moveScene, removeScene, upsertKeyframe, removeKeyframe,
-  upsertBehavior, updateBehavior, removeBehavior, isAutomatablePath,
+  isAutomatablePath,
 } from '../director.js';
 
 test('normalizeDirector returns a safe disabled config for missing input', () => {
@@ -15,7 +15,7 @@ test('normalizeDirector returns a safe disabled config for missing input', () =>
   assert.equal(result.scenes[0].duration, 5);
 });
 
-test('normalizeDirector clamps invalid scene and behavior values', () => {
+test('normalizeDirector clamps invalid scene values', () => {
   const result = normalizeDirector({
     version: 1,
     enabled: true,
@@ -23,7 +23,6 @@ test('normalizeDirector clamps invalid scene and behavior values', () => {
       id: '', name: '', duration: -4,
       transition: { duration: 99, easing: 'wild' },
       params: { morphT: Number.NaN },
-      behaviors: [{ id: 'b', type: 'orbit', intensity: 8, cohesion: -2 }],
       automations: {},
     }],
   });
@@ -31,8 +30,6 @@ test('normalizeDirector clamps invalid scene and behavior values', () => {
   assert.equal(result.scenes[0].transition.duration, 0.1);
   assert.equal(result.scenes[0].transition.easing, 'ease-in-out');
   assert.deepEqual(result.scenes[0].params, {});
-  assert.equal(result.scenes[0].behaviors[0].intensity, 1);
-  assert.equal(result.scenes[0].behaviors[0].cohesion, 0);
 });
 
 test('default config is not mutated by normalization', () => {
@@ -41,21 +38,19 @@ test('default config is not mutated by normalization', () => {
   assert.deepEqual(DEFAULT_DIRECTOR, before);
 });
 
-test('unknown versions and behaviors stay visible but disabled', () => {
+test('unknown versions stay visible but disabled', () => {
   const result = normalizeDirector({
     version: 9, enabled: true,
-    scenes: [{ duration: 2, behaviors: [{ id: 'x', type: 'teleport', intensity: 1 }] }],
+    scenes: [{ duration: 2 }],
   });
   assert.equal(result.enabled, false);
   assert.equal(result.unsupportedVersion, true);
-  assert.equal(result.scenes[0].behaviors[0].unsupported, true);
-  assert.equal(result.scenes[0].behaviors[0].enabled, false);
 });
 
 test('unknown fields survive normalization for forward-compatible round trips', () => {
   const result = normalizeDirector({
     version: 1, futureFlag: 'keep-me',
-    scenes: [{ duration: 2, futureSceneField: 7, behaviors: [] }],
+    scenes: [{ duration: 2, futureSceneField: 7 }],
   });
   assert.equal(result.futureFlag, 'keep-me');
   assert.equal(result.scenes[0].futureSceneField, 7);
@@ -70,7 +65,7 @@ test('evaluateDirector selects scenes and interpolates numeric params', () => {
       { id: 'a', duration: 2, params: { morphT: 0 }, automations: {} },
       {
         id: 'b', duration: 2, transition: { duration: 1, easing: 'linear' },
-        params: { morphT: 1 }, behaviors: [], automations: {},
+        params: { morphT: 1 }, automations: {},
       },
     ],
   });
@@ -82,16 +77,16 @@ test('automation overrides the scene value in local scene time', () => {
   const config = normalizeDirector({
     version: 1, enabled: true, loop: false,
     scenes: [{
-      id: 'a', duration: 4, params: { morphT: 0 }, behaviors: [],
+      id: 'a', duration: 4, params: { charTrack: 0 },
       automations: {
-        'param:morphT': [
+        'param:charTrack': [
           { time: 0, value: 0, easing: 'linear' },
           { time: 4, value: 1, easing: 'linear' },
         ],
       },
     }],
   });
-  assert.equal(evaluateDirector(config, 2, { morphT: 0 }).params.morphT, 0.5);
+  assert.equal(evaluateDirector(config, 2, { charTrack: 0 }).params.charTrack, 0.5);
 });
 
 test('advanceDirectorTime loops and clamps with absolute seconds', () => {
@@ -107,7 +102,7 @@ test('the first scene transitions from the base preset', () => {
     scenes: [{
       id: 'a', duration: 2,
       transition: { duration: 1, easing: 'linear' },
-      params: { zoom: 3, bgColor: '#ffffff' }, behaviors: [], automations: {},
+      params: { zoom: 3, bgColor: '#ffffff' }, automations: {},
     }],
   });
   const result = evaluateDirector(config, 0.5, { zoom: 1, bgColor: '#000000' });
@@ -119,7 +114,6 @@ test('disabled director returns the original base object', () => {
   const base = { morphT: 0.25 };
   const result = evaluateDirector({ version: 1, enabled: false, scenes: [] }, 10, base);
   assert.equal(result.params, base);
-  assert.deepEqual(result.behaviors, []);
 });
 
 test('scene editing is immutable and never removes the final scene', () => {
@@ -148,48 +142,35 @@ test('scene actions select the newly created scene', () => {
 
 test('upsertKeyframe clamps time and replaces same-time values', () => {
   const scene = normalizeDirector(null).scenes[0];
-  const once = upsertKeyframe(scene, 'param:morphT', { time: 8, value: 0.4, easing: 'linear' });
-  const twice = upsertKeyframe(once, 'param:morphT', { time: 5, value: 0.8, easing: 'ease-out' });
-  assert.deepEqual(twice.automations['param:morphT'], [{ time: 5, value: 0.8, easing: 'ease-out' }]);
-});
-
-test('behavior editing creates supported defaults and stays immutable', () => {
-  const scene = normalizeDirector(null).scenes[0];
-  const withOrbit = upsertBehavior(scene, 'orbit');
-  const id = withOrbit.behaviors[0].id;
-  const updated = updateBehavior(withOrbit, id, { intensity: 0.75, params: { radius: 240 } });
-  const removed = removeBehavior(updated, id);
-  assert.equal(scene.behaviors.length, 0);
-  assert.equal(withOrbit.behaviors[0].type, 'orbit');
-  assert.equal(updated.behaviors[0].intensity, 0.75);
-  assert.equal(updated.behaviors[0].params.radius, 240);
-  assert.equal(removed.behaviors.length, 0);
+  const once = upsertKeyframe(scene, 'param:charTrack', { time: 8, value: 0.4, easing: 'linear' });
+  const twice = upsertKeyframe(once, 'param:charTrack', { time: 5, value: 0.8, easing: 'ease-out' });
+  assert.deepEqual(twice.automations['param:charTrack'], [{ time: 5, value: 0.8, easing: 'ease-out' }]);
 });
 
 test('removeKeyframe removes exact-time frame and cleans empty lane', () => {
   const scene = normalizeDirector(null).scenes[0];
   const with2 = upsertKeyframe(
-    upsertKeyframe(scene, 'param:morphT', { time: 1, value: 0.2, easing: 'linear' }),
-    'param:morphT', { time: 3, value: 0.8, easing: 'linear' },
+    upsertKeyframe(scene, 'param:charTrack', { time: 1, value: 0.2, easing: 'linear' }),
+    'param:charTrack', { time: 3, value: 0.8, easing: 'linear' },
   );
-  const after = removeKeyframe(with2, 'param:morphT', 1);
-  assert.deepEqual(after.automations['param:morphT'], [{ time: 3, value: 0.8, easing: 'linear' }]);
+  const after = removeKeyframe(with2, 'param:charTrack', 1);
+  assert.deepEqual(after.automations['param:charTrack'], [{ time: 3, value: 0.8, easing: 'linear' }]);
 
-  const empty = removeKeyframe(after, 'param:morphT', 3);
-  assert.equal('param:morphT' in empty.automations, false, 'lane removed when empty');
+  const empty = removeKeyframe(after, 'param:charTrack', 3);
+  assert.equal('param:charTrack' in empty.automations, false, 'lane removed when empty');
 });
 
 test('removeKeyframe is a no-op for unknown path or missing time', () => {
   const scene = normalizeDirector(null).scenes[0];
-  const withKf = upsertKeyframe(scene, 'param:morphT', { time: 2, value: 0.5, easing: 'linear' });
+  const withKf = upsertKeyframe(scene, 'param:charTrack', { time: 2, value: 0.5, easing: 'linear' });
   assert.deepEqual(removeKeyframe(withKf, 'param:unknown', 2), removeKeyframe(withKf, 'param:unknown', 2));
-  assert.deepEqual(removeKeyframe(withKf, 'param:morphT', 9).automations['param:morphT'],
+  assert.deepEqual(removeKeyframe(withKf, 'param:charTrack', 9).automations['param:charTrack'],
     [{ time: 2, value: 0.5, easing: 'linear' }], 'non-matching time leaves lane intact');
 });
 
 test('automation allowlist accepts known paths and rejects arbitrary state', () => {
-  assert.equal(isAutomatablePath('param:morphT'), true);
-  assert.equal(isAutomatablePath('param:textColor'), true);
+  assert.equal(isAutomatablePath('param:charTrack'), true);
+  assert.equal(isAutomatablePath('param:formSize'), true);
   assert.equal(isAutomatablePath('param:director'), false);
-  assert.equal(isAutomatablePath('behavior:orbit-1:intensity'), true);
+  assert.equal(isAutomatablePath('behavior:orbit-1:intensity'), false);
 });

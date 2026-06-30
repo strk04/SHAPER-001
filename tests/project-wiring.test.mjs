@@ -144,7 +144,6 @@ test('director sidebar shows the active scene card after global controls', async
   assert.match(ui, /director-scene-toolbar/);
   assert.match(ui, /director-scene-card/);
   assert.match(ui, /Escena \$\{escapeHtml\(active\.name\)\}/);
-  assert.match(ui, /<span>Moviment<\/span>/);
   assert.match(ui, /<span>Durada total<\/span>/);
   assert.match(ui, /<span>Durada transició<\/span>/);
   assert.match(ui, /<span>Estil transició<\/span>/);
@@ -161,17 +160,15 @@ test('director sidebar shows the active scene card after global controls', async
   assert.match(css, /border-top: 1px solid var\(--paper-3\)/);
 });
 
-test('director movement selection still exposes movement parameters and adjustments', async () => {
+test('director scene exposes a grouped list of concrete effects', async () => {
   const ui = await readFile(new URL('../director-ui.js', import.meta.url), 'utf8');
-  const main = await readFile(new URL('../main.js', import.meta.url), 'utf8');
+  const director = await readFile(new URL('../director.js', import.meta.url), 'utf8');
   const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
-  assert.match(ui, /director-movement-settings/);
-  assert.match(ui, /data-behavior-id/);
-  assert.match(ui, /<span>intensity<\/span>/);
-  assert.match(ui, /<span>cohesion<\/span>/);
-  assert.match(main, /updateBehavior/);
-  assert.match(main, /onUpdateBehavior:/);
-  assert.match(css, /\.director-movement-settings/);
+  assert.match(ui, /director-effects-group/);
+  assert.match(ui, /data-keyframe-path/);
+  assert.match(director, /charTrack: 'number', leading: 'number', wrapMode: 'hold'/);
+  assert.match(director, /EFFECT_GROUPS/);
+  assert.match(css, /\.director-effect\b/);
 });
 
 test('director timeline is inline under canvas and shows keyframe label plus value', async () => {

@@ -1,6 +1,6 @@
 # STATUS — SHAPER 001
 
-_Actualitzat: 2026-06-30_
+_Actualitzat: 2026-06-30 (efectes Director)_
 
 ## Estat general
 
@@ -12,14 +12,17 @@ Projecte vanilla JS zero-build. Flux habitual de publicació:
 
 ## Motion Director
 
-Director està simplificat per a ús no-live i actualment inclou:
+S'ha eliminat el sistema de Moviment (Deriva/Òrbita/Atracció/Explosió, `behaviors`).
+Director ara inclou:
 
 - activació global
 - escenes
 - durada per escena
 - transició + easing per escena
-- un únic moviment visible per escena
-- ajustos del moviment a la columna 2
+- llista d'efectes concrets per escena, agrupats: Àtom (Kerning, Interlínia, Aplicació de l'àtom),
+  Forma 3D (Forma, Mida de forma, Proporció), Càmera (Rotació X/Y/Z, Angle X/Y),
+  Moviment 3D (Velocitat, Probabilitat de pluja, Velocitat de pluja)
+- cada efecte es manipula amb keyframes (mateix mecanisme que abans, ara exposat des del propi panell Director)
 - keyframes / automatització
 - controls globals `Reverse` i `Loop`
 - timeline inline sota el canvas, a la columna 3
@@ -27,6 +30,9 @@ Director està simplificat per a ús no-live i actualment inclou:
 - playhead draggable
 - keyframes editables des de la columna 2
 - menú contextual de supressió sobre rombos
+
+`engine.js`/`motion.js` conserven `applyMotionBehaviors` com a codi mort (ja no s'hi alimenta cap
+behavior des del Director); no s'ha tocat per estar fora d'abast d'aquest canvi.
 
 ## Export MP4
 
@@ -57,6 +63,7 @@ Director està simplificat per a ús no-live i actualment inclou:
 
 Ja no hi ha:
 
+- selector `Moviment` (Deriva/Òrbita/Atracció/Explosió) ni ajustos `intensity`/`cohesion` per escena
 - `ATTRACT`, `REPEL`, `EXPLODE`
 - `REC`
 - `Atura`
@@ -70,15 +77,15 @@ Ja no hi ha:
 Ultima verificacio executada el 2026-06-30:
 
 ```bash
-node --check engine.js
+node --check director.js
+node --check director-ui.js
 node --check main.js
-node --check export-video.js
-node --check preset-state.js
-node --test tests/*.test.mjs   # 50 pass
+node --test tests/*.mjs   # 49 pass
 ```
 
 ## Pendent
 
 - Decidir si més endavant la timeline ha de mostrar keyframes de totes les escenes o només de l’escena activa.
-- Millora futura pendent: guies visuals dels ajustos de moviment (target, radius, centre, vector...).
 - Revisar deployment de Pixel Perfect si cal confirmar publicacio web.
+- Sincronitzar aquest canvi (efectes Director) a `02 Pixel Perfect/shaper/` — pendent, no fet automàticament
+  perquè el harness va bloquejar còpia entre projectes sense petició explícita de l'usuari per a aquest repo.

@@ -1,6 +1,5 @@
 // director.js
 const EASINGS = new Set(['hold', 'linear', 'ease-in', 'ease-out', 'ease-in-out']);
-const BEHAVIOR_TYPES = new Set(['drift', 'orbit', 'attract', 'explode']);
 
 const finite = (value, fallback) => Number.isFinite(Number(value)) ? Number(value) : fallback;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -16,26 +15,9 @@ export const DEFAULT_DIRECTOR = Object.freeze({
     duration: 5,
     transition: Object.freeze({ duration: 0, easing: 'ease-in-out' }),
     params: Object.freeze({}),
-    behaviors: Object.freeze([]),
     automations: Object.freeze({}),
   })],
 });
-
-export function normalizeBehavior(input, index = 0) {
-  const supported = BEHAVIOR_TYPES.has(input?.type);
-  const type = supported ? input.type : String(input?.type || 'unknown');
-  return {
-    ...structuredClone(input || {}),
-    id: String(input?.id || `behavior-${index + 1}`),
-    type,
-    enabled: supported && input?.enabled !== false,
-    unsupported: !supported,
-    intensity: clamp(finite(input?.intensity, 0), 0, 1),
-    cohesion: clamp(finite(input?.cohesion, 1), 0, 1),
-    seedOffset: Math.trunc(finite(input?.seedOffset, index + 1)),
-    params: Object.fromEntries(Object.entries(input?.params || {}).filter(([, value]) => Number.isFinite(Number(value)))),
-  };
-}
 
 export function normalizeScene(input, index = 0) {
   const duration = clamp(finite(input?.duration, 5), 0.1, 3600);
@@ -53,7 +35,6 @@ export function normalizeScene(input, index = 0) {
       easing: EASINGS.has(input?.transition?.easing) ? input.transition.easing : 'ease-in-out',
     },
     params,
-    behaviors: (Array.isArray(input?.behaviors) ? input.behaviors : []).map(normalizeBehavior),
     automations: typeof input?.automations === 'object' && input.automations ? structuredClone(input.automations) : {},
   };
 }
@@ -121,19 +102,13 @@ function laneValue(keyframes, localTime, fallback) {
 
 function resolveScene(scene, localTime, baseState) {
   const params = { ...baseState, ...scene.params };
-  const behaviors = scene.behaviors.map((behavior) => structuredClone(behavior));
   for (const [path, frames] of Object.entries(scene.automations)) {
     const parts = path.split(':');
     if (parts[0] === 'param' && parts.length === 2) {
       params[parts[1]] = laneValue(frames, localTime, params[parts[1]]);
     }
-    if (parts[0] === 'behavior' && parts.length === 3) {
-      const behavior = behaviors.find((item) => item.id === parts[1]);
-      if (behavior && parts[2] in behavior) behavior[parts[2]] = laneValue(frames, localTime, behavior[parts[2]]);
-      if (behavior && parts[2] in behavior.params) behavior.params[parts[2]] = laneValue(frames, localTime, behavior.params[parts[2]]);
-    }
   }
-  return { params, behaviors };
+  return { params };
 }
 
 function blendNumberRecords(from, to, mix) {
@@ -222,23 +197,22 @@ export function applySceneAction(input, selectedSceneId, action) {
 }
 
 export const AUTOMATABLE_PARAMS = Object.freeze({
-  morphT: 'number', morphSpeed: 'number', morphScatter: 'number', morphSpeedVar: 'number',
-  zoom: 'number', angleX: 'number', angleY: 'number', depthFade: 'number',
-  formSize: 'number', pulse: 'number', noiseTexture: 'number',
-  textColor: 'hold', bgColor: 'hold', form: 'hold', projection: 'hold',
+  charTrack: 'number', leading: 'number', wrapMode: 'hold',
+  form: 'hold', formSize: 'number', aspect: 'number',
+  rotXSpeed: 'number', rotYSpeed: 'number', rotZSpeed: 'number', angleX: 'number', angleY: 'number',
+  speed3d: 'number', rainProb: 'number', rainSpeed: 'number',
 });
 
-export const BEHAVIOR_DEFAULTS = Object.freeze({
-  drift: Object.freeze({ angle: 0, elevation: 0, distance: 100, speed: 0.1, phase: 0 }),
-  orbit: Object.freeze({ centerX: 0, centerY: 0, centerZ: 0, radius: 180, speed: 0.1, phase: 0, depth: 0, spread: 0 }),
-  attract: Object.freeze({ targetX: 0, targetY: 0, targetZ: 0, strength: 100, radius: 400, falloff: 1 }),
-  explode: Object.freeze({ centerX: 0, centerY: 0, centerZ: 0, distance: 240, spread: 0.5, progress: 0 }),
-});
+export const EFFECT_GROUPS = Object.freeze([
+  { title: 'Àtom', items: ['charTrack', 'leading', 'wrapMode'] },
+  { title: 'Forma 3D', items: ['form', 'formSize', 'aspect'] },
+  { title: 'Càmera', items: ['rotXSpeed', 'rotYSpeed', 'rotZSpeed', 'angleX', 'angleY'] },
+  { title: 'Moviment 3D', items: ['speed3d', 'rainProb', 'rainSpeed'] },
+]);
 
 export function isAutomatablePath(path) {
   const parts = String(path).split(':');
-  if (parts[0] === 'param' && parts.length === 2) return parts[1] in AUTOMATABLE_PARAMS;
-  return parts[0] === 'behavior' && parts.length === 3;
+  return parts[0] === 'param' && parts.length === 2 && parts[1] in AUTOMATABLE_PARAMS;
 }
 
 export function upsertKeyframe(sceneInput, path, frameInput) {
@@ -264,80 +238,22 @@ export function removeKeyframe(sceneInput, path, time) {
   return { ...scene, automations };
 }
 
-export function upsertBehavior(sceneInput, type) {
-  const scene = normalizeScene(sceneInput);
-  if (!(type in BEHAVIOR_DEFAULTS)) return scene;
-  if (scene.behaviors.some((behavior) => behavior.type === type)) return scene;
-  const behavior = normalizeBehavior({
-    id: `${type}-${scene.behaviors.length + 1}`,
-    type, enabled: true, intensity: 1, cohesion: 1,
-    seedOffset: scene.behaviors.length + 1,
-    params: BEHAVIOR_DEFAULTS[type],
-  }, scene.behaviors.length);
-  return { ...scene, behaviors: [...scene.behaviors, behavior] };
-}
-
-export function updateBehavior(sceneInput, id, patch) {
-  const scene = normalizeScene(sceneInput);
-  return {
-    ...scene,
-    behaviors: scene.behaviors.map((behavior) => behavior.id === id
-      ? normalizeBehavior({ ...behavior, ...patch, params: { ...behavior.params, ...(patch.params || {}) } })
-      : behavior),
-  };
-}
-
-export function removeBehavior(sceneInput, id) {
-  const scene = normalizeScene(sceneInput);
-  return { ...scene, behaviors: scene.behaviors.filter((behavior) => behavior.id !== id) };
-}
-
-export function setSceneMovement(sceneInput, type) {
-  const scene = normalizeScene(sceneInput);
-  const nextType = BEHAVIOR_DEFAULTS[type] ? type : '';
-  const current = scene.behaviors[0] || null;
-  const automations = Object.fromEntries(
-    Object.entries(scene.automations).filter(([path]) => !path.startsWith('behavior:')),
-  );
-  if (!nextType) return { ...scene, behaviors: [], automations };
-  const behavior = normalizeBehavior({
-    id: current?.id || `${nextType}-1`,
-    type: nextType,
-    enabled: true,
-    intensity: current?.intensity ?? 1,
-    cohesion: current?.cohesion ?? 1,
-    seedOffset: current?.seedOffset ?? 1,
-    params: current?.type === nextType ? current.params : BEHAVIOR_DEFAULTS[nextType],
-  }, 0);
-  return { ...scene, behaviors: [behavior], automations };
-}
-
 // ── Evaluation ───────────────────────────────────────────────────────────────
 
 export function evaluateDirector(input, absoluteTime, baseState = {}) {
   const config = normalizeDirector(input);
-  if (!config.enabled) return { sceneId: null, localTime: 0, params: baseState, behaviors: [] };
+  if (!config.enabled) return { sceneId: null, localTime: 0, params: baseState };
   const located = locateScene(config, finite(absoluteTime, 0));
   const current = resolveScene(located.scene, located.localTime, baseState);
   const transition = located.scene.transition;
   let params = current.params;
-  let behaviors = current.behaviors;
   if (transition.duration > 0 && located.localTime < transition.duration) {
     const previous = located.index > 0 ? config.scenes[located.index - 1] : null;
     const from = previous
       ? resolveScene(previous, previous.duration, baseState)
-      : { params: baseState, behaviors: [] };
+      : { params: baseState };
     const mix = ease(transition.easing, located.localTime / transition.duration);
     params = blendNumberRecords(from.params, current.params, mix);
-    behaviors = current.behaviors.map((behavior) => {
-      const old = from.behaviors.find((item) => item.id === behavior.id);
-      return old ? {
-        ...behavior,
-        intensity: old.intensity + (behavior.intensity - old.intensity) * mix,
-        cohesion: old.cohesion + (behavior.cohesion - old.cohesion) * mix,
-        params: blendNumberRecords(old.params, behavior.params, mix),
-      } : { ...behavior, intensity: behavior.intensity * mix };
-    });
   }
-  return { sceneId: located.scene.id, localTime: located.localTime, params, behaviors };
+  return { sceneId: located.scene.id, localTime: located.localTime, params };
 }

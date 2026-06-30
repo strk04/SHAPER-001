@@ -1002,8 +1002,60 @@ body:not([data-director-panel-active]) .director-timeline-host {
   margin-top: var(--space-2);
 }
 
-.director-movement-settings {
+.director-effects {
   margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--paper-3);
+}
+
+.director-effects-group + .director-effects-group {
+  margin-top: var(--space-2);
+}
+
+.director-effects-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.director-effect {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--ink-3);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  font-size: var(--text-xs);
+}
+
+.director-effect:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.director-effect:focus-visible {
+  box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--ink);
+  outline-offset: 2px;
+}
+
+.director-effect[aria-pressed="true"] {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.director-effect-dot::before { content: "◇"; }
+.director-effect[aria-pressed="true"] .director-effect-dot::before { content: "◆"; }
+
+.director-effect-label {
+  text-decoration: none;
+}
+
+.director-effect.has-keyframes .director-effect-label {
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .director-keyframe-editor {

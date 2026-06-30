@@ -1,5 +1,25 @@
 # Decisions — SHAPER 001
 
+## 2026-06-30 — Director: efectes concrets per paràmetre, no "moviments" de partícula
+
+S'elimina el selector `Moviment` per escena (Deriva/Òrbita/Atracció/Explosió, amb `intensity`/`cohesion`)
+i es substitueix per una llista explícita d'efectes concrets agrupats per categoria (Àtom, Forma 3D,
+Càmera, Moviment 3D), cadascun automatitzable amb keyframes des del propi panell Director.
+
+Racional: el sistema de behaviors movia partícules de glifs individualment de forma genèrica i abstracta
+(4 tipus de moviment configurables amb paràmetres tècnics com `radius`/`falloff`), cosa que no es
+corresponia amb com l'usuari pensa l'animació (vol animar paràmetres concrets ja existents al disseny:
+kerning, forma, rotació de càmera, pluja...). El mecanisme de keyframes per paràmetre ja existia
+(`AUTOMATABLE_PARAMS` + botons-diamant), només calia: (1) restringir-lo als 14 paràmetres rellevants en
+comptes dels antics (zoom, pulse, morph*, etc., ara fora de l'abast), i (2) exposar-lo com una llista
+explícita dins el Director en lloc de botons dispersos pels panells originals (decisió presa amb
+`AskUserQuestion`: l'usuari va triar la llista explícita per sobre de reutilitzar només els botons
+existents).
+
+Conseqüències: `engine.js`/`motion.js` mantenen `applyMotionBehaviors` com a codi mort (cap consumidor
+l'alimenta ja), no s'ha eliminat per no ampliar l'abast del canvi. Presets/escenes antics amb `behaviors`
+es normalitzen ignorant aquest camp (no hi ha migració ni avís).
+
 ## 2026-06-30 — Els presets guarden un snapshot creatiu, no l'estat complet de sessió
 
 Els presets passen a usar `preset-state.js` com a contracte central de persistència. El JSON guarda els camps creatius/reproduïbles de la composició: sliders, seed, colors, modes, canvas, càmera, toggles de càmera, outline custom, morph i Director.

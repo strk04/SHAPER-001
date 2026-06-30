@@ -1,5 +1,5 @@
 // director-ui.js — Pure model + DOM mount for the Director panel
-import { normalizeDirector, totalDuration } from './director.js';
+import { normalizeDirector, totalDuration, EFFECT_GROUPS } from './director.js';
 
 // ── Pure view model ─────────────────────────────────────────────────────────
 
@@ -20,36 +20,29 @@ export function directorViewModel(input, selectedSceneId, time) {
   };
 }
 
-const BEHAVIOR_FIELDS = Object.freeze({
-  drift: ['angle', 'elevation', 'distance', 'speed', 'phase'],
-  orbit: ['centerX', 'centerY', 'centerZ', 'radius', 'speed', 'phase', 'depth', 'spread'],
-  attract: ['targetX', 'targetY', 'targetZ', 'strength', 'radius', 'falloff'],
-  explode: ['centerX', 'centerY', 'centerZ', 'distance', 'spread', 'progress'],
+const EFFECT_LABELS = Object.freeze({
+  charTrack: 'Kerning', leading: 'Interlínia', wrapMode: "Aplicació de l'àtom",
+  form: 'Forma', formSize: 'Mida de forma', aspect: 'Proporció',
+  rotXSpeed: 'Rotació X', rotYSpeed: 'Rotació Y', rotZSpeed: 'Rotació Z', angleX: 'Angle X', angleY: 'Angle Y',
+  speed3d: 'Velocitat', rainProb: 'Probabilitat de pluja', rainSpeed: 'Velocitat de pluja',
 });
-
-const BEHAVIOR_LABELS = Object.freeze({
-  drift: 'Deriva', orbit: 'Òrbita', attract: 'Atracció', explode: 'Explosió',
-});
-const MOVEMENT_OPTIONS = Object.entries(BEHAVIOR_LABELS);
-const behaviorLabel = (type) => BEHAVIOR_LABELS[type] || type;
 
 // Maps AUTOMATABLE_PARAMS key → actual element id in index.html / built by buildSliders()
 export const AUTOMATION_CONTROL_IDS = Object.freeze({
-  morphT: 'rng-morphT',
-  morphSpeed: 'rng-morphSpeed',
-  morphScatter: 'rng-morphScatter',
-  morphSpeedVar: 'rng-morphSpeedVar',
-  zoom: 'rng-zoom',
+  charTrack: 'rng-charTrack',
+  leading: 'rng-leading',
+  wrapMode: 'wrapMode',
+  form: 'form',
+  formSize: 'rng-formSize',
+  aspect: 'rng-aspect',
+  rotXSpeed: 'rng-rotXSpeed',
+  rotYSpeed: 'rng-rotYSpeed',
+  rotZSpeed: 'rng-rotZSpeed',
   angleX: 'rng-angleX',
   angleY: 'rng-angleY',
-  depthFade: 'rng-depthFade',
-  formSize: 'rng-formSize',
-  pulse: 'rng-pulse',
-  noiseTexture: 'rng-noiseTexture',
-  textColor: 'textColor',
-  bgColor: 'bgColor',
-  form: 'form',
-  projection: 'projection',
+  speed3d: 'rng-speed3d',
+  rainProb: 'rng-rainProb',
+  rainSpeed: 'rng-rainSpeed',
 });
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -61,9 +54,8 @@ const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({
 const shortSceneLabel = (index) => `E${String(index + 1).padStart(2, '0')}`;
 
 const keyframeLabel = (path) => {
-  if (path.startsWith('param:')) return path.slice(6);
-  if (path.startsWith('behavior:')) return path.split(':')[2] || path;
-  return path;
+  const name = path.startsWith('param:') ? path.slice(6) : path;
+  return EFFECT_LABELS[name] || name;
 };
 
 const keyframeValue = (value) => {
@@ -105,8 +97,8 @@ const findSelectedKeyframe = (state, activeScene) => {
 export function mountDirectorUI({
   inspector, timeline, getState,
   onSelectScene, onSeek, onToggleEnabled,
-  onSceneAction, onSceneDuration, onSceneMovement, onTransitionChange,
-  onUpdateBehavior, onToggleKeyframe, onSelectKeyframe, onUpdateKeyframe, onRemoveKeyframe,
+  onSceneAction, onSceneDuration, onTransitionChange,
+  onToggleKeyframe, onSelectKeyframe, onUpdateKeyframe, onRemoveKeyframe,
 }) {
   if (!inspector || !timeline) return { render: () => {}, setTime: () => {} };
 
@@ -175,16 +167,6 @@ export function mountDirectorUI({
     }
   });
 
-  inspector.addEventListener('input', (event) => {
-    const { target } = event;
-    const field = target.dataset?.behaviorField;
-    if (target.type !== 'range' || (field !== 'intensity' && field !== 'cohesion')) return;
-    const txt = Number(target.value).toFixed(2);
-    target.setAttribute('aria-valuetext', txt);
-    const out = target.parentElement?.querySelector('output.director-value');
-    if (out) out.textContent = txt;
-  });
-
   inspector.addEventListener('change', (event) => {
     const { target } = event;
     if (target.dataset.keyframeEditorPath && onUpdateKeyframe) {
@@ -204,10 +186,6 @@ export function mountDirectorUI({
         return;
       }
     }
-    if (target.id === 'directorSceneBehavior' && onSceneMovement) {
-      onSceneMovement(target.value);
-      return;
-    }
     if (target.id === 'directorSceneDuration' && onSceneDuration) {
       onSceneDuration(Number(target.value));
       return;
@@ -219,17 +197,6 @@ export function mountDirectorUI({
     if (target.id === 'directorTransitionEasing' && onTransitionChange) {
       onTransitionChange({ easing: target.value });
       return;
-    }
-    const movementSettings = target.closest('[data-behavior-id]');
-    if (movementSettings && target.dataset.behaviorField && onUpdateBehavior) {
-      const id = movementSettings.dataset.behaviorId;
-      if (target.dataset.behaviorField === 'intensity') {
-        onUpdateBehavior(id, { intensity: Number(target.value) });
-      } else if (target.dataset.behaviorField === 'cohesion') {
-        onUpdateBehavior(id, { cohesion: Number(target.value) });
-      } else {
-        onUpdateBehavior(id, { params: { [target.dataset.behaviorField]: Number(target.value) } });
-      }
     }
   });
 
@@ -365,63 +332,40 @@ export function mountDirectorUI({
   });
 
   // ── Build scene inspector panel ────────────────────────────────────────────
-  function buildSceneInspector(active, selectedKeyframe) {
-    if (!active) { sceneEditEl.innerHTML = ''; return; }
-    const behavior = active.behaviors[0] || null;
-    const movement = behavior?.type || '';
-    const movementOptions = MOVEMENT_OPTIONS.map(([value, label]) => `
-      <option value="${value}"${movement === value ? ' selected' : ''}>${label}</option>
-    `).join('');
-    let movementSettings = '';
-    if (behavior) {
-      const fields = BEHAVIOR_FIELDS[behavior.type] || [];
-      const fieldInputs = fields.map((field) => {
-        const kfPath = `behavior:${behavior.id}:${field}`;
+  const slugify = (text) => String(text).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+  function buildEffectsList(active, localTime) {
+    const lt = localTime ?? 0;
+    return EFFECT_GROUPS.map((group) => {
+      const groupId = `directorEffectsGroup-${slugify(group.title)}`;
+      const items = group.items.map((name) => {
+        const path = `param:${name}`;
+        const frames = active.automations[path] || [];
+        const isCurrent = frames.some((frame) => Math.abs(frame.time - lt) <= 0.0001);
+        const hasAny = frames.length > 0;
+        const label = EFFECT_LABELS[name] || name;
         return `
-          <label class="control-row" for="bfield-${escapeHtml(behavior.id)}-${field}">
-            <span>${escapeHtml(field)}</span>
-            <span class="director-field-input">
-              <input id="bfield-${escapeHtml(behavior.id)}-${field}"
-                type="number" step="any"
-                value="${Number.isFinite(behavior.params[field]) ? behavior.params[field] : 0}"
-                data-behavior-field="${escapeHtml(field)}">
-              <button type="button" class="automation-key-button"
-                data-keyframe-path="${escapeHtml(kfPath)}"
-                data-keyframe-field="${escapeHtml(field)}"
-                aria-label="Keyframe a ${escapeHtml(field)}"
-                aria-pressed="false">
-                <span aria-hidden="true"></span>
-              </button>
-            </span>
-          </label>`;
+          <button type="button" class="director-effect${hasAny ? ' has-keyframes' : ''}"
+            data-keyframe-path="${escapeHtml(path)}"
+            data-keyframe-field="${escapeHtml(name)}"
+            aria-pressed="${isCurrent}"
+            aria-label="Keyframe a ${escapeHtml(label)}"
+            ${hasAny ? 'aria-describedby="directorEffectsHasKeyframesHint"' : ''}>
+            <span aria-hidden="true" class="director-effect-dot"></span>
+            <span class="director-effect-label">${escapeHtml(label)}</span>
+          </button>`;
       }).join('');
-      const intensityTxt = Number(behavior.intensity).toFixed(2);
-      const cohesionTxt = Number(behavior.cohesion).toFixed(2);
-      movementSettings = `
-        <div class="director-movement-settings director-behavior-item" role="group" aria-label="Ajustos del moviment ${escapeHtml(behaviorLabel(behavior.type))}" data-behavior-id="${escapeHtml(behavior.id)}">
-          <h5 class="director-settings-title">Ajustos</h5>
-          <label class="control-row" for="bintensity-${escapeHtml(behavior.id)}">
-            <span>intensity</span>
-            <span class="director-field-input">
-              <input id="bintensity-${escapeHtml(behavior.id)}" type="range" min="0" max="1" step="0.01"
-                value="${behavior.intensity}" data-behavior-field="intensity"
-                aria-valuetext="${intensityTxt}">
-              <output class="director-value" for="bintensity-${escapeHtml(behavior.id)}" aria-live="off">${intensityTxt}</output>
-            </span>
-          </label>
-          <label class="control-row" for="bcohesion-${escapeHtml(behavior.id)}">
-            <span>cohesion</span>
-            <span class="director-field-input">
-              <input id="bcohesion-${escapeHtml(behavior.id)}" type="range" min="0" max="1" step="0.01"
-                value="${behavior.cohesion}" data-behavior-field="cohesion"
-                aria-valuetext="${cohesionTxt}">
-              <output class="director-value" for="bcohesion-${escapeHtml(behavior.id)}" aria-live="off">${cohesionTxt}</output>
-            </span>
-          </label>
-          ${fieldInputs}
-        </div>
-      `;
-    }
+      return `
+        <div class="director-effects-group" role="group" aria-labelledby="${groupId}">
+          <h5 class="director-settings-title" id="${groupId}">${escapeHtml(group.title)}</h5>
+          <div class="director-effects-row">${items}</div>
+        </div>`;
+    }).join('');
+  }
+
+  function buildSceneInspector(active, selectedKeyframe, localTime) {
+    if (!active) { sceneEditEl.innerHTML = ''; return; }
+    const effectsList = buildEffectsList(active, localTime);
 
     let keyframeEditor = '';
     if (selectedKeyframe) {
@@ -472,11 +416,6 @@ export function mountDirectorUI({
       </div>
       <div class="director-scene-card" role="group" aria-label="Propietats de l'escena">
         <h4 class="panel-title">Escena ${escapeHtml(active.name)}</h4>
-        <label class="control-row" for="directorSceneBehavior"><span>Moviment</span>
-          <select id="directorSceneBehavior">
-            ${movementOptions}
-          </select>
-        </label>
         <label class="control-row" for="directorSceneDuration"><span>Durada total</span>
           <span class="director-duration-field">
             <input id="directorSceneDuration" type="number" min="0.1" max="3600" step="0.1" inputmode="decimal"
@@ -504,7 +443,11 @@ export function mountDirectorUI({
           <button type="button" data-director-action="delete" aria-label="Elimina escena">Elimina</button>
         </div>
       </div>
-      ${movementSettings}
+      <div class="director-effects" role="group" aria-labelledby="directorEffectsTitle">
+        <h4 class="panel-title" id="directorEffectsTitle">Efectes</h4>
+        <p id="directorEffectsHasKeyframesHint" class="sr-only">Aquest efecte ja té algun fotograma clau en un altre instant d'aquesta escena.</p>
+        ${effectsList}
+      </div>
       ${keyframeEditor}
     `;
   }
@@ -581,7 +524,7 @@ export function mountDirectorUI({
 
     // Rebuild scene inspector
     const localTime = Math.max(0, (vm.time ?? 0) - (vm.activeScene?.start ?? 0));
-    buildSceneInspector(vm.activeScene, selectedKeyframe);
+    buildSceneInspector(vm.activeScene, selectedKeyframe, localTime);
 
     // Rebuild automation lanes
     buildLanes(vm, vm.activeScene, localTime);

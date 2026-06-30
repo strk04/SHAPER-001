@@ -1,5 +1,43 @@
 # Progress — SHAPER 001
 
+## 2026-06-30 — Director: efectes concrets en comptes de Moviment
+
+### Fet
+- Eliminat el sistema de `behaviors` (Deriva/Òrbita/Atracció/Explosió) de `director.js`: `normalizeBehavior`,
+  `BEHAVIOR_DEFAULTS`, `upsertBehavior`, `updateBehavior`, `removeBehavior`, `setSceneMovement`.
+  `evaluateDirector`/`resolveScene` ja no retornen ni resolen `behaviors`.
+- `AUTOMATABLE_PARAMS` redefinit completament amb els 14 efectes demanats, agrupats a `EFFECT_GROUPS`:
+  Àtom (`charTrack`, `leading`, `wrapMode`), Forma 3D (`form`, `formSize`, `aspect`),
+  Càmera (`rotXSpeed`, `rotYSpeed`, `rotZSpeed`, `angleX`, `angleY`),
+  Moviment 3D (`speed3d`, `rainProb`, `rainSpeed`).
+- `director-ui.js`: nou `buildEffectsList()` que pinta una llista explícita d'efectes dins el panell Director
+  (no calia anar al control original a cada panell), agrupada per categoria amb `<h5>` + `aria-labelledby`.
+  Cada botó reutilitza el mateix mecanisme de keyframe (`onToggleKeyframe`/`data-keyframe-path`) que ja
+  existia per als botons-diamant al costat dels sliders.
+- `main.js`: retirada tota la cablejada de `behaviors` (`onSceneMovement`, `onUpdateBehavior`,
+  `motionBehaviors` a `resolveRenderState`). `AUTOMATION_CONTROL_IDS` actualitzat als nous 14 noms d'`id`.
+- Revisió d'accessibilitat (accessibility-lead + aria-specialist + keyboard-navigator + contrast-master,
+  agents en paral·lel) sobre els nous botons d'efecte: `aria-pressed` confirmat correcte (no `switch`),
+  `aria-label="Keyframe a {label}"` afegit (consistent amb el patró existent del botó-diamant),
+  `aria-describedby` cap a un hint ocult compartit quan l'efecte ja té algun keyframe a l'escena,
+  `aria-labelledby` cap a `<h4>`/`<h5>` en lloc de `aria-label` duplicat, i subratllat de text (no només
+  color) per a `.has-keyframes`. Tab pla + `role="group"` confirmat correcte (no calen fletxes ni
+  `role="toolbar"`, ja que els efectes no són mútuament excloents).
+- `styles.css`: noves regles `.director-effects*`/`.director-effect*`; eliminades `.director-movement-settings`.
+- Tests: `tests/director.test.mjs` i `tests/project-wiring.test.mjs` actualitzats (fora els tests de
+  `behaviors`, afegit test que verifica la llista d'efectes).
+- `engine.js`/`motion.js` (`applyMotionBehaviors`) deliberadament no tocats: ja no reben cap behavior des
+  del Director (queden com a codi mort), però retocar-los era fora d'abast d'aquest canvi.
+
+### Pendent
+- Sincronitzar a `02 Pixel Perfect/shaper/` (bloquejat automàticament, cal fer-ho manualment o demanar-ho
+  explícitament).
+
+### Verificat
+- `node --test tests/*.mjs` -> 49 pass
+
+---
+
 ## 2026-06-30 — Meta de guies amb més aire i cos
 
 ### Fet

@@ -4,7 +4,7 @@ import { encodeDirectorFrames, resolveOfflineAnimationState } from './export-vid
 import { store as _ghStore } from './presets-github.js';
 import { createPresetPanel } from './preset-panel.js';
 import { captureCreativePreset } from './preset-state.js';
-import { DEFAULT_DIRECTOR, advanceDirectorTime, evaluateDirector, normalizeDirector, normalizeScene, totalDuration, applySceneAction, setSceneMovement, updateBehavior, upsertKeyframe, removeKeyframe, AUTOMATABLE_PARAMS } from './director.js';
+import { DEFAULT_DIRECTOR, advanceDirectorTime, evaluateDirector, normalizeDirector, normalizeScene, totalDuration, applySceneAction, upsertKeyframe, removeKeyframe, AUTOMATABLE_PARAMS } from './director.js';
 import { mountDirectorUI, AUTOMATION_CONTROL_IDS } from './director-ui.js';
 
 // Slider definitions: key -> { label, default }
@@ -373,7 +373,6 @@ function resolveRenderState(atTime = state.directorTime) {
     t: atTime * (Number.isFinite(animationSpeed) ? animationSpeed : 1),
     morphClock: atTime,
     directorTime: atTime,
-    motionBehaviors: resolved.behaviors,
     activeDirectorSceneId: resolved.sceneId,
   };
 }
@@ -1449,8 +1448,6 @@ function handleDirectorSceneAction(action) {
 }
 function updateSelectedSceneDuration(duration) { replaceDirectorScene(normalizeScene({ ...selectedDirectorScene(), duration })); }
 function updateSelectedTransition(patch) { const s = selectedDirectorScene(); replaceDirectorScene(normalizeScene({ ...s, transition: { ...s.transition, ...patch } })); }
-function updateSelectedSceneMovement(type) { replaceDirectorScene(setSceneMovement(selectedDirectorScene(), type)); }
-function updateSelectedBehavior(id, patch) { replaceDirectorScene(updateBehavior(selectedDirectorScene(), id, patch)); }
 function updateSelectedKeyframe(path, time, patch) {
   const scene = selectedDirectorScene();
   const frames = scene?.automations?.[path] || [];
@@ -1520,9 +1517,7 @@ function wireDirector() {
     onToggleEnabled: (enabled) => { state.director = { ...state.director, enabled }; scheduleRender(); directorUI.render(); updateAutomationButtonStates(); },
     onSceneAction: handleDirectorSceneAction,
     onSceneDuration: updateSelectedSceneDuration,
-    onSceneMovement: updateSelectedSceneMovement,
     onTransitionChange: updateSelectedTransition,
-    onUpdateBehavior: updateSelectedBehavior,
     onSelectKeyframe: (path, time) => {
       state.selectedDirectorKeyframe = { sceneId: state.selectedDirectorSceneId, path, time };
       directorUI.render();
@@ -1556,13 +1551,6 @@ function wireDirector() {
         const name = path.slice(6);
         kind = AUTOMATABLE_PARAMS[name] || 'number';
         value = state[name] !== undefined ? state[name] : 0;
-      } else if (path.startsWith('behavior:')) {
-        const [, id, field] = path.split(':');
-        const behavior = scene.behaviors.find((b) => b.id === id);
-        if (behavior) {
-          value = Number.isFinite(behavior.params?.[field]) ? behavior.params[field]
-            : (Number.isFinite(behavior[field]) ? behavior[field] : 0);
-        }
       }
       state.selectedDirectorKeyframe = { sceneId: scene.id, path, time: localTime };
       replaceDirectorScene(upsertKeyframe(scene, path, { time: localTime, value, easing: kind === 'hold' ? 'hold' : 'linear' }));

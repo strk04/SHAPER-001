@@ -87,5 +87,11 @@ node --test tests/*.mjs   # 49 pass
 
 - Decidir si més endavant la timeline ha de mostrar keyframes de totes les escenes o només de l’escena activa.
 - Revisar deployment de Pixel Perfect si cal confirmar publicacio web.
-- Sincronitzar aquest canvi (efectes Director) a `02 Pixel Perfect/shaper/` — pendent, no fet automàticament
-  perquè el harness va bloquejar còpia entre projectes sense petició explícita de l'usuari per a aquest repo.
+- Sincronitzar el canvi d'efectes Director (`director.js`, `director-ui.js`, `main.js`, `styles.css`,
+  `tests/project-wiring.test.mjs`) a `02 Pixel Perfect/shaper/` — pendent, fa falta fer-ho manualment
+  (còpia + commit + push) fora d'aquesta sessió: el classificador d'auto-mode bloqueja còpia entre
+  repos com a exfiltració de dades i el bloqueig no es pot saltar ni amb autorització explícita de
+  l'usuari.
+
+`17 SHAPER 001` ja pujat a `strk04/SHAPER-001` (`a3f277d`). `02 Pixel Perfect/shaper` encara no té
+aquest commit.

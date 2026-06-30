@@ -16,6 +16,7 @@ _Actualitzat: 2026-06-30_
 - Afegit selector `Capa guies` amb opcions `Darrere` i `Davant`; per defecte continua a `Darrere`.
 - Afegits colors propis `Color de guies` i `Color meta guies` al panell `Colors`, amb persistencia en presets.
 - Eliminats del panell `Estil 3D` els controls de `Tapes` i `Interior`; els presets ja no els capturen ni els restauren.
+- Eliminat del panell `Estil 3D` el grup `Regió / Superfície`; la superfície queda sempre aplicada i els presets antics amb `regionSurface:false` s'ignoren.
 - En canvas, `Davant` ara es dibuixa com una capa 2D literal per sobre de tot, resetejant la transformacio abans del traç.
 - L'export SVG separa les guies en capes `guides-back` o `guides-front` segons el selector.
 - Afegit color de superficie 3D configurable a `Colors`.
@@ -37,7 +38,7 @@ _Actualitzat: 2026-06-30_
 - Les guies i la info meta poden tenir colors independents del text; per defecte continuen a `#111111`.
 - Amb morph actiu, les guies canvien de geometria amb el blend de forma.
 - Les guies poden quedar visualment darrere o davant de la superficie i la tipografia; `Davant` equival a posar la capa de guies per sobre en 2D.
-- `Estil 3D` només exposa la regió `Superfície`; `Tapes` i `Interior` queden fora de la UI.
+- `Estil 3D` no exposa cap selector de regió; la superfície sempre està activa i `Tapes`/`Interior` queden fora de la UI.
 - En formes tancades, la superficie pot ser translucida pero la tipografia posterior queda oculta si `Oculta text posterior` esta actiu.
 - En formes obertes, la mateixa logica funciona com una lamina acolorida.
 - Verificacio visual local feta amb `php -S 127.0.0.1:8097`: controls visibles, reset de forma comprovat i canvas renderitzat.
@@ -49,7 +50,7 @@ node --check engine.js
 node --check main.js
 node --check export-video.js
 node --check preset-state.js
-node --test tests/*.test.mjs   # 49 pass
+node --test tests/*.test.mjs   # 50 pass
 ```
 
 ## Fitxers importants

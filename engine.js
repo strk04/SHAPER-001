@@ -386,7 +386,6 @@ function read3DParams(params) {
     morphClock: num(params.morphClock, 0),
     morphScatter:  Math.max(0, Math.min(1, num(params.morphScatter, 0))),
     morphSpeedVar: Math.max(0, Math.min(1, num(params.morphSpeedVar, 0))),
-    regionSurface: params.regionSurface !== false,
     regionCaps:    !!params.regionCaps,
     regionVolume:  !!params.regionVolume,
     surfaceColor: params.surfaceColor || '#d8d8d8',
@@ -2467,7 +2466,6 @@ export function buildScene(params, width, height) {
 
   // Multi-region merge: surface + caps + interior.
   // build3D already depth-sorted its own glyphs; we re-sort the merged array below.
-  if (!P.regionSurface) ctx.glyphs = [];
   if (P.regionCaps) ctx.glyphs = ctx.glyphs.concat(buildCaps(params, width, height));
   if (P.regionVolume) ctx.glyphs = ctx.glyphs.concat(buildInterior(params, width, height));
 

@@ -218,6 +218,14 @@ El panel no es construeix fins al primer click. ~2800 botons en 23 blocs → cos
 
 `18 SHAPER 002` és una còpia física de tots els fitxers de `17 SHAPER 001`. `.git` reinicialitzat buit (sense remote) per evitar push accidental a `strk04/SHAPER-001`. Les dues apps no comparteixen cap fitxer ni repositori.
 
+## 2026-06-30 — La regió Superfície deixa de ser configurable
+
+Decisió: eliminar el control `Regió / Superfície` de `Estil 3D` i considerar la superfície sempre activa.
+
+Racional: després de retirar `Interior` i `Tapes`, el selector de regió només podia activar o desactivar la superfície, cosa que duplicava el comportament base del mode 3D i feia la UI menys clara.
+
+Conseqüència: els presets nous ja no guarden `regionSurface`. Els presets antics que continguin `regionSurface:false` no apaguen la superfície.
+
 ## 2026-06-29 — Guies durant morphing com a graella paramètrica
 
 Durant morphing, les guies especifiques de cada forma base queden substituides per una graella paramètrica comuna interpolada entre forma origen i forma desti.

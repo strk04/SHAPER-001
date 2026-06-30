@@ -60,6 +60,12 @@ test('buildScene adds colored surface tiles with alpha derived from transparency
   assert.ok(scene.glyphs.some((glyph) => !glyph.back));
 });
 
+test('surface region stays enabled for legacy presets that disabled it', () => {
+  const scene = buildScene({ ...baseParams, regionSurface: false }, 640, 480);
+  assert.ok(scene.surfaces.length > 0);
+  assert.ok(scene.glyphs.length > 0);
+});
+
 test('buildSVG serializes surface paths between text layers', () => {
   const svg = buildSVG(baseParams, 640, 480);
   assert.match(svg, /<path d="M[^"]+Z" fill="#336699" opacity="0\.750"\/>/);

@@ -138,7 +138,6 @@ const state = {
   guideLayer: 'back',
   backfaceMirror: false,
   surfaceText: true,
-  regionSurface: true,
   vNorm: false,
   wrapMode: 'rings',
   t: 0,
@@ -941,10 +940,6 @@ function wireControls() {
     state.surfaceText = e.target.checked;
     scheduleRender();
   });
-  ['regionSurface'].forEach((id) => {
-    const el = $(id);
-    if (el) el.addEventListener('change', (e) => { state[id] = e.target.checked; updateEditorVisibility(); scheduleRender(); });
-  });
 
   $('wrapMode').addEventListener('change', (e) => {
     state.wrapMode = e.target.value;
@@ -1373,7 +1368,6 @@ function applyPreset(p) {
   if (p.guideLayer      != null) { state.guideLayer      = p.guideLayer === 'front' ? 'front' : 'back'; $('guideLayer').value = state.guideLayer; }
   if (p.backfaceMirror  != null) { state.backfaceMirror  = p.backfaceMirror;  $('backfaceMirror').checked  = p.backfaceMirror; }
   if (p.surfaceText     != null) { state.surfaceText      = p.surfaceText;     $('surfaceText').checked     = p.surfaceText; }
-  if (p.regionSurface   != null) { state.regionSurface   = p.regionSurface;   const el=$('regionSurface');   if(el) el.checked = p.regionSurface; }
   if (p.vNorm           != null) { state.vNorm           = p.vNorm; }
   if (p.wrapMode        != null) { state.wrapMode         = p.wrapMode;        $('wrapMode').value          = p.wrapMode; updateEditorVisibility(); }
   if (p.canvasW && p.canvasH) applyCanvasSize(p.canvasW, p.canvasH);
@@ -1761,7 +1755,6 @@ function init() {
   $('guideLayer').value = state.guideLayer;
   $('backfaceMirror').checked = state.backfaceMirror;
   $('surfaceText').checked = state.surfaceText;
-  const rSel = $('regionSurface'); if (rSel) rSel.checked = state.regionSurface;
 
   $('wrapMode').value = state.wrapMode;
   syncCameraToggleUI();

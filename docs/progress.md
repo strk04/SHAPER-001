@@ -567,6 +567,23 @@
 - Les guies 3D ara reben el mateix context de morphing que la superficie i la tipografia.
 - Quan hi ha morph actiu, les guies es dibuixen com una graella paramètrica interpolada entre forma origen i desti.
 - Afegit selector `Capa guies` amb opcions `Darrere` i `Davant`.
+## 2026-06-30 — Superfície 3D sempre activa
+
+### Fet
+
+- Eliminat de `Estil 3D` el grup `Regió / Superfície`.
+- `main.js` ja no guarda, restaura ni inicialitza `regionSurface`.
+- `preset-state.js` deixa de capturar `regionSurface` en presets nous.
+- `engine.js` ignora presets antics amb `regionSurface:false`; els glifs de superfície continuen renderitzant-se.
+- Afegits tests de wiring i compatibilitat de preset antic.
+
+### Verificat
+
+- `node --test tests/project-wiring.test.mjs` -> 12 pass
+- `node --test tests/surface-fill.test.mjs` -> 9 pass
+
+---
+
 - El canvas i l'export SVG respecten la capa triada amb `guides-back` o `guides-front`.
 - Els presets capturen i restauren `guideLayer`.
 - Afegits tests de motor per morphing/capes i tests de wiring UI/presets.

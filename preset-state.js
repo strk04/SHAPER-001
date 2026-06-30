@@ -5,7 +5,7 @@ export const CREATIVE_PRESET_EXTRA_KEYS = Object.freeze([
   'seed',
   'mode', 'form', 'projection',
   'guides', 'guideMeta', 'guideLayer',
-  'backfaceMirror', 'surfaceText', 'regionSurface',
+  'backfaceMirror', 'surfaceText',
   'vNorm', 'wrapMode',
   'canvasW', 'canvasH',
   'cameraEnabled',

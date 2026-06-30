@@ -47,7 +47,7 @@ Director està simplificat per a ús no-live i actualment inclou:
 - Les guies 3D poden pintar-se `Darrere` o `Davant` de la forma; `Davant` es compon com una capa 2D literal sobre el canvas.
 - El panell `Colors` inclou `Color de superficie`, `Color de guies`, `Color meta guies` i `Transparencia superficie`.
 - El panell `Colors` inclou `Oculta text posterior`, actiu per defecte.
-- El panell `Estil 3D` no mostra controls de `Tapes` ni `Interior`; només manté `Superfície`.
+- El panell `Estil 3D` no mostra controls de regió; la superfície sempre està aplicada, i `Tapes`/`Interior` no tenen UI.
 - La superficie es pinta entre glifs posteriors i frontals, i pot descartar el text posterior quan queda darrere del cos.
 - Per defecte: `#d8d8d8` amb transparencia `0.25`.
 - En canviar de forma, `Mida de forma` i `Zoom` tornen als defaults (`413`, `1`).
@@ -73,7 +73,7 @@ node --check engine.js
 node --check main.js
 node --check export-video.js
 node --check preset-state.js
-node --test tests/*.test.mjs   # 49 pass
+node --test tests/*.test.mjs   # 50 pass
 ```
 
 ## Pendent

@@ -67,9 +67,11 @@ test('guide layer control is wired through UI state and presets', async () => {
   assert.match(main, /\$\('guideMetaColor'\)\.value\s*=\s*state\.guideMetaColor/);
 });
 
-test('3D style panel no longer exposes caps or interior controls', async () => {
+test('3D style panel no longer exposes region toggles', async () => {
   const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
   const main = await readFile(new URL('../main.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(html, /id="regionFieldset"/);
+  assert.doesNotMatch(html, /id="regionSurface"/);
   assert.doesNotMatch(html, /id="regionCaps"/);
   assert.doesNotMatch(html, /id="regionVolume"/);
   assert.doesNotMatch(html, /id="capsWrapMode"/);
@@ -79,8 +81,10 @@ test('3D style panel no longer exposes caps or interior controls', async () => {
   assert.doesNotMatch(html, /data-key="interiorPlanes"/);
   assert.doesNotMatch(html, /data-key="interiorFontScale"/);
   assert.doesNotMatch(html, /data-key="interiorOpacity"/);
+  assert.doesNotMatch(main, /'regionSurface'/);
   assert.doesNotMatch(main, /'regionCaps'/);
   assert.doesNotMatch(main, /'regionVolume'/);
+  assert.doesNotMatch(main, /p\.regionSurface/);
   assert.doesNotMatch(main, /p\.regionCaps/);
   assert.doesNotMatch(main, /p\.regionVolume/);
 });

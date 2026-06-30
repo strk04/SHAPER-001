@@ -1,5 +1,11 @@
 # Progress — SHAPER 001
 
+## 2026-07-01 — Proposta summary git
+
+- L'usuari ha demanat proposta de summary/changelog per als canvis recents.
+- Proposades dues opcions: curta (tag/release) i llarga (changelog desglossat).
+- Cap canvi de codi.
+
 ## 2026-06-30 — Director: efectes concrets en comptes de Moviment
 
 ### Fet

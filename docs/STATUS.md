@@ -1,6 +1,6 @@
 # STATUS — SHAPER 001
 
-_Actualitzat: 2026-06-30 (efectes Director)_
+_Actualitzat: 2026-07-01_
 
 ## Estat general
 

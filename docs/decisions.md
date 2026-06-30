@@ -1,5 +1,13 @@
 # Decisions — SHAPER 001
 
+## 2026-06-30 — Els MP4 amb durada fixa s'exporten offline també sense Director
+
+Les exportacions MP4 amb una durada seleccionada deixen de capturar el canvas del preview en temps real quan Director està desactivat. Ara prenen un snapshot de l'estat base i renderitzen cada frame a un temps absolut uniforme abans de codificar-lo.
+
+Racional: la captura live depèn del `requestAnimationFrame` i del cost de l'encoder. Si el navegador perd un frame, el codi podia codificar dues imatges visuals iguals amb timestamps regulars, creant micro-salts en el fitxer resultant. El mostreig offline separa el ritme del vídeo del rendiment puntual del navegador.
+
+Conseqüències: les durades fixes (`5 s`, `10 s`, `15 s`, `30 s`) són el camí recomanat per export fluïd. La gravació `Manual` continua sent real-time i, per definició, pot reflectir caigudes de rendiment del preview.
+
 ## 2026-06-29 — Oclusio posterior independent de la transparencia
 
 La transparencia de superficie i l'oclusio de la tipografia posterior passen a ser controls separats. `Transparencia superficie` controla nomes l'alpha visual de la malla; `Oculta text posterior` decideix si els glifs back-facing es dibuixen o no.

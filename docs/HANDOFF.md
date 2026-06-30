@@ -1,9 +1,13 @@
 # HANDOFF - SHAPER 001
 
-_Actualitzat: 2026-06-29_
+_Actualitzat: 2026-06-30_
 
 ## Que ha canviat
 
+- L'export MP4 amb durada fixa i Director desactivat ara es renderitza offline frame-exact, igual que el Director.
+- Afegit helper `resolveOfflineAnimationState()` per calcular `t`, `morphClock`, `directorTime` i `fps` des d'un snapshot base i un temps absolut d'export.
+- `main.js` reutilitza `drawResolvedState()` perquè l'export offline pugui pintar directament un estat resolt sense dependre del `requestAnimationFrame` del preview.
+- La gravació manual continua sent real-time.
 - Quan `Morph` esta actiu, les guies 3D tambe fan morphing: passen pel mateix blend parametric de superficie que la forma.
 - Afegit selector `Capa guies` amb opcions `Darrere` i `Davant`; per defecte continua a `Darrere`.
 - Afegits colors propis `Color de guies` i `Color meta guies` al panell `Colors`, amb persistencia en presets.
@@ -23,6 +27,7 @@ _Actualitzat: 2026-06-29_
 
 ## Estat actual
 
+- Per obtenir MP4 fluid sense Director, seleccionar una durada fixa (`5 s`, `10 s`, etc.) fa una exportació offline amb mostreig uniforme. `Manual` continua capturant el canvas en temps real i pot dependre del rendiment del navegador.
 - La superficie es veu per defecte en gris clar translucid (`#d8d8d8`, transparencia `0.25`).
 - Les guies i la info meta poden tenir colors independents del text; per defecte continuen a `#111111`.
 - Amb morph actiu, les guies canvien de geometria amb el blend de forma.
@@ -37,20 +42,24 @@ _Actualitzat: 2026-06-29_
 ```bash
 node --check engine.js
 node --check main.js
-node --test tests/*.test.mjs   # 45 pass
+node --check export-video.js
+node --test tests/*.test.mjs   # 47 pass
 ```
 
 ## Fitxers importants
 
 - [engine.js](/Users/albert/Library/CloudStorage/GoogleDrive-albert@querida.si/Mi%20unidad/EN%20CURS/CC/17%20SHAPER%20001/engine.js)
 - [main.js](/Users/albert/Library/CloudStorage/GoogleDrive-albert@querida.si/Mi%20unidad/EN%20CURS/CC/17%20SHAPER%20001/main.js)
+- [export-video.js](/Users/albert/Library/CloudStorage/GoogleDrive-albert@querida.si/Mi%20unidad/EN%20CURS/CC/17%20SHAPER%20001/export-video.js)
 - [index.html](/Users/albert/Library/CloudStorage/GoogleDrive-albert@querida.si/Mi%20unidad/EN%20CURS/CC/17%20SHAPER%20001/index.html)
+- [tests/export-video.test.mjs](/Users/albert/Library/CloudStorage/GoogleDrive-albert@querida.si/Mi%20unidad/EN%20CURS/CC/17%20SHAPER%20001/tests/export-video.test.mjs)
 - [tests/surface-fill.test.mjs](/Users/albert/Library/CloudStorage/GoogleDrive-albert@querida.si/Mi%20unidad/EN%20CURS/CC/17%20SHAPER%20001/tests/surface-fill.test.mjs)
 - [tests/project-wiring.test.mjs](/Users/albert/Library/CloudStorage/GoogleDrive-albert@querida.si/Mi%20unidad/EN%20CURS/CC/17%20SHAPER%20001/tests/project-wiring.test.mjs)
 
 ## Seguent pas util
 
 - Si cal mes qualitat d'oclusio real per transparencies complexes, valorar z-buffer/WebGL o ordenacio per tile mes fina.
+- Si cal que `Manual` sigui igual de fluid, caldria convertir-lo en un flux d'export amb durada definida o afegir una opcio nova; la captura live sempre pot tenir duplicats si el navegador no manté el ritme.
 - Si el deploy de Pixel Perfect no s'actualitza sol, revisar l'estat del deployment associat a `strk04/PIxel-Perfect`.
 
 ## Riscos / notes

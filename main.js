@@ -1,6 +1,6 @@
 // main.js — UI wiring for SHAPER 001
 import { buildSVG, buildScene, drawScene, DEFAULT_CUSTOM_OUTLINE } from './engine.js';
-import { encodeDirectorFrames } from './export-video.js';
+import { encodeDirectorFrames, resolveOfflineAnimationState } from './export-video.js';
 import { store as _ghStore } from './presets-github.js';
 import { createPresetPanel } from './preset-panel.js';
 import { DEFAULT_DIRECTOR, advanceDirectorTime, evaluateDirector, normalizeDirector, normalizeScene, totalDuration, applySceneAction, setSceneMovement, updateBehavior, upsertKeyframe, removeKeyframe, AUTOMATABLE_PARAMS } from './director.js';
@@ -368,14 +368,19 @@ function resolveRenderState(atTime = state.directorTime) {
 function render(atTime = state.directorTime) {
   ensureCanvas();
   const renderState = resolveRenderState(atTime);
-  const scene = buildScene(renderState, displayW, displayH);
-  drawScene(displayCtx, scene, displayW, displayH, displayDpr);
+  drawResolvedState(renderState);
   directorUI?.setTime(atTime, renderState.activeDirectorSceneId);
   if (state.director.enabled && renderState.activeDirectorSceneId !== lastAnnouncedDirectorSceneId) {
     lastAnnouncedDirectorSceneId = renderState.activeDirectorSceneId;
     const active = state.director.scenes.find((item) => item.id === renderState.activeDirectorSceneId);
     if (active) announce(`Escena ${active.name}`);
   }
+}
+
+function drawResolvedState(renderState) {
+  ensureCanvas();
+  const scene = buildScene(renderState, displayW, displayH);
+  drawScene(displayCtx, scene, displayW, displayH, displayDpr);
 }
 
 // --- Director UI ---
@@ -1223,6 +1228,29 @@ async function startRecord() {
       } finally {
         state.directorTime = 0;
         render(0);
+        if (wasPlaying) play();
+      }
+      return;
+    }
+
+    if (!Number.isNaN(dur)) {
+      const wasPlaying = playing;
+      const baseExportState = {
+        ...state,
+        cameraEnabled: { ...state.cameraEnabled },
+        customOutline: state.customOutline.slice(),
+      };
+      pause();
+      try {
+        await encodeDirectorFrames({
+          duration: dur, fps,
+          renderAt: (time) => drawResolvedState(resolveOfflineAnimationState(baseExportState, time, fps)),
+          encodeCanvas: (index, exportFps) => encodeCurrentCanvas(index, exportFps),
+          onProgress: (done, total) => setExportStatus(`Exportant MP4… ${done}/${total}`),
+        });
+        await stopRecord();
+      } finally {
+        render();
         if (wasPlaying) play();
       }
       return;

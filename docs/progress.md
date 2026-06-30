@@ -1,5 +1,20 @@
 # Progress — SHAPER 001
 
+## 2026-06-30 — Export MP4 de durada fixa més fluid
+
+### Fet
+- Investigat el salt de fluïdesa de l'export MP4.
+- Identificada la causa probable en el camí sense Director: la gravació de durada fixa capturava el canvas del preview en temps real, de manera que sota càrrega podia codificar frames duplicats amb timestamps uniformes.
+- Afegit `resolveOfflineAnimationState()` a `export-video.js` per derivar un estat d'export des d'un snapshot base i un temps absolut.
+- `main.js` ara usa `drawResolvedState()` i `encodeDirectorFrames()` també per a MP4 de durada fixa quan Director està desactivat.
+- La gravació `Manual` es manté com a captura real-time.
+- Afegits tests per al helper temporal i per al wiring d'export offline sense Director.
+- Verificació completa: `node --test tests/*.test.mjs` → 47 pass; `node --check engine.js`, `main.js`, `export-video.js` OK.
+
+### Pendent
+- Validació visual en navegador amb un preset pesat i export a 60 fps.
+- Si cal suavitat garantida també per `Manual`, replantejar-lo com a export amb durada definida o afegir una nova opció.
+
 ## 2026-06-29 — Timeline inline implementat sota el canvas
 
 ### Fet

@@ -197,3 +197,11 @@ test('director timeline is inline under canvas and shows keyframe label plus val
   assert.match(css, /\.director-scene::after/);
   assert.match(css, /\.director-scene:first-child::before/);
 });
+
+test('fixed-duration MP4 export renders offline outside Director', async () => {
+  const main = await readFile(new URL('../main.js', import.meta.url), 'utf8');
+  assert.match(main, /resolveOfflineAnimationState/);
+  assert.match(main, /function drawResolvedState/);
+  assert.match(main, /if \(!Number\.isNaN\(dur\)\)[\s\S]*encodeDirectorFrames/);
+  assert.match(main, /drawResolvedState\(resolveOfflineAnimationState\(baseExportState, time, fps\)\)/);
+});

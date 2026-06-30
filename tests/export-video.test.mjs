@@ -23,3 +23,17 @@ test('encodeDirectorFrames renders and encodes the same absolute times', async (
   assert.deepEqual(rendered, [0, 0.5]);
   assert.deepEqual(encoded, [[0, 2], [1, 2]]);
 });
+
+test('offline animation state advances from a fixed base snapshot', async () => {
+  const video = await import('../export-video.js');
+  assert.equal(typeof video.resolveOfflineAnimationState, 'function');
+
+  const base = { t: 10, speed3d: 0.25, morphClock: 3, fps: 0 };
+  const state = video.resolveOfflineAnimationState(base, 4, 60);
+
+  assert.equal(state.t, 11);
+  assert.equal(state.morphClock, 7);
+  assert.equal(state.directorTime, 4);
+  assert.equal(state.fps, 60);
+  assert.equal(base.t, 10);
+});

@@ -4,6 +4,20 @@ export function directorFrameTimes(duration, fps) {
   return Array.from({ length: count }, (_, index) => index / fps);
 }
 
+export function resolveOfflineAnimationState(baseState, elapsed, fps) {
+  const t0 = Number.isFinite(baseState?.t) ? baseState.t : 0;
+  const morphClock0 = Number.isFinite(baseState?.morphClock) ? baseState.morphClock : 0;
+  const speed = Number.isFinite(baseState?.speed3d) ? baseState.speed3d : 0;
+  const time = Number.isFinite(elapsed) ? elapsed : 0;
+  return {
+    ...baseState,
+    t: t0 + time * speed,
+    morphClock: morphClock0 + time,
+    directorTime: time,
+    fps: Number.isFinite(fps) ? fps : baseState?.fps,
+  };
+}
+
 export async function encodeDirectorFrames({ duration, fps, renderAt, encodeCanvas, onProgress, yieldEvery = 8 }) {
   const times = directorFrameTimes(duration, fps);
   for (let index = 0; index < times.length; index++) {

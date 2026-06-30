@@ -1,6 +1,6 @@
 # STATUS — SHAPER 001
 
-_Actualitzat: 2026-06-29_
+_Actualitzat: 2026-06-30_
 
 ## Estat general
 
@@ -28,6 +28,12 @@ Director està simplificat per a ús no-live i actualment inclou:
 - keyframes editables des de la columna 2
 - menú contextual de supressió sobre rombos
 
+## Export MP4
+
+- Amb Director actiu, l'MP4 s'exporta offline a partir de la durada total del Director.
+- Sense Director, les durades fixes (`5 s`, `10 s`, `15 s`, `30 s`) també s'exporten offline amb mostreig uniforme per frame.
+- La gravació `Manual` continua sent real-time i depèn del rendiment del navegador.
+
 ## Superficies 3D
 
 - Les formes 3D tenen color de superficie configurable.
@@ -54,12 +60,13 @@ Ja no hi ha:
 
 ## Verificació actual
 
-Ultima verificacio executada el 2026-06-29:
+Ultima verificacio executada el 2026-06-30:
 
 ```bash
-node --test tests/*.test.mjs   # 45 pass
 node --check engine.js
 node --check main.js
+node --check export-video.js
+node --test tests/*.test.mjs   # 47 pass
 ```
 
 ## Pendent

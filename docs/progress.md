@@ -1,5 +1,18 @@
 # Progress — SHAPER 001
 
+## 2026-06-30 — Meta de guies amb més aire i cos
+
+### Fet
+- La meta de guies del canvas passa de marge esquerre `10` a `20`.
+- El marge inferior passa de `12` a `24`.
+- El cos tipografic passa de `18px` a `22.5px` (+25%) i la interlinia de `22` a `27.5`.
+- Actualitzat el test de canvas perquè verifiqui font i posicions exactes de la meta.
+
+### Verificat
+- `node --test tests/surface-fill.test.mjs` -> 9 pass
+
+---
+
 ## 2026-06-30 — Presets amb snapshot creatiu complet
 
 ### Fet

@@ -15,6 +15,7 @@ _Actualitzat: 2026-06-30_
 - Quan `Morph` esta actiu, les guies 3D tambe fan morphing: passen pel mateix blend parametric de superficie que la forma.
 - Afegit selector `Capa guies` amb opcions `Darrere` i `Davant`; per defecte continua a `Darrere`.
 - Afegits colors propis `Color de guies` i `Color meta guies` al panell `Colors`, amb persistencia en presets.
+- La meta de guies al canvas usa el doble de marge respecte al canvas i un cos tipografic +25%.
 - Eliminats del panell `Estil 3D` els controls de `Tapes` i `Interior`; els presets ja no els capturen ni els restauren.
 - Eliminat del panell `Estil 3D` el grup `Regió / Superfície`; la superfície queda sempre aplicada i els presets antics amb `regionSurface:false` s'ignoren.
 - En canvas, `Davant` ara es dibuixa com una capa 2D literal per sobre de tot, resetejant la transformacio abans del traç.
@@ -35,7 +36,7 @@ _Actualitzat: 2026-06-30_
 - Els presets són més complets i reproduïbles: guarden la configuració creativa de càmera, seed, outline custom i Director. No guarden el temps actual de reproducció ni seleccions d'edició temporals.
 - Per obtenir MP4 fluid sense Director, seleccionar una durada fixa (`5 s`, `10 s`, etc.) fa una exportació offline amb mostreig uniforme. `Manual` continua capturant el canvas en temps real i pot dependre del rendiment del navegador.
 - La superficie es veu per defecte en gris clar translucid (`#d8d8d8`, transparencia `0.25`).
-- Les guies i la info meta poden tenir colors independents del text; per defecte continuen a `#111111`.
+- Les guies i la info meta poden tenir colors independents del text; per defecte continuen a `#111111`. La info meta es pinta amb marge esquerre `20`, marge inferior `24` i cos `22.5px`.
 - Amb morph actiu, les guies canvien de geometria amb el blend de forma.
 - Les guies poden quedar visualment darrere o davant de la superficie i la tipografia; `Davant` equival a posar la capa de guies per sobre en 2D.
 - `Estil 3D` no exposa cap selector de regió; la superfície sempre està activa i `Tapes`/`Interior` queden fora de la UI.

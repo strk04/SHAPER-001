@@ -45,6 +45,7 @@ Director està simplificat per a ús no-live i actualment inclou:
 - Les formes 3D tenen color de superficie configurable.
 - Les guies 3D fan morphing quan hi ha un desti de `Morph` actiu.
 - Les guies 3D poden pintar-se `Darrere` o `Davant` de la forma; `Davant` es compon com una capa 2D literal sobre el canvas.
+- La meta de guies del canvas es pinta amb marge esquerre `20`, marge inferior `24` i cos `22.5px`.
 - El panell `Colors` inclou `Color de superficie`, `Color de guies`, `Color meta guies` i `Transparencia superficie`.
 - El panell `Colors` inclou `Oculta text posterior`, actiu per defecte.
 - El panell `Estil 3D` no mostra controls de regió; la superfície sempre està aplicada, i `Tapes`/`Interior` no tenen UI.

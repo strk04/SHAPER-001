@@ -2735,7 +2735,10 @@ export function drawScene(ctx, scene, width, height, dpr) {
     ctx.globalAlpha = 0.55;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
-    const fsize = 18;
+    const fsize = 22.5;
+    const marginX = 20;
+    const marginBottom = 24;
+    const lh = 27.5;
     ctx.font = fs.weight + ' ' + fsize + 'px ' + fs.family;
 
     // Bottom-left, stacked rows. Includes a live clock (T) that advances every
@@ -2747,9 +2750,8 @@ export function drawScene(ctx, scene, width, height, dpr) {
       'SPD ' + md.speed3d.toFixed(2) + '  T ' + t.toFixed(2),
       'FPS ' + Math.round(md.fps),
     ];
-    const lh = 22;
     rows.forEach((row, i) =>
-      ctx.fillText(row, 10, height - 12 - (rows.length - 1 - i) * lh),
+      ctx.fillText(row, marginX, height - marginBottom - (rows.length - 1 - i) * lh),
     );
     ctx.globalAlpha = 1;
   }

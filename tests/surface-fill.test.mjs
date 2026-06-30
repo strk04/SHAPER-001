@@ -136,7 +136,7 @@ test('guide and meta colors are independent from text color', () => {
       restore: () => {},
       setLineDash: () => {},
       stroke: () => calls.push(['stroke']),
-      fillText: () => calls.push(['fillText']),
+      fillText: (...args) => calls.push(['fillText', ...args]),
       beginPath: () => {},
       moveTo: () => {},
       lineTo: () => {},
@@ -173,6 +173,15 @@ test('guide and meta colors are independent from text color', () => {
 
     assert.ok(calls.some(([name, value]) => name === 'strokeStyle' && value === '#ff00aa'));
     assert.ok(calls.some(([name, value]) => name === 'fillStyle' && value === '#00aa55'));
+    assert.ok(calls.some(([name, value]) => name === 'font' && value === '400 22.5px Courier'));
+    const metaRows = calls.filter(([name]) => name === 'fillText');
+    assert.equal(metaRows.length, 4);
+    assert.deepEqual(metaRows.map(([, , x, y]) => [x, y]), [
+      [20, 373.5],
+      [20, 401],
+      [20, 428.5],
+      [20, 456],
+    ]);
   } finally {
     globalThis.Path2D = originalPath2D;
   }

@@ -1,4 +1,4 @@
-// director-ui.js — Pure model + DOM mount for the Director panel (single timeline)
+// director-ui.js — Pure model + DOM mount for the Director panel (single timeline, hold segments)
 import { normalizeDirector, totalDuration, EFFECT_GROUPS } from './director.js';
 
 // ── Pure view model ─────────────────────────────────────────────────────────
@@ -37,18 +37,20 @@ export const AUTOMATION_CONTROL_IDS = Object.freeze({
   rainSpeed: 'rng-rainSpeed',
 });
 
+const DEFAULT_SEGMENT_LENGTH = 1;
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 }[char]));
 
-const keyframeLabel = (path) => {
+const effectLabel = (path) => {
   const name = path.startsWith('param:') ? path.slice(6) : path;
   return EFFECT_LABELS[name] || name;
 };
 
-const keyframeValue = (value) => {
+const effectValue = (value) => {
   if (typeof value === 'number') {
     const rounded = Math.round(value * 100) / 100;
     return Number.isInteger(rounded) ? String(rounded) : String(rounded);
@@ -70,14 +72,14 @@ const timeText = (seconds) => {
   return `${m}:${rem.padStart(4, '0')}`;
 };
 
-const keyframeInputType = (value) => typeof value === 'number' ? 'number' : 'text';
+const effectInputType = (value) => typeof value === 'number' ? 'number' : 'text';
 
-const findSelectedKeyframe = (state, director) => {
-  const selected = state.selectedDirectorKeyframe;
+const findSelectedEffect = (state, director) => {
+  const selected = state.selectedDirectorEffect;
   if (!selected || !director) return null;
-  const frames = director.automations?.[selected.path] || [];
-  const frame = frames.find((item) => Math.abs(item.time - selected.time) <= 0.0001);
-  return frame ? { ...selected, frame } : null;
+  const segments = director.automations?.[selected.path] || [];
+  const segment = segments.find((item) => Math.abs(item.start - selected.start) <= 0.0001);
+  return segment ? { ...selected, segment } : null;
 };
 
 // ── DOM Mount ────────────────────────────────────────────────────────────────
@@ -86,14 +88,14 @@ const findSelectedKeyframe = (state, director) => {
  * mountDirectorUI({
  *   inspector, timeline, getState,
  *   onSeek, onToggleEnabled, onDurationChange,
- *   onToggleKeyframe, onSelectKeyframe, onUpdateKeyframe, onRemoveKeyframe,
+ *   onToggleEffect, onSelectEffect, onUpdateEffect, onRemoveEffect,
  * })
  * Returns { render, setTime }
  */
 export function mountDirectorUI({
   inspector, timeline, getState,
   onSeek, onToggleEnabled, onDurationChange,
-  onToggleKeyframe, onSelectKeyframe, onUpdateKeyframe, onRemoveKeyframe,
+  onToggleEffect, onSelectEffect, onUpdateEffect, onRemoveEffect,
 }) {
   if (!inspector || !timeline) return { render: () => {}, setTime: () => {} };
 
@@ -130,7 +132,7 @@ export function mountDirectorUI({
         <div id="directorPlayhead" class="director-playhead" aria-hidden="true"></div>
       </div>
       <div id="directorLanes" class="director-lanes"></div>
-      <div id="directorKeyframeMenu" class="director-keyframe-menu" hidden></div>
+      <div id="directorEffectMenu" class="director-keyframe-menu" hidden></div>
     </div>
   `;
 
@@ -143,7 +145,7 @@ export function mountDirectorUI({
   const trackEl      = timeline.querySelector('#directorTrack');
   const playheadEl   = timeline.querySelector('#directorPlayhead');
   const lanesEl      = timeline.querySelector('#directorLanes');
-  const keyframeMenuEl = timeline.querySelector('#directorKeyframeMenu');
+  const effectMenuEl = timeline.querySelector('#directorEffectMenu');
   let playheadDragging = false;
   let trackDragging = false;
 
@@ -152,35 +154,35 @@ export function mountDirectorUI({
     onToggleEnabled(enabledCb.checked);
   });
 
-  // ── Inspector: keyframe actions + properties (delegated) ─────────────
+  // ── Inspector: effect actions + properties (delegated) ─────────────
   inspector.addEventListener('click', (event) => {
-    const deleteKeyframeBtn = event.target.closest('[data-director-keyframe-delete]');
-    if (deleteKeyframeBtn && onRemoveKeyframe) {
-      onRemoveKeyframe(deleteKeyframeBtn.dataset.keyframePath, Number(deleteKeyframeBtn.dataset.keyframeTime));
+    const deleteBtn = event.target.closest('[data-director-effect-delete]');
+    if (deleteBtn && onRemoveEffect) {
+      onRemoveEffect(deleteBtn.dataset.effectPath, Number(deleteBtn.dataset.effectStart));
       return;
     }
-    const addKeyframeBtn = event.target.closest('[data-keyframe-path]');
-    if (addKeyframeBtn && onToggleKeyframe) {
-      onToggleKeyframe(addKeyframeBtn.dataset.keyframePath, addKeyframeBtn.dataset.keyframeField);
+    const addBtn = event.target.closest('[data-effect-path]');
+    if (addBtn && onToggleEffect) {
+      onToggleEffect(addBtn.dataset.effectPath, addBtn.dataset.effectField);
     }
   });
 
   inspector.addEventListener('change', (event) => {
     const { target } = event;
-    if (target.dataset.keyframeEditorPath && onUpdateKeyframe) {
-      const path = target.dataset.keyframeEditorPath;
-      const time = Number(target.dataset.keyframeEditorTime);
-      if (target.id === 'directorKeyframeTime') {
-        onUpdateKeyframe(path, time, { time: Number(target.value) });
+    if (target.dataset.effectEditorPath && onUpdateEffect) {
+      const path = target.dataset.effectEditorPath;
+      const start = Number(target.dataset.effectEditorStart);
+      if (target.id === 'directorEffectStart') {
+        onUpdateEffect(path, start, { start: Number(target.value) });
         return;
       }
-      if (target.id === 'directorKeyframeValue') {
+      if (target.id === 'directorEffectEnd') {
+        onUpdateEffect(path, start, { end: Number(target.value) });
+        return;
+      }
+      if (target.id === 'directorEffectValue') {
         const value = target.type === 'number' ? Number(target.value) : target.value;
-        onUpdateKeyframe(path, time, { value });
-        return;
-      }
-      if (target.id === 'directorKeyframeEasing') {
-        onUpdateKeyframe(path, time, { easing: target.value });
+        onUpdateEffect(path, start, { value });
         return;
       }
     }
@@ -190,10 +192,10 @@ export function mountDirectorUI({
     }
   });
 
-  const hideKeyframeMenu = () => {
-    if (!keyframeMenuEl) return;
-    keyframeMenuEl.hidden = true;
-    keyframeMenuEl.innerHTML = '';
+  const hideEffectMenu = () => {
+    if (!effectMenuEl) return;
+    effectMenuEl.hidden = true;
+    effectMenuEl.innerHTML = '';
   };
 
   const seekFromClientX = (clientX) => {
@@ -255,46 +257,46 @@ export function mountDirectorUI({
     else if (event.key === 'End') { onSeek(duration); event.preventDefault(); }
   });
 
-  // ── Timeline keyframe select / menu ────────────────────────────────────────
+  // ── Timeline effect segment select / menu ──────────────────────────────────
   lanesEl.addEventListener('click', (event) => {
-    const btn = event.target.closest('[data-keyframe-path][data-keyframe-time]');
-    hideKeyframeMenu();
-    if (!btn || !onSelectKeyframe) return;
-    onSelectKeyframe(btn.dataset.keyframePath, Number(btn.dataset.keyframeTime));
+    const btn = event.target.closest('[data-effect-path][data-effect-start]');
+    hideEffectMenu();
+    if (!btn || !onSelectEffect) return;
+    onSelectEffect(btn.dataset.effectPath, Number(btn.dataset.effectStart));
     btn.focus();
   });
 
   lanesEl.addEventListener('contextmenu', (event) => {
-    const btn = event.target.closest('[data-keyframe-path][data-keyframe-time]');
-    if (!btn || !keyframeMenuEl) return;
+    const btn = event.target.closest('[data-effect-path][data-effect-start]');
+    if (!btn || !effectMenuEl) return;
     event.preventDefault();
-    const path = btn.dataset.keyframePath;
-    const time = Number(btn.dataset.keyframeTime);
-    onSelectKeyframe?.(path, time);
-    keyframeMenuEl.hidden = false;
-    keyframeMenuEl.style.left = `${event.clientX}px`;
-    keyframeMenuEl.style.top = `${event.clientY}px`;
-    keyframeMenuEl.innerHTML = `<button type="button" data-menu-delete data-keyframe-path="${escapeHtml(path)}" data-keyframe-time="${time}">Eliminar</button>`;
+    const path = btn.dataset.effectPath;
+    const start = Number(btn.dataset.effectStart);
+    onSelectEffect?.(path, start);
+    effectMenuEl.hidden = false;
+    effectMenuEl.style.left = `${event.clientX}px`;
+    effectMenuEl.style.top = `${event.clientY}px`;
+    effectMenuEl.innerHTML = `<button type="button" data-menu-delete data-effect-path="${escapeHtml(path)}" data-effect-start="${start}">Eliminar</button>`;
   });
 
-  keyframeMenuEl?.addEventListener('click', (event) => {
+  effectMenuEl?.addEventListener('click', (event) => {
     const deleteBtn = event.target.closest('[data-menu-delete]');
-    if (!deleteBtn || !onRemoveKeyframe) return;
-    onRemoveKeyframe(deleteBtn.dataset.keyframePath, Number(deleteBtn.dataset.keyframeTime));
-    hideKeyframeMenu();
+    if (!deleteBtn || !onRemoveEffect) return;
+    onRemoveEffect(deleteBtn.dataset.effectPath, Number(deleteBtn.dataset.effectStart));
+    hideEffectMenu();
   });
 
   document.addEventListener('click', (event) => {
-    if (!keyframeMenuEl || keyframeMenuEl.hidden) return;
+    if (!effectMenuEl || effectMenuEl.hidden) return;
     if (event.target.closest('.director-keyframe-menu')) return;
-    hideKeyframeMenu();
+    hideEffectMenu();
   });
 
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') hideKeyframeMenu();
+    if (event.key === 'Escape') hideEffectMenu();
   });
 
-  // ── Build effects list ─────────────────────────────────────────────────────
+  // ── Build effects list (collapsible groups) ────────────────────────────────
   const slugify = (text) => String(text).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
   function buildEffectsList(director, time) {
@@ -303,70 +305,71 @@ export function mountDirectorUI({
       const groupId = `directorEffectsGroup-${slugify(group.title)}`;
       const items = group.items.map((name) => {
         const path = `param:${name}`;
-        const frames = director.automations[path] || [];
-        const isCurrent = frames.some((frame) => Math.abs(frame.time - t) <= 0.0001);
-        const hasAny = frames.length > 0;
+        const segments = director.automations[path] || [];
+        const isCurrent = segments.some((seg) => t >= seg.start && t <= seg.end);
+        const hasAny = segments.length > 0;
         const label = EFFECT_LABELS[name] || name;
+        const actionLabel = isCurrent
+          ? `${label}: edita el segment en aquest instant`
+          : `${label}: crea un segment en aquest instant`;
         return `
           <button type="button" class="director-effect${hasAny ? ' has-keyframes' : ''}"
-            data-keyframe-path="${escapeHtml(path)}"
-            data-keyframe-field="${escapeHtml(name)}"
+            data-effect-path="${escapeHtml(path)}"
+            data-effect-field="${escapeHtml(name)}"
             aria-pressed="${isCurrent}"
-            aria-label="Keyframe a ${escapeHtml(label)}"
+            aria-label="${escapeHtml(actionLabel)}"
             ${hasAny ? 'aria-describedby="directorEffectsHasKeyframesHint"' : ''}>
             <span aria-hidden="true" class="director-effect-dot"></span>
             <span class="director-effect-label">${escapeHtml(label)}</span>
           </button>`;
       }).join('');
       return `
-        <div class="director-effects-group" role="group" aria-labelledby="${groupId}">
-          <h5 class="director-settings-title" id="${groupId}">${escapeHtml(group.title)}</h5>
+        <details class="director-effects-group" id="${groupId}">
+          <summary class="director-settings-title">${escapeHtml(group.title)}</summary>
           <div class="director-effects-row">${items}</div>
-        </div>`;
+        </details>`;
     }).join('');
   }
 
-  function buildEffectsArea(director, selectedKeyframe, time) {
+  function buildEffectsArea(director, selectedEffect, time) {
     const effectsList = buildEffectsList(director, time);
 
-    let keyframeEditor = '';
-    if (selectedKeyframe) {
-      const { path, time: kfTime, frame } = selectedKeyframe;
-      const inputType = keyframeInputType(frame.value);
-      keyframeEditor = `
-        <div class="director-keyframe-editor director-behavior-item" role="group" aria-label="Edició del rombo">
-          <h5 class="director-settings-title">Rombo</h5>
+    let effectEditor = '';
+    if (selectedEffect) {
+      const { path, segment } = selectedEffect;
+      const inputType = effectInputType(segment.value);
+      effectEditor = `
+        <div class="director-keyframe-editor director-behavior-item" role="group" aria-label="Edició de l'efecte">
+          <h5 class="director-settings-title">Efecte</h5>
           <label class="control-row"><span>Paràmetre</span>
-            <output class="director-keyframe-readonly">${escapeHtml(keyframeLabel(path))}</output>
+            <output class="director-keyframe-readonly">${escapeHtml(effectLabel(path))}</output>
           </label>
-          <label class="control-row" for="directorKeyframeValue"><span>Valor</span>
-            <input id="directorKeyframeValue" type="${inputType}" ${inputType === 'number' ? 'step="any"' : ''}
-              value="${escapeHtml(frame.value ?? '')}"
-              data-keyframe-editor-path="${escapeHtml(path)}"
-              data-keyframe-editor-time="${kfTime}">
+          <label class="control-row" for="directorEffectValue"><span>Valor</span>
+            <input id="directorEffectValue" type="${inputType}" ${inputType === 'number' ? 'step="any"' : ''}
+              value="${escapeHtml(segment.value ?? '')}"
+              data-effect-editor-path="${escapeHtml(path)}"
+              data-effect-editor-start="${segment.start}">
           </label>
-          <label class="control-row" for="directorKeyframeTime"><span>Temps</span>
+          <label class="control-row" for="directorEffectStart"><span>Inici</span>
             <span class="director-duration-field">
-              <input id="directorKeyframeTime" type="number" min="0" max="${director.duration}" step="0.1" inputmode="decimal"
-                value="${kfTime}"
-                data-keyframe-editor-path="${escapeHtml(path)}"
-                data-keyframe-editor-time="${kfTime}">
+              <input id="directorEffectStart" type="number" min="0" max="${director.duration}" step="0.1" inputmode="decimal"
+                value="${segment.start}"
+                data-effect-editor-path="${escapeHtml(path)}"
+                data-effect-editor-start="${segment.start}">
               <span class="director-inline-unit">seg</span>
             </span>
           </label>
-          <label class="control-row" for="directorKeyframeEasing"><span>Easing</span>
-            <select id="directorKeyframeEasing"
-              data-keyframe-editor-path="${escapeHtml(path)}"
-              data-keyframe-editor-time="${kfTime}">
-              <option value="hold"${frame.easing === 'hold' ? ' selected' : ''}>hold</option>
-              <option value="linear"${frame.easing === 'linear' ? ' selected' : ''}>linear</option>
-              <option value="ease-in"${frame.easing === 'ease-in' ? ' selected' : ''}>ease-in</option>
-              <option value="ease-out"${frame.easing === 'ease-out' ? ' selected' : ''}>ease-out</option>
-              <option value="ease-in-out"${frame.easing === 'ease-in-out' ? ' selected' : ''}>ease-in-out</option>
-            </select>
+          <label class="control-row" for="directorEffectEnd"><span>Final</span>
+            <span class="director-duration-field">
+              <input id="directorEffectEnd" type="number" min="0" max="${director.duration}" step="0.1" inputmode="decimal"
+                value="${segment.end}"
+                data-effect-editor-path="${escapeHtml(path)}"
+                data-effect-editor-start="${segment.start}">
+              <span class="director-inline-unit">seg</span>
+            </span>
           </label>
           <div class="director-scene-card-actions">
-            <button type="button" data-director-keyframe-delete data-keyframe-path="${escapeHtml(path)}" data-keyframe-time="${kfTime}">Eliminar</button>
+            <button type="button" data-director-effect-delete data-effect-path="${escapeHtml(path)}" data-effect-start="${segment.start}">Eliminar</button>
           </div>
         </div>
       `;
@@ -375,32 +378,34 @@ export function mountDirectorUI({
     effectsAreaEl.innerHTML = `
       <div class="director-effects" role="group" aria-labelledby="directorEffectsTitle">
         <h4 class="panel-title" id="directorEffectsTitle">Efectes</h4>
-        <p id="directorEffectsHasKeyframesHint" class="sr-only">Aquest efecte ja té algun fotograma clau en un altre instant de la línia de temps.</p>
+        <p id="directorEffectsHasKeyframesHint" class="sr-only">Aquest efecte ja té algun segment en un altre interval d'aquesta línia de temps.</p>
         ${effectsList}
       </div>
-      ${keyframeEditor}
+      ${effectEditor}
     `;
   }
 
-  // ── Build automation lanes in timeline ────────────────────────────────────
+  // ── Build effect segment bars in timeline ──────────────────────────────────
   function buildLanes(director, time, total) {
     if (!lanesEl) return;
     const t = time ?? 0;
-    const selected = getState().selectedDirectorKeyframe;
-    const entries = Object.entries(director.automations).flatMap(([path, frames]) => {
-      const label = keyframeLabel(path);
-      return [...frames]
-        .sort((a, b) => a.time - b.time)
-        .map((frame) => ({
+    const selected = getState().selectedDirectorEffect;
+    const entries = Object.entries(director.automations).flatMap(([path, segments]) => {
+      const label = effectLabel(path);
+      return [...segments]
+        .sort((a, b) => a.start - b.start)
+        .map((segment) => ({
           path,
-          time: frame.time,
-          isCurrent: Math.abs(frame.time - t) <= 0.0001,
-          isSelected: selected?.path === path && Math.abs(selected.time - frame.time) <= 0.0001,
+          start: segment.start,
+          end: segment.end,
+          isCurrent: t >= segment.start && t <= segment.end,
+          isSelected: selected?.path === path && Math.abs(selected.start - segment.start) <= 0.0001,
           label,
-          value: keyframeValue(frame.value),
-          left: (frame.time / total) * 100,
+          value: effectValue(segment.value),
+          left: Math.min(99, (segment.start / total) * 100),
+          widthPct: ((segment.end - segment.start) / total) * 100,
         }));
-    }).sort((a, b) => a.left - b.left || a.time - b.time);
+    }).sort((a, b) => a.left - b.left || a.start - b.start);
 
     if (!entries.length) {
       lanesEl.innerHTML = '';
@@ -410,20 +415,20 @@ export function mountDirectorUI({
     const rows = [];
     const minGap = 9;
     const buttons = entries.map((entry) => {
-      let row = rows.findIndex((lastLeft) => entry.left - lastLeft >= minGap);
+      let row = rows.findIndex((lastRight) => entry.left - lastRight >= minGap);
+      const width = Math.min(entry.widthPct, 100 - entry.left);
       if (row === -1) {
         row = rows.length;
-        rows.push(entry.left);
+        rows.push(entry.left + width);
       } else {
-        rows[row] = entry.left;
+        rows[row] = entry.left + width;
       }
-      return `<button type="button" class="director-keyframe${entry.isCurrent ? ' is-current' : ''}${entry.isSelected ? ' is-selected' : ''}"
-        style="left:${entry.left}%; --director-keyframe-row:${row};"
-        data-keyframe-path="${escapeHtml(entry.path)}"
-        data-keyframe-time="${entry.time}"
+      return `<button type="button" class="director-effect-segment${entry.isCurrent ? ' is-current' : ''}${entry.isSelected ? ' is-selected' : ''}"
+        style="left:${entry.left}%; width:max(${width}%, 24px); --director-keyframe-row:${row};"
+        data-effect-path="${escapeHtml(entry.path)}"
+        data-effect-start="${entry.start}"
         data-current="${entry.isCurrent}"
-        aria-label="Edita keyframe ${escapeHtml(entry.label)} ${escapeHtml(entry.value)} a ${entry.time.toFixed(2)} s">
-        <span aria-hidden="true" class="director-keyframe-diamond"></span>
+        aria-label="Edita ${escapeHtml(entry.label)} ${escapeHtml(entry.value)}, de ${entry.start.toFixed(2)} a ${entry.end.toFixed(2)} s">
         <span class="director-keyframe-label">${escapeHtml(entry.label)}</span>
         <span class="director-keyframe-value">${escapeHtml(entry.value)}</span>
       </button>`;
@@ -436,7 +441,7 @@ export function mountDirectorUI({
   function render() {
     const state = getState();
     const vm = directorViewModel(state.director, state.directorTime ?? 0);
-    const selectedKeyframe = findSelectedKeyframe(state, vm.director);
+    const selectedEffect = findSelectedEffect(state, vm.director);
 
     // Enabled checkbox + duration field
     enabledCb.checked = !!vm.director.enabled;
@@ -448,10 +453,10 @@ export function mountDirectorUI({
     if (reverseBtn) reverseBtn.setAttribute('aria-pressed', String((state.directorRate ?? 1) < 0));
     if (loopBtn) loopBtn.setAttribute('aria-pressed', String(vm.director.loop !== false));
 
-    // Rebuild effects + keyframe editor
-    buildEffectsArea(vm.director, selectedKeyframe, vm.time ?? 0);
+    // Rebuild effects + effect editor
+    buildEffectsArea(vm.director, selectedEffect, vm.time ?? 0);
 
-    // Rebuild automation lanes
+    // Rebuild effect segment bars
     buildLanes(vm.director, vm.time ?? 0, vm.duration || 1);
 
     syncPlayhead(playheadEl, vm.duration, vm.time ?? 0);
@@ -468,3 +473,5 @@ export function mountDirectorUI({
 
   return { render, setTime };
 }
+
+export { DEFAULT_SEGMENT_LENGTH };

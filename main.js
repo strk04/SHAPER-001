@@ -4,8 +4,8 @@ import { encodeDirectorFrames, resolveOfflineAnimationState } from './export-vid
 import { store as _ghStore } from './presets-github.js';
 import { createPresetPanel } from './preset-panel.js';
 import { captureCreativePreset } from './preset-state.js';
-import { DEFAULT_DIRECTOR, advanceDirectorTime, evaluateDirector, normalizeDirector, totalDuration, upsertKeyframe, removeKeyframe, AUTOMATABLE_PARAMS } from './director.js';
-import { mountDirectorUI, AUTOMATION_CONTROL_IDS } from './director-ui.js';
+import { DEFAULT_DIRECTOR, advanceDirectorTime, evaluateDirector, normalizeDirector, totalDuration, upsertEffect, removeEffect, AUTOMATABLE_PARAMS } from './director.js';
+import { mountDirectorUI, AUTOMATION_CONTROL_IDS, DEFAULT_SEGMENT_LENGTH } from './director-ui.js';
 
 // Slider definitions: key -> { label, default }
 const SLIDERS = {
@@ -171,7 +171,7 @@ const state = {
   director: structuredClone(DEFAULT_DIRECTOR),
   directorTime: 0,
   directorRate: 1,
-  selectedDirectorKeyframe: null,
+  selectedDirectorEffect: null,
   // Custom 3D outline data.
   customOutline: DEFAULT_CUSTOM_OUTLINE.slice(),
   ...Object.fromEntries(Object.entries(SLIDERS).map(([k, v]) => [k, v.def])),
@@ -1320,7 +1320,7 @@ function applyPreset(p) {
   if (!p || p.v !== 1) return;
   state.director = normalizeDirector(p.director);
   state.directorTime = 0;
-  state.selectedDirectorKeyframe = null;
+  state.selectedDirectorEffect = null;
   if (state.director.unsupportedVersion) {
     setPresetStatus('Aquest preset usa una versió més nova del Director; es carrega la composició base amb Director desactivat.');
   }
@@ -1419,25 +1419,25 @@ const shaperPresetPanel = createPresetPanel({
 // --- Director editing helpers ---
 function replaceDirector(nextDirector) {
   state.director = nextDirector;
-  if (state.selectedDirectorKeyframe) {
-    const frames = nextDirector.automations?.[state.selectedDirectorKeyframe.path] || [];
-    const exists = frames.some((frame) => Math.abs(frame.time - state.selectedDirectorKeyframe.time) <= 0.0001);
-    if (!exists) state.selectedDirectorKeyframe = null;
+  if (state.selectedDirectorEffect) {
+    const segments = nextDirector.automations?.[state.selectedDirectorEffect.path] || [];
+    const exists = segments.some((seg) => Math.abs(seg.start - state.selectedDirectorEffect.start) <= 0.0001);
+    if (!exists) state.selectedDirectorEffect = null;
   }
   directorUI.render(); scheduleRender();
   updateAutomationButtonStates();
 }
 function updateDirectorDuration(duration) { state.director = normalizeDirector({ ...state.director, duration }); directorUI.render(); scheduleRender(); }
-function updateSelectedKeyframe(path, time, patch) {
-  const frames = state.director?.automations?.[path] || [];
-  const current = frames.find((frame) => Math.abs(frame.time - time) <= 0.0001);
+function updateSelectedEffect(path, start, patch) {
+  const segments = state.director?.automations?.[path] || [];
+  const current = segments.find((seg) => Math.abs(seg.start - start) <= 0.0001);
   if (!current) return;
-  const nextTime = Number.isFinite(Number(patch.time)) ? Number(patch.time) : current.time;
+  const nextStart = Number.isFinite(Number(patch.start)) ? Number(patch.start) : current.start;
+  const nextEnd = Number.isFinite(Number(patch.end)) ? Number(patch.end) : current.end;
   const nextValue = Object.prototype.hasOwnProperty.call(patch, 'value') ? patch.value : current.value;
-  const nextEasing = patch.easing ?? current.easing ?? 'linear';
-  let nextDirector = removeKeyframe(state.director, path, time);
-  nextDirector = upsertKeyframe(nextDirector, path, { time: nextTime, value: nextValue, easing: nextEasing });
-  state.selectedDirectorKeyframe = { path, time: Math.max(0, Math.min(state.director.duration, nextTime)) };
+  let nextDirector = removeEffect(state.director, path, start);
+  nextDirector = upsertEffect(nextDirector, path, { start: nextStart, end: nextEnd, value: nextValue });
+  state.selectedDirectorEffect = { path, start: Math.max(0, Math.min(state.director.duration, nextStart)) };
   replaceDirector(nextDirector);
 }
 
@@ -1448,8 +1448,8 @@ function updateAutomationButtonStates() {
   for (const name of Object.keys(AUTOMATION_CONTROL_IDS)) {
     const btn = document.querySelector(`[data-automation-path="${name}"]`);
     if (!btn) continue;
-    const frames = state.director?.automations?.[`param:${name}`] || [];
-    btn.setAttribute('aria-pressed', String(frames.some((f) => Math.abs(f.time - localTime) <= 0.0001)));
+    const segments = state.director?.automations?.[`param:${name}`] || [];
+    btn.setAttribute('aria-pressed', String(segments.some((s) => localTime >= s.start && localTime <= s.end)));
   }
 }
 
@@ -1461,7 +1461,7 @@ function installAutomationButtons() {
     button.type = 'button';
     button.className = 'automation-key-button';
     button.dataset.automationPath = name;
-    button.setAttribute('aria-label', `Keyframe a ${name}`);
+    button.setAttribute('aria-label', `Aplica ${name} en aquest instant`);
     button.setAttribute('aria-pressed', 'false');
     const glyph = document.createElement('span');
     glyph.setAttribute('aria-hidden', 'true');
@@ -1470,14 +1470,14 @@ function installAutomationButtons() {
     button.addEventListener('click', () => {
       const { localTime } = evaluateDirector(state.director, state.directorTime, state);
       const path = `param:${name}`;
-      const frames = state.director?.automations?.[path] || [];
-      const has = frames.some((f) => Math.abs(f.time - localTime) <= 0.0001);
-      if (has) {
-        replaceDirector(removeKeyframe(state.director, path, localTime));
+      const segments = state.director?.automations?.[path] || [];
+      const active = segments.find((s) => localTime >= s.start && localTime <= s.end);
+      if (active) {
+        replaceDirector(removeEffect(state.director, path, active.start));
       } else {
-        const kind = AUTOMATABLE_PARAMS[name];
-        const value = kind === 'number' ? Number(control.value) : control.value;
-        replaceDirector(upsertKeyframe(state.director, path, { time: localTime, value, easing: kind === 'hold' ? 'hold' : 'linear' }));
+        const value = AUTOMATABLE_PARAMS[name] === 'number' ? Number(control.value) : control.value;
+        const end = Math.min(state.director.duration, localTime + DEFAULT_SEGMENT_LENGTH);
+        replaceDirector(upsertEffect(state.director, path, { start: localTime, end, value }));
       }
     });
   }
@@ -1492,41 +1492,40 @@ function wireDirector() {
     onSeek: (time) => { state.directorTime = time; render(time); directorUI.render(); updateAutomationButtonStates(); },
     onToggleEnabled: (enabled) => { state.director = { ...state.director, enabled }; scheduleRender(); directorUI.render(); updateAutomationButtonStates(); },
     onDurationChange: updateDirectorDuration,
-    onSelectKeyframe: (path, time) => {
-      state.selectedDirectorKeyframe = { path, time };
+    onSelectEffect: (path, start) => {
+      state.selectedDirectorEffect = { path, start };
       directorUI.render();
     },
-    onUpdateKeyframe: updateSelectedKeyframe,
-    onRemoveKeyframe: (path, time) => {
-      if (state.selectedDirectorKeyframe
-        && state.selectedDirectorKeyframe.path === path
-        && Math.abs(state.selectedDirectorKeyframe.time - time) <= 0.0001) {
-        state.selectedDirectorKeyframe = null;
+    onUpdateEffect: updateSelectedEffect,
+    onRemoveEffect: (path, start) => {
+      if (state.selectedDirectorEffect
+        && state.selectedDirectorEffect.path === path
+        && Math.abs(state.selectedDirectorEffect.start - start) <= 0.0001) {
+        state.selectedDirectorEffect = null;
       }
-      replaceDirector(removeKeyframe(state.director, path, time));
+      replaceDirector(removeEffect(state.director, path, start));
     },
-    onToggleKeyframe: (path, _field) => {
+    onToggleEffect: (path, _field) => {
       const { localTime } = evaluateDirector(state.director, state.directorTime, state);
-      const frames = state.director?.automations?.[path] || [];
-      const has = frames.some((f) => Math.abs(f.time - localTime) <= 0.0001);
-      if (has) {
-        if (state.selectedDirectorKeyframe
-          && state.selectedDirectorKeyframe.path === path
-          && Math.abs(state.selectedDirectorKeyframe.time - localTime) <= 0.0001) {
-          state.selectedDirectorKeyframe = null;
+      const segments = state.director?.automations?.[path] || [];
+      const active = segments.find((s) => localTime >= s.start && localTime <= s.end);
+      if (active) {
+        if (state.selectedDirectorEffect
+          && state.selectedDirectorEffect.path === path
+          && Math.abs(state.selectedDirectorEffect.start - active.start) <= 0.0001) {
+          state.selectedDirectorEffect = null;
         }
-        replaceDirector(removeKeyframe(state.director, path, localTime));
+        replaceDirector(removeEffect(state.director, path, active.start));
         return;
       }
       let value = 0;
-      let kind = 'number';
       if (path.startsWith('param:')) {
         const name = path.slice(6);
-        kind = AUTOMATABLE_PARAMS[name] || 'number';
         value = state[name] !== undefined ? state[name] : 0;
       }
-      state.selectedDirectorKeyframe = { path, time: localTime };
-      replaceDirector(upsertKeyframe(state.director, path, { time: localTime, value, easing: kind === 'hold' ? 'hold' : 'linear' }));
+      const end = Math.min(state.director.duration, localTime + DEFAULT_SEGMENT_LENGTH);
+      state.selectedDirectorEffect = { path, start: localTime };
+      replaceDirector(upsertEffect(state.director, path, { start: localTime, end, value }));
     },
   });
 

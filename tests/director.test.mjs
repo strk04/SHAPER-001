@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   DEFAULT_DIRECTOR, normalizeDirector, evaluateDirector, totalDuration, advanceDirectorTime,
-  upsertKeyframe, removeKeyframe, isAutomatablePath,
+  upsertEffect, removeEffect, isAutomatablePath,
 } from '../director.js';
 
 test('normalizeDirector returns a safe disabled config for missing input', () => {
@@ -36,26 +36,25 @@ test('unknown fields survive normalization for forward-compatible round trips', 
   assert.equal(result.futureFlag, 'keep-me');
 });
 
-test('evaluateDirector interpolates numeric automations across the whole timeline', () => {
+test('evaluateDirector holds a fixed value inside [start, end] and falls back outside it', () => {
   const config = normalizeDirector({
-    version: 1, enabled: true, loop: false, duration: 4,
-    automations: {
-      'param:charTrack': [
-        { time: 0, value: 0, easing: 'linear' },
-        { time: 4, value: 1, easing: 'linear' },
-      ],
-    },
+    version: 1, enabled: true, loop: false, duration: 5,
+    automations: { 'param:charTrack': [{ start: 1, end: 3, value: 0.8 }] },
   });
-  assert.equal(evaluateDirector(config, 2, { charTrack: 0 }).params.charTrack, 0.5);
+  assert.equal(evaluateDirector(config, 0.5, { charTrack: 0 }).params.charTrack, 0);
+  assert.equal(evaluateDirector(config, 1, { charTrack: 0 }).params.charTrack, 0.8);
+  assert.equal(evaluateDirector(config, 2, { charTrack: 0 }).params.charTrack, 0.8);
+  assert.equal(evaluateDirector(config, 3, { charTrack: 0 }).params.charTrack, 0.8);
+  assert.equal(evaluateDirector(config, 4, { charTrack: 0 }).params.charTrack, 0);
 });
 
 test('evaluateDirector clamps time to [0, duration]', () => {
   const config = normalizeDirector({
     version: 1, enabled: true, duration: 4,
-    automations: { 'param:charTrack': [{ time: 0, value: 0, easing: 'linear' }, { time: 4, value: 1, easing: 'linear' }] },
+    automations: { 'param:charTrack': [{ start: 0, end: 4, value: 1 }] },
   });
   assert.equal(evaluateDirector(config, 100, {}).params.charTrack, 1);
-  assert.equal(evaluateDirector(config, -100, {}).params.charTrack, 0);
+  assert.equal(evaluateDirector(config, -100, {}).params.charTrack, 1);
 });
 
 test('advanceDirectorTime loops and clamps with absolute seconds', () => {
@@ -71,32 +70,38 @@ test('disabled director returns the original base object', () => {
   assert.equal(result.params, base);
 });
 
-test('upsertKeyframe clamps time and replaces same-time values', () => {
+test('upsertEffect clamps start/end to [0, duration] and keeps end >= start', () => {
   const director = normalizeDirector(null);
-  const once = upsertKeyframe(director, 'param:charTrack', { time: 8, value: 0.4, easing: 'linear' });
-  const twice = upsertKeyframe(once, 'param:charTrack', { time: 5, value: 0.8, easing: 'ease-out' });
-  assert.deepEqual(twice.automations['param:charTrack'], [{ time: 5, value: 0.8, easing: 'ease-out' }]);
+  const seg = upsertEffect(director, 'param:charTrack', { start: 8, end: 20, value: 0.4 });
+  assert.deepEqual(seg.automations['param:charTrack'], [{ start: 5, end: 5, value: 0.4 }]);
 });
 
-test('removeKeyframe removes exact-time frame and cleans empty lane', () => {
+test('upsertEffect replaces the segment that starts at the same time', () => {
   const director = normalizeDirector(null);
-  const with2 = upsertKeyframe(
-    upsertKeyframe(director, 'param:charTrack', { time: 1, value: 0.2, easing: 'linear' }),
-    'param:charTrack', { time: 3, value: 0.8, easing: 'linear' },
-  );
-  const after = removeKeyframe(with2, 'param:charTrack', 1);
-  assert.deepEqual(after.automations['param:charTrack'], [{ time: 3, value: 0.8, easing: 'linear' }]);
+  const once = upsertEffect(director, 'param:charTrack', { start: 1, end: 2, value: 0.4 });
+  const twice = upsertEffect(once, 'param:charTrack', { start: 1, end: 3, value: 0.9 });
+  assert.deepEqual(twice.automations['param:charTrack'], [{ start: 1, end: 3, value: 0.9 }]);
+});
 
-  const empty = removeKeyframe(after, 'param:charTrack', 3);
+test('removeEffect removes the segment starting at that time and cleans empty lane', () => {
+  const director = normalizeDirector(null);
+  const with2 = upsertEffect(
+    upsertEffect(director, 'param:charTrack', { start: 1, end: 2, value: 0.2 }),
+    'param:charTrack', { start: 3, end: 4, value: 0.8 },
+  );
+  const after = removeEffect(with2, 'param:charTrack', 1);
+  assert.deepEqual(after.automations['param:charTrack'], [{ start: 3, end: 4, value: 0.8 }]);
+
+  const empty = removeEffect(after, 'param:charTrack', 3);
   assert.equal('param:charTrack' in empty.automations, false, 'lane removed when empty');
 });
 
-test('removeKeyframe is a no-op for unknown path or missing time', () => {
+test('removeEffect is a no-op for unknown path or missing start', () => {
   const director = normalizeDirector(null);
-  const withKf = upsertKeyframe(director, 'param:charTrack', { time: 2, value: 0.5, easing: 'linear' });
-  assert.deepEqual(removeKeyframe(withKf, 'param:unknown', 2), removeKeyframe(withKf, 'param:unknown', 2));
-  assert.deepEqual(removeKeyframe(withKf, 'param:charTrack', 9).automations['param:charTrack'],
-    [{ time: 2, value: 0.5, easing: 'linear' }], 'non-matching time leaves lane intact');
+  const withEffect = upsertEffect(director, 'param:charTrack', { start: 2, end: 3, value: 0.5 });
+  assert.deepEqual(removeEffect(withEffect, 'param:unknown', 2), removeEffect(withEffect, 'param:unknown', 2));
+  assert.deepEqual(removeEffect(withEffect, 'param:charTrack', 9).automations['param:charTrack'],
+    [{ start: 2, end: 3, value: 0.5 }], 'non-matching start leaves lane intact');
 });
 
 test('automation allowlist accepts known paths and rejects arbitrary state', () => {

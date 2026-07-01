@@ -44,5 +44,5 @@ test('preset key lists document creative and ephemeral boundaries', () => {
   assert.ok(CREATIVE_PRESET_EXTRA_KEYS.includes('guideMeta'));
   assert.ok(CREATIVE_PRESET_EXTRA_KEYS.includes('director'));
   assert.ok(EPHEMERAL_PRESET_KEYS.includes('fps'));
-  assert.ok(EPHEMERAL_PRESET_KEYS.includes('selectedDirectorKeyframe'));
+  assert.ok(EPHEMERAL_PRESET_KEYS.includes('selectedDirectorEffect'));
 });

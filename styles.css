@@ -845,48 +845,47 @@ body:not([data-director-panel-active]) .director-timeline-host {
 
 .director-keyframes {
   position: relative;
-  min-height: calc(var(--director-keyframe-rows, 1) * 78px);
+  min-height: calc(var(--director-keyframe-rows, 1) * 40px);
 }
 
-.director-keyframe {
+.director-effect-segment {
   position: absolute;
-  top: calc(var(--director-keyframe-row, 0) * 78px);
-  transform: translateX(-50%);
-  display: grid;
-  justify-items: center;
-  gap: 2px;
-  min-width: 72px;
-  min-height: 56px;
-  padding: 0;
+  top: calc(var(--director-keyframe-row, 0) * 40px);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 24px;
+  min-height: 24px;
+  padding: 0 var(--space-1);
   border: 0;
-  background: transparent;
+  border-left: 2px solid var(--ink-3);
+  background: var(--paper-2, transparent);
   color: var(--ink);
   text-transform: none;
   letter-spacing: 0;
-  text-align: center;
+  text-align: left;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
-.director-keyframe:hover,
-.director-keyframe.is-selected {
+.director-effect-segment:hover,
+.director-effect-segment.is-selected {
+  border-left-color: var(--ink);
   background: transparent;
-  color: var(--ink);
 }
 
-.director-keyframe-diamond::before {
-  content: "◇";
-  display: block;
-  font-size: 1.2rem;
-  line-height: 1;
-}
-
-.director-keyframe.is-current .director-keyframe-diamond::before {
-  content: "◆";
+.director-effect-segment.is-current {
+  border-left-color: var(--ink);
+  border-left-width: 3px;
 }
 
 .director-keyframe-label,
 .director-keyframe-value {
-  display: block;
+  display: inline-block;
   line-height: 1.05;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .director-keyframe-label {
@@ -1014,6 +1013,19 @@ body:not([data-director-panel-active]) .director-timeline-host {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
+}
+
+summary.director-settings-title {
+  display: flex;
+  align-items: center;
+  min-height: 32px;
+  cursor: pointer;
+  list-style: revert;
+}
+
+summary.director-settings-title:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
 }
 
 .director-general {

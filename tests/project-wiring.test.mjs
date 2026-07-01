@@ -157,7 +157,8 @@ test('director scene exposes a grouped list of concrete effects', async () => {
   const director = await readFile(new URL('../director.js', import.meta.url), 'utf8');
   const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
   assert.match(ui, /director-effects-group/);
-  assert.match(ui, /data-keyframe-path/);
+  assert.match(ui, /<details class="director-effects-group"/);
+  assert.match(ui, /data-effect-path/);
   assert.match(director, /charTrack: 'number', leading: 'number', wrapMode: 'hold'/);
   assert.match(director, /EFFECT_GROUPS/);
   assert.match(css, /\.director-effect\b/);
@@ -180,12 +181,12 @@ test('director timeline is inline under canvas and shows keyframe label plus val
   assert.match(ui, /playheadEl\.style\.left = `\$\{pct\}%`/);
   assert.match(ui, /syncPlayhead\(playheadEl, vm\.duration, vm\.time \?\? 0\)/);
   assert.match(ui, /syncPlayhead\(playheadEl, duration, time\)/);
-  assert.match(ui, /onSelectKeyframe/);
-  assert.match(ui, /onUpdateKeyframe/);
+  assert.match(ui, /onSelectEffect/);
+  assert.match(ui, /onUpdateEffect/);
   assert.match(ui, /contextmenu/);
   assert.match(ui, /pointerdown/);
   assert.match(ui, /onSeek\(/);
-  assert.match(main, /selectedDirectorKeyframe/);
+  assert.match(main, /selectedDirectorEffect/);
   assert.match(css, /\.director-inline-timeline/);
   assert.match(css, /\.director-keyframe-label/);
   assert.match(css, /\.director-keyframe-value/);

@@ -1,5 +1,35 @@
 # Progress — SHAPER 001
 
+## 2026-07-01 — Perspectiva: reduir el cost de `ctx.font` per glif
+
+### Fet
+- L'usuari va notar que amb `Projecció: Perspectiva` tot va molt més lent que amb `Isomètrica`, i
+  va preguntar el motiu i després si hi havia solució.
+- Diagnosi: en mode Billboard (`surfaceText` off), cada glif té una mida de font diferent segons la
+  seva profunditat (`scale: dist/denom` a `projectPersp()`) — és l'efecte real de fugida de
+  perspectiva. El bucle de dibuix reassignava `ctx.font` incondicionalment a cada glif, sense
+  comprovar si el valor ja era el mateix (el mode surfaceText sí ho fa, via `lastFs`). Quan el
+  string de `ctx.font` canvia, el navegador ha de re-resoldre la font (mètriques + glyph cache);
+  quan és idèntic al crida anterior, ho evita.
+- Fix: `engine.js` `drawGlyph()` (billboard path) arrodoneix la mida a mig píxel
+  (`Math.round(fs * 2) / 2`, imperceptible visualment) i només reassigna `ctx.font` quan el valor
+  arrodonit canvia respecte a `lastFs`. Muntes de glifs a profunditats semblants ara comparteixen
+  el mateix string de font.
+- No elimina la diferència de fons entre Isomètrica i Perspectiva (Isomètrica sempre tindrà mida
+  constant per disseny; Perspectiva sempre tindrà alguna variació), però redueix el nombre de
+  re-resolucions de font real per frame.
+
+### Verificat
+- `node --check engine.js`; `node --test tests/*.mjs` → 21 pass (Shaper), sense canvis de resultat
+  visual als tests existents (el canvi és només al camí de dibuix canvas, no al model de dades).
+- Sincronitzat a `02 Pixel Perfect/shaper/`; `node --test tests/*.mjs` → 16 pass allà.
+- Pujat a `strk04/SHAPER-001` (`eef99b4`) i `strk04/PIxel-Perfect` (`5b2a3e0`).
+
+### Pendent
+- Validació visual/de rendiment real al navegador amb un preset pesat en Perspectiva, per confirmar
+  la millora percebuda (no s'ha mesurat FPS abans/després, només s'ha raonat la causa i aplicat la
+  correcció).
+
 ## 2026-07-01 — Director eliminat del tot
 
 ### Fet

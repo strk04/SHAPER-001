@@ -1,6 +1,6 @@
 # STATUS — SHAPER 001
 
-_Actualitzat: 2026-07-01 (Director eliminat del tot)_
+_Actualitzat: 2026-07-01 (Perspectiva: menys cost de ctx.font per glif)_
 
 ## Estat general
 
@@ -9,6 +9,16 @@ Projecte vanilla JS zero-build. Flux habitual de publicació:
 - editar a `17 SHAPER 001/`
 - sincronitzar a `02 Pixel Perfect/shaper/`
 - commit + push als dos repos
+
+## Projecció Perspectiva — rendiment
+
+En mode Billboard (`surfaceText` off), cada glif té una mida de font diferent segons la seva
+profunditat (és la fugida de perspectiva real, no es pot eliminar sense perdre l'efecte). Fins
+2026-07-01 el bucle de dibuix reassignava `ctx.font` a cada glif encara que la mida no hagués
+canviat; ara `engine.js` `drawGlyph()` arrodoneix la mida a mig píxel i només reassigna `ctx.font`
+quan canvia respecte a l'últim valor (`lastFs`), reduint quantes vegades el navegador ha de
+re-resoldre la font. Isomètrica sempre ha tingut mida constant i no es veu afectada; el mode
+surfaceText tampoc, perquè ja tenia aquesta comprovació.
 
 ## Director (eliminat 2026-07-01)
 
@@ -84,5 +94,5 @@ node --test tests/*.mjs   # 21 pass
 - `engine.js`/`motion.js` conserven `applyMotionBehaviors`/`motionBehaviors` com a codi mort — netejar
   si es vol en una sessió separada (no és Director, és previ).
 
-`17 SHAPER 001` pujat a `strk04/SHAPER-001` (`24d2770`). `02 Pixel Perfect/shaper` sincronitzat i
-pujat a `strk04/PIxel-Perfect` (`e06a968`).
+`17 SHAPER 001` pujat a `strk04/SHAPER-001` (`eef99b4`). `02 Pixel Perfect/shaper` sincronitzat i
+pujat a `strk04/PIxel-Perfect` (`5b2a3e0`).

@@ -1,5 +1,21 @@
 # Decisions — SHAPER 001
 
+## 2026-07-01 — Perspectiva: arrodonir la mida de font enlloc de fer-la exacta
+
+Al mode Billboard, la mida de font varia contínuament amb la profunditat (efecte de perspectiva).
+Es va decidir arrodonir-la a mig píxel abans de construir el string de `ctx.font`, en lloc de
+mantenir-la exacta.
+
+Racional: un canvi de mida de font inferior a mig píxel és imperceptible visualment, però permet
+que glifs a profunditats similars reutilitzin el mateix string de font i evitin que el navegador
+torni a resoldre mètriques/glyph-cache a cada `fillText`. És un compromís precisió-vs-rendiment amb
+cost visual nul assumit directament (no calia preguntar-ho a l'usuari: la imperceptibilitat és
+objectiva, no una tria estètica).
+
+Conseqüències: cap canvi de comportament observable; només s'aplica al camí de dibuix canvas
+(`drawGlyph()` a `engine.js`), no al model de dades (`glyph.fontSize` es continua calculant exacte
+per a l'export SVG i altres consumidors).
+
 ## 2026-07-01 — Director eliminat del tot (incloent l'export MP4 offline)
 
 Després d'una sessió sencera desenvolupant i refinant el Director (escenes → línia temporal →

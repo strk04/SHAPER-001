@@ -1,6 +1,6 @@
 # STATUS — SHAPER 001
 
-_Actualitzat: 2026-07-01 (Secció 2D: l'animació escala l'àtom, no només la cel·la)_
+_Actualitzat: 2026-07-01 (Secció 2D: pack dens per-instància amb variació orgànica de mida)_
 
 ## Estat general
 
@@ -30,6 +30,12 @@ Projecte vanilla JS zero-build. Flux habitual de publicació:
   abans del `ctx.clip()`, perquè la vora de retall escali junt amb l'àtom.
 - Toggle **"Mostra graella"** (2026-07-01, per defecte apagat): dibuixa les vores de cada cel·la
   respectant l'escala animada de fila/columna.
+- **Pack dens per-instància** (2026-07-01): control `Densitat` (1-6, per defecte 1) subdivideix
+  cada cel·la en un `density×density` de repeticions independents de l'àtom. Cada instància té una
+  fase pròpia (`instancePhase`, seeded, no sincronitzada amb les altres) i oscil·la contínuament
+  amb `instanceSizeMul()`; el slider `Variació de mida` (0-1, per defecte 0) controla l'amplitud
+  d'aquesta oscil·lació. Amb valors per defecte (`density=1`, `sizeVariance=0`) el comportament és
+  idèntic al d'abans d'aquest canvi.
 - Cada fila pot tenir la seva pròpia animació, o aplicar-ne una a totes (`Aplica la mateixa a
   totes les files`); mateix mecanisme, independent, per columnes.
 - 5 animacions (`engine2d.js`, portades del "Stacked Text Tool" de referència): **wave, accordion,
@@ -127,7 +133,7 @@ Ultima verificacio executada el 2026-07-01:
 node --check main.js
 node --check engine.js
 node --check engine2d.js
-node --test tests/*.mjs   # 35 pass
+node --test tests/*.mjs   # 39 pass
 ```
 
 ## Pendent
@@ -135,11 +141,12 @@ node --test tests/*.mjs   # 35 pass
 - Completar (o no) la fase de "push" del preset Block In 2D — pendent de confirmació de l'usuari.
 - Adaptar l'export SVG/PNG/MP4 al mode 2D (ara mateix sempre exporta des del pipeline 3D).
 - Validació visual real al navegador de la secció 2D (només verificat amb tests unitaris i un
-  `ctx` de canvas simulat).
-- Rendiment amb graelles grans + textos llargs no mesurat (`layout()` es crida sencer per cel·la).
+  `ctx` de canvas simulat) — pendent especialment per al nou pack dens per-instància.
+- Rendiment amb graelles grans + densitat alta no mesurat (`layout()` es crida `rows × cols ×
+  density²` cops per frame).
 - Revisar deployment de Pixel Perfect si cal confirmar publicacio web.
 - `engine.js`/`motion.js` conserven `applyMotionBehaviors`/`motionBehaviors` com a codi mort — netejar
   si es vol en una sessió separada (no és Director, és previ).
 
-`17 SHAPER 001` pujat a `strk04/SHAPER-001` (`9bab921`). `02 Pixel Perfect/shaper` sincronitzat i
-pujat a `strk04/PIxel-Perfect` (`27f89a3`).
+`17 SHAPER 001` pujat a `strk04/SHAPER-001` (`a3818c1`). `02 Pixel Perfect/shaper` sincronitzat i
+pujat a `strk04/PIxel-Perfect` (`b76c9e4`).

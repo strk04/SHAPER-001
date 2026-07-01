@@ -1,5 +1,27 @@
 # Decisions — SHAPER 001
 
+## 2026-07-01 — Secció 2D: pack dens per-instància dins de cada cel·la (no substituir la graella)
+
+Davant el feedback "el que tenim és bàsic i pobre" comparat amb exemples de referència densos i
+fluids, es va preguntar explícitament (`AskUserQuestion`, multiselecció) què calia millorar:
+densitat, mida variable per repetició individual, i fluïdesa del moviment. L'usuari va marcar els
+3 alhora.
+
+Decisió d'arquitectura: en lloc de substituir el model de graella (files×columnes amb animació per
+eix, ja construït i confirmat en iteracions anteriors) per un sistema de "camp dens" completament
+nou i independent, es va afegir un pack dens **dins de cada cel·la existent** — cada cel·la ara pot
+contenir un `density×density` de repeticions independents, cadascuna amb la seva pròpia fase
+d'animació (no sincronitzada). Es va proposar aquesta integració a l'usuari abans d'implementar-la
+("Confirmes aquesta direcció abans que ho construeixi?") i va confirmar amb "ok".
+
+Racional: mantenir i estendre l'arquitectura ja validada (graella + animació per fila/columna) en
+lloc de llençar-la i començar de zero; la densitat/mida-per-instància/fluïdesa demanades s'obtenen
+afegint una capa addicional (el pack per-instància) que conviu amb l'escalat per fila/columna ja
+existent, sense trencar-lo (amb `density=1`, `sizeVariance=0` el resultat és idèntic a abans).
+
+Conseqüències: cost de rendiment escala com `rows × cols × density²` crides a `layout()` per frame
+— acceptat sense optimitzar prematurament, marcat com a pendent de mesurar.
+
 ## 2026-07-01 — Secció 2D: escalar l'àtom via `ctx.scale()`, no el rectangle de retall
 
 Bug real detectat per l'usuari ("les animacions afecten al grid, no a l'àtom"): la implementació

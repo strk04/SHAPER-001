@@ -1,5 +1,50 @@
 # Progress — SHAPER 001
 
+## 2026-07-01 — Secció 2D: pack dens per-instància amb variació orgànica de mida
+
+### Fet
+- L'usuari va compartir 4 captures de referència (patrons de text repetit densament, mides molt
+  variables per repetició, sense marges) i va dir que la nostra animació actual és "bàsica i
+  pobra" en comparació. Preguntat explícitament (`AskUserQuestion`, multiselecció) quins aspectes
+  calia millorar: **densitat** (poques repeticions/massa espai buit), **mida variable per
+  repetició individual** (no per fila/columna sencera), i **fluïdesa** (easing/transicions massa
+  mecàniques) — l'usuari va marcar els 3.
+- `engine2d.js`: nou concepte de "pack dens per instància" dins de cada cel·la de la graella
+  existent (files×columnes es mantenen com abans, amb el seu escalat per animació de fila/
+  columna). Cada cel·la ara pot subdividir-se en una graella `density×density` de repeticions
+  independents de l'àtom.
+  - `instancePhase(seed, row, col, k)`: hash determinista (mix de multiplicacions enteres) que
+    dona una fase `[0,1)` única per a cada instància (fila, columna i posició dins del pack).
+  - `instanceSizeMul(animTime, speed, phase, variance)`: multiplicador d'escala continu
+    (`1 + variance * sin(2π*(t*speed+phase))`) — cada instància oscil·la amb la seva pròpia fase,
+    no sincronitzada amb les altres. Això és el que dona la sensació orgànica: no és un bloc que
+    puja i baixa a l'uníson, sinó un camp de repeticions que pulsen fora de fase.
+  - `drawGrid2D()`: dins de cada cel·la (ja transformada per `rowScale`/`colScale`), itera un
+    `density×density` de sub-cel·les; cada una crida `layout()` amb el seu propi `fontSize`
+    animat (`atomParams.fontSize * instanceSizeMul(...)`), mantenint tots els efectes de l'Àtom
+    (kerning, opacitat, blink, skew, accent) que ja es van reutilitzar en un canvi anterior.
+- `main.js`: nou control `Densitat` (`grid2dDensity`, input numèric 1-6) i nou slider `Variació de
+  mida` (`grid2dSizeVariance`, 0-1, integrat al mecanisme genèric `SLIDERS`). `state.grid2d.density`
+  es guarda/restaura des dels presets igual que la resta de camps del grid.
+- Amb `Densitat=1` i `Variació de mida=0` (valors per defecte) el comportament és **idèntic** a
+  abans d'aquest canvi — no hi ha regressió per als usos existents.
+- Tests nous a `engine2d.test.mjs`: `instanceSizeMul` es manté a 1 amb variància 0 i varia amb
+  fases diferents; `drawGrid2D` amb densitat 2 dibuixa més repeticions que amb densitat 1; amb
+  `sizeVariance > 0` cada sub-instància es dibuixa amb una mida de font diferent (verificat
+  comptant valors únics de `ctx.font`). Test de wiring nou a `project-wiring.test.mjs`.
+
+### Verificat
+- `node --test tests/*.mjs` → 39 pass (Shaper).
+- Sincronitzat a `02 Pixel Perfect/shaper/`; `node --test tests/*.mjs` → 34 pass allà.
+- Pujat a `strk04/SHAPER-001` (`a3818c1`) i `strk04/PIxel-Perfect` (`b76c9e4`).
+
+### Pendent
+- Validació visual real al navegador — encara no s'ha comprovat amb els ulls si el resultat
+  s'acosta prou al mood de les captures de referència (densitat, mida, fluïdesa).
+- Amb densitats altes (p. ex. 5-6) i graelles grans, el nombre de crides a `layout()` per frame
+  creix molt (`rows × cols × density²`) — rendiment no mesurat, pendent revisió si l'usuari en
+  reporta lentitud.
+
 ## 2026-07-01 — Secció 2D: l'animació escala l'àtom, no només la cel·la
 
 ### Fet

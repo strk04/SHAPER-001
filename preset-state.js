@@ -23,7 +23,6 @@ export const EPHEMERAL_PRESET_KEYS = Object.freeze([
   'morphClock',
   'directorTime',
   'directorRate',
-  'selectedDirectorSceneId',
   'selectedDirectorKeyframe',
 ]);
 

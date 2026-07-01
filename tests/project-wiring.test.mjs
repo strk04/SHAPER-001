@@ -102,13 +102,13 @@ test('director excludes live performance controls', async () => {
   assert.doesNotMatch(director, /liveOverrides|simplifySamples/);
 });
 
-test('director scene UI keeps only add and delete actions', async () => {
+test('director has a single timeline, no scene management', async () => {
   const ui = await readFile(new URL('../director-ui.js', import.meta.url), 'utf8');
-  assert.match(ui, /data-director-action="add"/);
-  assert.match(ui, /data-director-action="delete"/);
-  assert.doesNotMatch(ui, /data-director-action="duplicate"/);
-  assert.doesNotMatch(ui, /data-director-action="left"/);
-  assert.doesNotMatch(ui, /data-director-action="right"/);
+  const director = await readFile(new URL('../director.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(ui, /data-director-action/);
+  assert.doesNotMatch(ui, /Nova escena/);
+  assert.doesNotMatch(director, /scenes:/);
+  assert.doesNotMatch(director, /applySceneAction/);
 });
 
 test('director general controls live in column 2, not in dock transport', async () => {
@@ -136,28 +136,20 @@ test('director general controls live in column 2, not in dock transport', async 
   assert.match(css, /\.director-general-actions button\[aria-pressed="true"\][\s\S]*color:\s*var\(--paper\)/);
 });
 
-test('director sidebar shows the active scene card after global controls', async () => {
+test('director sidebar shows a single duration field, no scene/transition fields', async () => {
   const ui = await readFile(new URL('../director-ui.js', import.meta.url), 'utf8');
   const css = await readFile(new URL('../styles.css', import.meta.url), 'utf8');
   assert.match(ui, /Activa mode Director/);
-  assert.match(ui, /data-director-action="add"[\s\S]*Nova escena/);
-  assert.match(ui, /director-scene-toolbar/);
-  assert.match(ui, /director-scene-card/);
-  assert.match(ui, /Escena \$\{escapeHtml\(active\.name\)\}/);
-  assert.match(ui, /<span>Durada total<\/span>/);
-  assert.match(ui, /<span>Durada transició<\/span>/);
-  assert.match(ui, /<span>Estil transició<\/span>/);
+  assert.match(ui, /id="directorDuration"/);
+  assert.match(ui, /<span>Durada<\/span>/);
+  assert.doesNotMatch(ui, /Durada total/);
+  assert.doesNotMatch(ui, /Durada transició/);
+  assert.doesNotMatch(ui, /Estil transició/);
   assert.match(ui, /director-duration-field/);
   assert.match(ui, />seg<\/span>/);
   assert.doesNotMatch(ui, />segons<\/span>/);
-  assert.match(ui, /data-director-action="add"[\s\S]*director-scene-card/);
-  assert.match(ui, /director-scene-card[\s\S]*data-director-action="delete"/);
-  assert.doesNotMatch(ui, /director-scene-actions/);
-  assert.match(css, /\.director-scene-toolbar/);
-  assert.match(css, /\.director-scene-card/);
   assert.match(css, /\.director-duration-field/);
   assert.match(css, /\.director-duration-field input[\s\S]*width:/);
-  assert.match(css, /border-top: 1px solid var\(--paper-3\)/);
 });
 
 test('director scene exposes a grouped list of concrete effects', async () => {
@@ -186,7 +178,7 @@ test('director timeline is inline under canvas and shows keyframe label plus val
   assert.doesNotMatch(ui, /Sense rombos en aquesta escena\./);
   assert.match(ui, /const syncPlayhead = \(playheadEl, duration, time\) =>/);
   assert.match(ui, /playheadEl\.style\.left = `\$\{pct\}%`/);
-  assert.match(ui, /syncPlayhead\(playheadEl, duration, vm\.time \?\? 0\)/);
+  assert.match(ui, /syncPlayhead\(playheadEl, vm\.duration, vm\.time \?\? 0\)/);
   assert.match(ui, /syncPlayhead\(playheadEl, duration, time\)/);
   assert.match(ui, /onSelectKeyframe/);
   assert.match(ui, /onUpdateKeyframe/);
@@ -197,11 +189,11 @@ test('director timeline is inline under canvas and shows keyframe label plus val
   assert.match(css, /\.director-inline-timeline/);
   assert.match(css, /\.director-keyframe-label/);
   assert.match(css, /\.director-keyframe-value/);
-  assert.match(css, /\.director-scene-label\s*\{[\s\S]*font-size:\s*var\(--text-xs\)/);
   assert.match(css, /\.director-keyframe-label\s*\{[\s\S]*font-size:\s*var\(--text-xs\)/);
   assert.match(css, /\.director-keyframe-value\s*\{[\s\S]*font-size:\s*var\(--text-xs\)/);
-  assert.match(css, /\.director-scene::after/);
-  assert.match(css, /\.director-scene:first-child::before/);
+  assert.match(css, /\.director-track/);
+  assert.doesNotMatch(css, /\.director-scene\s*\{/);
+  assert.doesNotMatch(css, /\.director-scenes\s*\{/);
 });
 
 test('fixed-duration MP4 export renders offline outside Director', async () => {

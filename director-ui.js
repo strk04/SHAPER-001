@@ -1,22 +1,14 @@
-// director-ui.js — Pure model + DOM mount for the Director panel
+// director-ui.js — Pure model + DOM mount for the Director panel (single timeline)
 import { normalizeDirector, totalDuration, EFFECT_GROUPS } from './director.js';
 
 // ── Pure view model ─────────────────────────────────────────────────────────
 
-export function directorViewModel(input, selectedSceneId, time) {
+export function directorViewModel(input, time) {
   const director = normalizeDirector(input);
-  let cursor = 0;
-  const scenes = director.scenes.map((scene) => {
-    const item = { ...scene, start: cursor, end: cursor + scene.duration };
-    cursor += scene.duration;
-    return item;
-  });
   return {
     director,
-    scenes,
     duration: totalDuration(director),
     time,
-    activeScene: scenes.find((scene) => scene.id === selectedSceneId) || scenes[0],
   };
 }
 
@@ -51,8 +43,6 @@ const escapeHtml = (value) => String(value).replace(/[&<>"']/g, (char) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 }[char]));
 
-const shortSceneLabel = (index) => `E${String(index + 1).padStart(2, '0')}`;
-
 const keyframeLabel = (path) => {
   const name = path.startsWith('param:') ? path.slice(6) : path;
   return EFFECT_LABELS[name] || name;
@@ -73,12 +63,19 @@ const syncPlayhead = (playheadEl, duration, time) => {
   playheadEl.style.left = `${pct}%`;
 };
 
+const timeText = (seconds) => {
+  const s = Math.max(0, Number(seconds) || 0);
+  const m = Math.floor(s / 60);
+  const rem = (s % 60).toFixed(1);
+  return `${m}:${rem.padStart(4, '0')}`;
+};
+
 const keyframeInputType = (value) => typeof value === 'number' ? 'number' : 'text';
 
-const findSelectedKeyframe = (state, activeScene) => {
+const findSelectedKeyframe = (state, director) => {
   const selected = state.selectedDirectorKeyframe;
-  if (!selected || !activeScene || selected.sceneId !== activeScene.id) return null;
-  const frames = activeScene.automations?.[selected.path] || [];
+  if (!selected || !director) return null;
+  const frames = director.automations?.[selected.path] || [];
   const frame = frames.find((item) => Math.abs(item.time - selected.time) <= 0.0001);
   return frame ? { ...selected, frame } : null;
 };
@@ -88,16 +85,14 @@ const findSelectedKeyframe = (state, activeScene) => {
 /**
  * mountDirectorUI({
  *   inspector, timeline, getState,
- *   onSelectScene, onSeek, onToggleEnabled,
- *   onSceneAction, onSceneDuration, onSceneMovement, onTransitionChange,
- *   onAddKeyframe, onUpdateBehavior,
+ *   onSeek, onToggleEnabled, onDurationChange,
+ *   onToggleKeyframe, onSelectKeyframe, onUpdateKeyframe, onRemoveKeyframe,
  * })
  * Returns { render, setTime }
  */
 export function mountDirectorUI({
   inspector, timeline, getState,
-  onSelectScene, onSeek, onToggleEnabled,
-  onSceneAction, onSceneDuration, onTransitionChange,
+  onSeek, onToggleEnabled, onDurationChange,
   onToggleKeyframe, onSelectKeyframe, onUpdateKeyframe, onRemoveKeyframe,
 }) {
   if (!inspector || !timeline) return { render: () => {}, setTime: () => {} };
@@ -109,7 +104,13 @@ export function mountDirectorUI({
       <span>Activa mode Director</span>
       <input type="checkbox" id="directorEnabled" name="directorEnabled">
     </label>
-    <div id="directorSceneEditArea"></div>
+    <label class="control-row" for="directorDuration"><span>Durada</span>
+      <span class="director-duration-field">
+        <input id="directorDuration" type="number" min="0.1" max="3600" step="0.1" inputmode="decimal" aria-describedby="directorDurationUnit">
+        <span id="directorDurationUnit" class="director-inline-unit">seg</span>
+      </span>
+    </label>
+    <div id="directorEffectsArea"></div>
     <div class="director-general" role="group" aria-label="Opcions generals del Director">
       <h4 class="panel-title">General</h4>
       <div class="director-general-actions">
@@ -124,7 +125,8 @@ export function mountDirectorUI({
   timeline.innerHTML = `
     <div class="director-inline-timeline">
       <div class="director-scenes-wrap">
-        <div class="director-scenes" role="radiogroup" aria-label="Escenes" id="directorScenes"></div>
+        <div class="director-track" id="directorTrack" role="slider" tabindex="0"
+          aria-label="Línia de temps del Director" aria-valuemin="0" aria-valuenow="0"></div>
         <div id="directorPlayhead" class="director-playhead" aria-hidden="true"></div>
       </div>
       <div id="directorLanes" class="director-lanes"></div>
@@ -133,29 +135,25 @@ export function mountDirectorUI({
   `;
 
   // Element refs
-  const enabledCb   = inspector.querySelector('#directorEnabled');
-  const sceneEditEl = inspector.querySelector('#directorSceneEditArea');
-  const reverseBtn  = inspector.querySelector('#directorReverse');
-  const loopBtn     = inspector.querySelector('#directorLoop');
-  const scenesEl    = timeline.querySelector('#directorScenes');
-  const playheadEl  = timeline.querySelector('#directorPlayhead');
-  const lanesEl     = timeline.querySelector('#directorLanes');
+  const enabledCb    = inspector.querySelector('#directorEnabled');
+  const durationInput = inspector.querySelector('#directorDuration');
+  const effectsAreaEl = inspector.querySelector('#directorEffectsArea');
+  const reverseBtn   = inspector.querySelector('#directorReverse');
+  const loopBtn      = inspector.querySelector('#directorLoop');
+  const trackEl      = timeline.querySelector('#directorTrack');
+  const playheadEl   = timeline.querySelector('#directorPlayhead');
+  const lanesEl      = timeline.querySelector('#directorLanes');
   const keyframeMenuEl = timeline.querySelector('#directorKeyframeMenu');
   let playheadDragging = false;
+  let trackDragging = false;
 
   // ── Listener: enabled checkbox ─────────────────────────────────────────────
   enabledCb.addEventListener('change', () => {
     onToggleEnabled(enabledCb.checked);
   });
 
-  // ── Listener: playhead seek ────────────────────────────────────────────────
-  // ── Inspector: scene action buttons + properties (delegated) ─────────────
+  // ── Inspector: keyframe actions + properties (delegated) ─────────────
   inspector.addEventListener('click', (event) => {
-    const actionBtn = event.target.closest('[data-director-action]');
-    if (actionBtn && onSceneAction) {
-      onSceneAction(actionBtn.dataset.directorAction);
-      return;
-    }
     const deleteKeyframeBtn = event.target.closest('[data-director-keyframe-delete]');
     if (deleteKeyframeBtn && onRemoveKeyframe) {
       onRemoveKeyframe(deleteKeyframeBtn.dataset.keyframePath, Number(deleteKeyframeBtn.dataset.keyframeTime));
@@ -186,16 +184,8 @@ export function mountDirectorUI({
         return;
       }
     }
-    if (target.id === 'directorSceneDuration' && onSceneDuration) {
-      onSceneDuration(Number(target.value));
-      return;
-    }
-    if (target.id === 'directorTransitionDuration' && onTransitionChange) {
-      onTransitionChange({ duration: Number(target.value) });
-      return;
-    }
-    if (target.id === 'directorTransitionEasing' && onTransitionChange) {
-      onTransitionChange({ easing: target.value });
+    if (target.id === 'directorDuration' && onDurationChange) {
+      onDurationChange(Number(target.value));
       return;
     }
   });
@@ -207,7 +197,7 @@ export function mountDirectorUI({
   };
 
   const seekFromClientX = (clientX) => {
-    const rect = scenesEl.getBoundingClientRect();
+    const rect = trackEl.getBoundingClientRect();
     if (!(rect.width > 0)) return;
     const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
     const duration = totalDuration(getState().director);
@@ -233,6 +223,36 @@ export function mountDirectorUI({
 
   playheadEl?.addEventListener('pointercancel', () => {
     playheadDragging = false;
+  });
+
+  trackEl?.addEventListener('pointerdown', (event) => {
+    trackDragging = true;
+    trackEl.setPointerCapture(event.pointerId);
+    seekFromClientX(event.clientX);
+  });
+
+  trackEl?.addEventListener('pointermove', (event) => {
+    if (!trackDragging) return;
+    seekFromClientX(event.clientX);
+  });
+
+  trackEl?.addEventListener('pointerup', (event) => {
+    trackDragging = false;
+    trackEl.releasePointerCapture?.(event.pointerId);
+  });
+
+  trackEl?.addEventListener('pointercancel', () => {
+    trackDragging = false;
+  });
+
+  trackEl?.addEventListener('keydown', (event) => {
+    const duration = totalDuration(getState().director);
+    const time = getState().directorTime ?? 0;
+    const step = event.shiftKey ? 1 : 0.1;
+    if (event.key === 'ArrowRight') { onSeek(Math.min(duration, time + step)); event.preventDefault(); }
+    else if (event.key === 'ArrowLeft') { onSeek(Math.max(0, time - step)); event.preventDefault(); }
+    else if (event.key === 'Home') { onSeek(0); event.preventDefault(); }
+    else if (event.key === 'End') { onSeek(duration); event.preventDefault(); }
   });
 
   // ── Timeline keyframe select / menu ────────────────────────────────────────
@@ -274,74 +294,17 @@ export function mountDirectorUI({
     if (event.key === 'Escape') hideKeyframeMenu();
   });
 
-  // ── Scene radiogroup: build + roving tabindex + keyboard ──────────────────
-  function buildScenes(vm) {
-    const { scenes, activeScene, duration } = vm;
-    scenesEl.innerHTML = '';
-
-    scenes.forEach((scene, index) => {
-      const isChecked = scene.id === activeScene.id;
-      const pct = duration > 0 ? (scene.duration / duration) * 100 : (100 / scenes.length);
-
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.setAttribute('role', 'radio');
-      btn.className = 'director-scene' + (isChecked ? ' is-active' : '');
-      btn.dataset.sceneId = scene.id;
-      btn.setAttribute('aria-checked', String(isChecked));
-      if (isChecked) btn.setAttribute('aria-current', 'true');
-      btn.setAttribute('tabindex', isChecked ? '0' : '-1');
-      btn.style.width = `${pct}%`;
-      btn.setAttribute('aria-label', `${scene.name}, ${scene.duration.toFixed(1)} segons`);
-      btn.innerHTML = `<span class="director-scene-label">${shortSceneLabel(index)}</span>`;
-
-      btn.addEventListener('click', () => {
-        onSelectScene(scene.id);
-      });
-
-      scenesEl.appendChild(btn);
-    });
-
-    syncPlayhead(playheadEl, duration, vm.time ?? 0);
-  }
-
-  // Arrow-key navigation on the radiogroup container
-  scenesEl.addEventListener('keydown', (event) => {
-    const radios = Array.from(scenesEl.querySelectorAll('[role="radio"]'));
-    if (!radios.length) return;
-    const currentIdx = radios.findIndex((r) => r.getAttribute('aria-checked') === 'true');
-
-    let nextIdx = null;
-    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
-      nextIdx = (currentIdx + 1) % radios.length;
-    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
-      nextIdx = (currentIdx - 1 + radios.length) % radios.length;
-    } else if (event.key === 'Home') {
-      nextIdx = 0;
-    } else if (event.key === 'End') {
-      nextIdx = radios.length - 1;
-    }
-
-    if (nextIdx === null) return;
-    event.preventDefault();
-
-    const nextScene = radios[nextIdx];
-    const sceneId = nextScene.dataset.sceneId;
-    onSelectScene(sceneId);
-    nextScene.focus();
-  });
-
-  // ── Build scene inspector panel ────────────────────────────────────────────
+  // ── Build effects list ─────────────────────────────────────────────────────
   const slugify = (text) => String(text).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 
-  function buildEffectsList(active, localTime) {
-    const lt = localTime ?? 0;
+  function buildEffectsList(director, time) {
+    const t = time ?? 0;
     return EFFECT_GROUPS.map((group) => {
       const groupId = `directorEffectsGroup-${slugify(group.title)}`;
       const items = group.items.map((name) => {
         const path = `param:${name}`;
-        const frames = active.automations[path] || [];
-        const isCurrent = frames.some((frame) => Math.abs(frame.time - lt) <= 0.0001);
+        const frames = director.automations[path] || [];
+        const isCurrent = frames.some((frame) => Math.abs(frame.time - t) <= 0.0001);
         const hasAny = frames.length > 0;
         const label = EFFECT_LABELS[name] || name;
         return `
@@ -363,13 +326,12 @@ export function mountDirectorUI({
     }).join('');
   }
 
-  function buildSceneInspector(active, selectedKeyframe, localTime) {
-    if (!active) { sceneEditEl.innerHTML = ''; return; }
-    const effectsList = buildEffectsList(active, localTime);
+  function buildEffectsArea(director, selectedKeyframe, time) {
+    const effectsList = buildEffectsList(director, time);
 
     let keyframeEditor = '';
     if (selectedKeyframe) {
-      const { path, time, frame } = selectedKeyframe;
+      const { path, time: kfTime, frame } = selectedKeyframe;
       const inputType = keyframeInputType(frame.value);
       keyframeEditor = `
         <div class="director-keyframe-editor director-behavior-item" role="group" aria-label="Edició del rombo">
@@ -381,21 +343,21 @@ export function mountDirectorUI({
             <input id="directorKeyframeValue" type="${inputType}" ${inputType === 'number' ? 'step="any"' : ''}
               value="${escapeHtml(frame.value ?? '')}"
               data-keyframe-editor-path="${escapeHtml(path)}"
-              data-keyframe-editor-time="${time}">
+              data-keyframe-editor-time="${kfTime}">
           </label>
           <label class="control-row" for="directorKeyframeTime"><span>Temps</span>
             <span class="director-duration-field">
-              <input id="directorKeyframeTime" type="number" min="0" max="${active.duration}" step="0.1" inputmode="decimal"
-                value="${time}"
+              <input id="directorKeyframeTime" type="number" min="0" max="${director.duration}" step="0.1" inputmode="decimal"
+                value="${kfTime}"
                 data-keyframe-editor-path="${escapeHtml(path)}"
-                data-keyframe-editor-time="${time}">
+                data-keyframe-editor-time="${kfTime}">
               <span class="director-inline-unit">seg</span>
             </span>
           </label>
           <label class="control-row" for="directorKeyframeEasing"><span>Easing</span>
             <select id="directorKeyframeEasing"
               data-keyframe-editor-path="${escapeHtml(path)}"
-              data-keyframe-editor-time="${time}">
+              data-keyframe-editor-time="${kfTime}">
               <option value="hold"${frame.easing === 'hold' ? ' selected' : ''}>hold</option>
               <option value="linear"${frame.easing === 'linear' ? ' selected' : ''}>linear</option>
               <option value="ease-in"${frame.easing === 'ease-in' ? ' selected' : ''}>ease-in</option>
@@ -404,48 +366,16 @@ export function mountDirectorUI({
             </select>
           </label>
           <div class="director-scene-card-actions">
-            <button type="button" data-director-keyframe-delete data-keyframe-path="${escapeHtml(path)}" data-keyframe-time="${time}">Eliminar</button>
+            <button type="button" data-director-keyframe-delete data-keyframe-path="${escapeHtml(path)}" data-keyframe-time="${kfTime}">Eliminar</button>
           </div>
         </div>
       `;
     }
 
-    sceneEditEl.innerHTML = `
-      <div class="director-scene-toolbar" role="group" aria-label="Accions globals d'escena">
-        <button type="button" data-director-action="add" aria-label="Nova escena">Nova escena</button>
-      </div>
-      <div class="director-scene-card" role="group" aria-label="Propietats de l'escena">
-        <h4 class="panel-title">Escena ${escapeHtml(active.name)}</h4>
-        <label class="control-row" for="directorSceneDuration"><span>Durada total</span>
-          <span class="director-duration-field">
-            <input id="directorSceneDuration" type="number" min="0.1" max="3600" step="0.1" inputmode="decimal"
-              value="${active.duration}" aria-describedby="directorDurationUnit">
-            <span id="directorDurationUnit" class="director-inline-unit">seg</span>
-          </span>
-        </label>
-        <label class="control-row" for="directorTransitionDuration"><span>Durada transició</span>
-          <span class="director-duration-field">
-            <input id="directorTransitionDuration" type="number" min="0" max="${active.duration}" step="0.1" inputmode="decimal"
-              value="${active.transition.duration}" aria-describedby="directorTransitionUnit">
-            <span id="directorTransitionUnit" class="director-inline-unit">seg</span>
-          </span>
-        </label>
-        <label class="control-row" for="directorTransitionEasing"><span>Estil transició</span>
-          <select id="directorTransitionEasing">
-            <option value="hold"${active.transition.easing === 'hold' ? ' selected' : ''}>hold</option>
-            <option value="linear"${active.transition.easing === 'linear' ? ' selected' : ''}>linear</option>
-            <option value="ease-in"${active.transition.easing === 'ease-in' ? ' selected' : ''}>ease-in</option>
-            <option value="ease-out"${active.transition.easing === 'ease-out' ? ' selected' : ''}>ease-out</option>
-            <option value="ease-in-out"${active.transition.easing === 'ease-in-out' ? ' selected' : ''}>ease-in-out</option>
-          </select>
-        </label>
-        <div class="director-scene-card-actions">
-          <button type="button" data-director-action="delete" aria-label="Elimina escena">Elimina</button>
-        </div>
-      </div>
+    effectsAreaEl.innerHTML = `
       <div class="director-effects" role="group" aria-labelledby="directorEffectsTitle">
         <h4 class="panel-title" id="directorEffectsTitle">Efectes</h4>
-        <p id="directorEffectsHasKeyframesHint" class="sr-only">Aquest efecte ja té algun fotograma clau en un altre instant d'aquesta escena.</p>
+        <p id="directorEffectsHasKeyframesHint" class="sr-only">Aquest efecte ja té algun fotograma clau en un altre instant de la línia de temps.</p>
         ${effectsList}
       </div>
       ${keyframeEditor}
@@ -453,23 +383,22 @@ export function mountDirectorUI({
   }
 
   // ── Build automation lanes in timeline ────────────────────────────────────
-  function buildLanes(vm, active, localTime) {
-    if (!active || !lanesEl) return;
-    const lt = localTime ?? 0;
-    const total = vm.duration || active.duration || 1;
+  function buildLanes(director, time, total) {
+    if (!lanesEl) return;
+    const t = time ?? 0;
     const selected = getState().selectedDirectorKeyframe;
-    const entries = Object.entries(active.automations).flatMap(([path, frames]) => {
+    const entries = Object.entries(director.automations).flatMap(([path, frames]) => {
       const label = keyframeLabel(path);
       return [...frames]
         .sort((a, b) => a.time - b.time)
         .map((frame) => ({
           path,
           time: frame.time,
-          isCurrent: Math.abs(frame.time - lt) <= 0.0001,
-          isSelected: selected?.sceneId === active.id && selected?.path === path && Math.abs(selected.time - frame.time) <= 0.0001,
+          isCurrent: Math.abs(frame.time - t) <= 0.0001,
+          isSelected: selected?.path === path && Math.abs(selected.time - frame.time) <= 0.0001,
           label,
           value: keyframeValue(frame.value),
-          left: ((active.start + frame.time) / total) * 100,
+          left: (frame.time / total) * 100,
         }));
     }).sort((a, b) => a.left - b.left || a.time - b.time);
 
@@ -506,40 +435,35 @@ export function mountDirectorUI({
   // ── render() ──────────────────────────────────────────────────────────────
   function render() {
     const state = getState();
-    const vm = directorViewModel(
-      state.director,
-      state.selectedDirectorSceneId,
-      state.directorTime ?? 0,
-    );
-    const selectedKeyframe = findSelectedKeyframe(state, vm.activeScene);
+    const vm = directorViewModel(state.director, state.directorTime ?? 0);
+    const selectedKeyframe = findSelectedKeyframe(state, vm.director);
 
-    // Enabled checkbox
+    // Enabled checkbox + duration field
     enabledCb.checked = !!vm.director.enabled;
+    if (document.activeElement !== durationInput) durationInput.value = vm.director.duration;
+    trackEl?.setAttribute('aria-valuemax', String(vm.duration));
+    trackEl?.setAttribute('aria-valuenow', String(vm.time ?? 0));
+    trackEl?.setAttribute('aria-valuetext', timeText(vm.time ?? 0));
 
     if (reverseBtn) reverseBtn.setAttribute('aria-pressed', String((state.directorRate ?? 1) < 0));
     if (loopBtn) loopBtn.setAttribute('aria-pressed', String(vm.director.loop !== false));
 
-    // Rebuild scene radiogroup
-    buildScenes(vm);
-
-    // Rebuild scene inspector
-    const localTime = Math.max(0, (vm.time ?? 0) - (vm.activeScene?.start ?? 0));
-    buildSceneInspector(vm.activeScene, selectedKeyframe, localTime);
+    // Rebuild effects + keyframe editor
+    buildEffectsArea(vm.director, selectedKeyframe, vm.time ?? 0);
 
     // Rebuild automation lanes
-    buildLanes(vm, vm.activeScene, localTime);
+    buildLanes(vm.director, vm.time ?? 0, vm.duration || 1);
+
+    syncPlayhead(playheadEl, vm.duration, vm.time ?? 0);
   }
 
-  // ── setTime(time, sceneId) ─────────────────────────────────────────────────
-  function setTime(time, sceneId) {
-    // Toggle .is-playing on the matching radio
-    const radios = scenesEl.querySelectorAll('[role="radio"]');
-    radios.forEach((btn) => {
-      btn.classList.toggle('is-playing', btn.dataset.sceneId === sceneId);
-    });
+  // ── setTime(time) ─────────────────────────────────────────────────────────
+  function setTime(time) {
     const state = getState();
     const duration = totalDuration(state.director);
     syncPlayhead(playheadEl, duration, time);
+    trackEl?.setAttribute('aria-valuenow', String(time));
+    trackEl?.setAttribute('aria-valuetext', timeText(time));
   }
 
   return { render, setTime };

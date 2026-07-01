@@ -3,18 +3,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { directorViewModel } from '../director-ui.js';
 
-test('directorViewModel computes contiguous scene positions', () => {
+test('directorViewModel exposes the whole timeline as one duration', () => {
   const view = directorViewModel({
-    version: 1, enabled: true, loop: true,
-    scenes: [
-      { id: 'a', name: 'Flota', duration: 2, transition: { duration: 0 }, params: {}, behaviors: [], automations: {} },
-      { id: 'b', name: 'Òrbita', duration: 3, transition: { duration: 0 }, params: {}, behaviors: [], automations: {} },
-    ],
-  }, 'b', 2.5);
-  assert.deepEqual(view.scenes.map(({ id, start, end }) => ({ id, start, end })), [
-    { id: 'a', start: 0, end: 2 },
-    { id: 'b', start: 2, end: 5 },
-  ]);
-  assert.equal(view.activeScene.id, 'b');
+    version: 1, enabled: true, loop: true, duration: 5,
+    automations: {},
+  }, 2.5);
   assert.equal(view.duration, 5);
+  assert.equal(view.time, 2.5);
+  assert.equal(view.director.enabled, true);
 });

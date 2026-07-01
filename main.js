@@ -4,7 +4,7 @@ import { encodeDirectorFrames, resolveOfflineAnimationState } from './export-vid
 import { store as _ghStore } from './presets-github.js';
 import { createPresetPanel } from './preset-panel.js';
 import { captureCreativePreset } from './preset-state.js';
-import { DEFAULT_DIRECTOR, advanceDirectorTime, evaluateDirector, normalizeDirector, normalizeScene, totalDuration, applySceneAction, upsertKeyframe, removeKeyframe, AUTOMATABLE_PARAMS } from './director.js';
+import { DEFAULT_DIRECTOR, advanceDirectorTime, evaluateDirector, normalizeDirector, totalDuration, upsertKeyframe, removeKeyframe, AUTOMATABLE_PARAMS } from './director.js';
 import { mountDirectorUI, AUTOMATION_CONTROL_IDS } from './director-ui.js';
 
 // Slider definitions: key -> { label, default }
@@ -171,7 +171,6 @@ const state = {
   director: structuredClone(DEFAULT_DIRECTOR),
   directorTime: 0,
   directorRate: 1,
-  selectedDirectorSceneId: 'scene-1',
   selectedDirectorKeyframe: null,
   // Custom 3D outline data.
   customOutline: DEFAULT_CUSTOM_OUTLINE.slice(),
@@ -373,7 +372,6 @@ function resolveRenderState(atTime = state.directorTime) {
     t: atTime * (Number.isFinite(animationSpeed) ? animationSpeed : 1),
     morphClock: atTime,
     directorTime: atTime,
-    activeDirectorSceneId: resolved.sceneId,
   };
 }
 
@@ -381,12 +379,7 @@ function render(atTime = state.directorTime) {
   ensureCanvas();
   const renderState = resolveRenderState(atTime);
   drawResolvedState(renderState);
-  directorUI?.setTime(atTime, renderState.activeDirectorSceneId);
-  if (state.director.enabled && renderState.activeDirectorSceneId !== lastAnnouncedDirectorSceneId) {
-    lastAnnouncedDirectorSceneId = renderState.activeDirectorSceneId;
-    const active = state.director.scenes.find((item) => item.id === renderState.activeDirectorSceneId);
-    if (active) announce(`Escena ${active.name}`);
-  }
+  directorUI?.setTime(atTime);
 }
 
 function drawResolvedState(renderState) {
@@ -397,7 +390,6 @@ function drawResolvedState(renderState) {
 
 // --- Director UI ---
 let directorUI = null;
-let lastAnnouncedDirectorSceneId = null;
 
 // --- Animation loop ---
 let playing = false;
@@ -1328,7 +1320,6 @@ function applyPreset(p) {
   if (!p || p.v !== 1) return;
   state.director = normalizeDirector(p.director);
   state.directorTime = 0;
-  state.selectedDirectorSceneId = state.director.scenes[0].id;
   state.selectedDirectorKeyframe = null;
   if (state.director.unsupportedVersion) {
     setPresetStatus('Aquest preset usa una versió més nova del Director; es carrega la composició base amb Director desactivat.');
@@ -1425,52 +1416,39 @@ const shaperPresetPanel = createPresetPanel({
   setStatus:     setPresetStatus,
 });
 
-// --- Director scene editing helpers ---
-function replaceDirectorScene(nextScene) {
-  state.director = { ...state.director, scenes: state.director.scenes.map((scene) => scene.id === nextScene.id ? nextScene : scene) };
-  if (state.selectedDirectorKeyframe?.sceneId === nextScene.id) {
-    const frames = nextScene.automations?.[state.selectedDirectorKeyframe.path] || [];
+// --- Director editing helpers ---
+function replaceDirector(nextDirector) {
+  state.director = nextDirector;
+  if (state.selectedDirectorKeyframe) {
+    const frames = nextDirector.automations?.[state.selectedDirectorKeyframe.path] || [];
     const exists = frames.some((frame) => Math.abs(frame.time - state.selectedDirectorKeyframe.time) <= 0.0001);
     if (!exists) state.selectedDirectorKeyframe = null;
   }
   directorUI.render(); scheduleRender();
   updateAutomationButtonStates();
 }
-function selectedDirectorScene() {
-  return state.director.scenes.find((scene) => scene.id === state.selectedDirectorSceneId) || state.director.scenes[0];
-}
-function handleDirectorSceneAction(action) {
-  const result = applySceneAction(state.director, state.selectedDirectorSceneId, action);
-  state.director = result.director;
-  state.selectedDirectorSceneId = result.selectedSceneId;
-  state.selectedDirectorKeyframe = null;
-  directorUI.render(); scheduleRender();
-}
-function updateSelectedSceneDuration(duration) { replaceDirectorScene(normalizeScene({ ...selectedDirectorScene(), duration })); }
-function updateSelectedTransition(patch) { const s = selectedDirectorScene(); replaceDirectorScene(normalizeScene({ ...s, transition: { ...s.transition, ...patch } })); }
+function updateDirectorDuration(duration) { state.director = normalizeDirector({ ...state.director, duration }); directorUI.render(); scheduleRender(); }
 function updateSelectedKeyframe(path, time, patch) {
-  const scene = selectedDirectorScene();
-  const frames = scene?.automations?.[path] || [];
+  const frames = state.director?.automations?.[path] || [];
   const current = frames.find((frame) => Math.abs(frame.time - time) <= 0.0001);
   if (!current) return;
   const nextTime = Number.isFinite(Number(patch.time)) ? Number(patch.time) : current.time;
   const nextValue = Object.prototype.hasOwnProperty.call(patch, 'value') ? patch.value : current.value;
   const nextEasing = patch.easing ?? current.easing ?? 'linear';
-  let nextScene = removeKeyframe(scene, path, time);
-  nextScene = upsertKeyframe(nextScene, path, { time: nextTime, value: nextValue, easing: nextEasing });
-  state.selectedDirectorKeyframe = { sceneId: scene.id, path, time: Math.max(0, Math.min(scene.duration, nextTime)) };
-  replaceDirectorScene(nextScene);
+  let nextDirector = removeKeyframe(state.director, path, time);
+  nextDirector = upsertKeyframe(nextDirector, path, { time: nextTime, value: nextValue, easing: nextEasing });
+  state.selectedDirectorKeyframe = { path, time: Math.max(0, Math.min(state.director.duration, nextTime)) };
+  replaceDirector(nextDirector);
 }
 
 function updateAutomationButtonStates() {
   document.body.toggleAttribute('data-director-enabled', !!state.director?.enabled);
   if (!state.director?.enabled) return;
-  const scene = selectedDirectorScene();
   const { localTime } = evaluateDirector(state.director, state.directorTime, state);
   for (const name of Object.keys(AUTOMATION_CONTROL_IDS)) {
     const btn = document.querySelector(`[data-automation-path="${name}"]`);
     if (!btn) continue;
-    const frames = scene?.automations?.[`param:${name}`] || [];
+    const frames = state.director?.automations?.[`param:${name}`] || [];
     btn.setAttribute('aria-pressed', String(frames.some((f) => Math.abs(f.time - localTime) <= 0.0001)));
   }
 }
@@ -1491,16 +1469,15 @@ function installAutomationButtons() {
     control.insertAdjacentElement('afterend', button);
     button.addEventListener('click', () => {
       const { localTime } = evaluateDirector(state.director, state.directorTime, state);
-      const scene = selectedDirectorScene();
       const path = `param:${name}`;
-      const frames = scene?.automations?.[path] || [];
+      const frames = state.director?.automations?.[path] || [];
       const has = frames.some((f) => Math.abs(f.time - localTime) <= 0.0001);
       if (has) {
-        replaceDirectorScene(removeKeyframe(scene, path, localTime));
+        replaceDirector(removeKeyframe(state.director, path, localTime));
       } else {
         const kind = AUTOMATABLE_PARAMS[name];
         const value = kind === 'number' ? Number(control.value) : control.value;
-        replaceDirectorScene(upsertKeyframe(scene, path, { time: localTime, value, easing: kind === 'hold' ? 'hold' : 'linear' }));
+        replaceDirector(upsertKeyframe(state.director, path, { time: localTime, value, easing: kind === 'hold' ? 'hold' : 'linear' }));
       }
     });
   }
@@ -1512,14 +1489,11 @@ function wireDirector() {
     inspector: $('directorInspector'),
     timeline: $('directorTimeline'),
     getState: () => state,
-    onSelectScene: (id) => { state.selectedDirectorSceneId = id; state.selectedDirectorKeyframe = null; directorUI.render(); },
     onSeek: (time) => { state.directorTime = time; render(time); directorUI.render(); updateAutomationButtonStates(); },
     onToggleEnabled: (enabled) => { state.director = { ...state.director, enabled }; scheduleRender(); directorUI.render(); updateAutomationButtonStates(); },
-    onSceneAction: handleDirectorSceneAction,
-    onSceneDuration: updateSelectedSceneDuration,
-    onTransitionChange: updateSelectedTransition,
+    onDurationChange: updateDirectorDuration,
     onSelectKeyframe: (path, time) => {
-      state.selectedDirectorKeyframe = { sceneId: state.selectedDirectorSceneId, path, time };
+      state.selectedDirectorKeyframe = { path, time };
       directorUI.render();
     },
     onUpdateKeyframe: updateSelectedKeyframe,
@@ -1529,12 +1503,11 @@ function wireDirector() {
         && Math.abs(state.selectedDirectorKeyframe.time - time) <= 0.0001) {
         state.selectedDirectorKeyframe = null;
       }
-      replaceDirectorScene(removeKeyframe(selectedDirectorScene(), path, time));
+      replaceDirector(removeKeyframe(state.director, path, time));
     },
     onToggleKeyframe: (path, _field) => {
       const { localTime } = evaluateDirector(state.director, state.directorTime, state);
-      const scene = selectedDirectorScene();
-      const frames = scene?.automations?.[path] || [];
+      const frames = state.director?.automations?.[path] || [];
       const has = frames.some((f) => Math.abs(f.time - localTime) <= 0.0001);
       if (has) {
         if (state.selectedDirectorKeyframe
@@ -1542,7 +1515,7 @@ function wireDirector() {
           && Math.abs(state.selectedDirectorKeyframe.time - localTime) <= 0.0001) {
           state.selectedDirectorKeyframe = null;
         }
-        replaceDirectorScene(removeKeyframe(scene, path, localTime));
+        replaceDirector(removeKeyframe(state.director, path, localTime));
         return;
       }
       let value = 0;
@@ -1552,8 +1525,8 @@ function wireDirector() {
         kind = AUTOMATABLE_PARAMS[name] || 'number';
         value = state[name] !== undefined ? state[name] : 0;
       }
-      state.selectedDirectorKeyframe = { sceneId: scene.id, path, time: localTime };
-      replaceDirectorScene(upsertKeyframe(scene, path, { time: localTime, value, easing: kind === 'hold' ? 'hold' : 'linear' }));
+      state.selectedDirectorKeyframe = { path, time: localTime };
+      replaceDirector(upsertKeyframe(state.director, path, { time: localTime, value, easing: kind === 'hold' ? 'hold' : 'linear' }));
     },
   });
 

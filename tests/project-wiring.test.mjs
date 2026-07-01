@@ -79,3 +79,22 @@ test('fixed-duration MP4 export falls back to real-time capture', async () => {
   assert.doesNotMatch(main, /resolveOfflineAnimationState/);
   assert.match(main, /recState\.loopTotal = isNaN\(dur\) \? 0 : dur \* fps/);
 });
+
+test('2D grid panel is wired: rows/cols, per-axis presets, mode switch', async () => {
+  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  const main = await readFile(new URL('../main.js', import.meta.url), 'utf8');
+  const presetState = await readFile(new URL('../preset-state.js', import.meta.url), 'utf8');
+  assert.match(html, /id="panel-2d" hidden>/);
+  assert.match(html, /id="grid2dRows"/);
+  assert.match(html, /id="grid2dCols"/);
+  assert.match(html, /id="grid2dRowSame"/);
+  assert.match(html, /id="grid2dColSame"/);
+  assert.match(html, /id="grid2dRowPresets"/);
+  assert.match(html, /id="grid2dColPresets"/);
+  assert.match(main, /import \{ layoutGrid2D, evaluateGrid2D, drawGrid2D, PRESET_NAMES \} from '\.\/engine2d\.js'/);
+  assert.match(main, /grid2d:\s*\{/);
+  assert.match(main, /if \(panelId === 'panel-2d' && state\.mode !== '2d'\)/);
+  assert.match(main, /function renderGrid2D\(\)/);
+  assert.match(main, /function wireGrid2D\(\)/);
+  assert.match(presetState, /'grid2d'/);
+});

@@ -164,6 +164,31 @@
         </section>
 
         <section class="panel" id="panel-2d" hidden>
+          <h3 class="panel-title">Graella</h3>
+          <label class="control-row" for="grid2dRows">
+            <span>Files</span>
+            <input type="number" id="grid2dRows" name="grid2dRows" min="1" max="20" step="1" value="3">
+          </label>
+          <label class="control-row" for="grid2dCols">
+            <span>Columnes</span>
+            <input type="number" id="grid2dCols" name="grid2dCols" min="1" max="20" step="1" value="3">
+          </label>
+          <label class="control-stack slider" data-key="grid2dIntensity" data-min="0" data-max="2" data-step="0.05"></label>
+          <label class="control-stack slider" data-key="grid2dSpeed" data-min="0" data-max="3" data-step="0.05"></label>
+
+          <h3 class="panel-title">Animació per fila</h3>
+          <label class="control-row" for="grid2dRowSame">
+            <span>Aplica la mateixa a totes les files</span>
+            <input type="checkbox" id="grid2dRowSame" name="grid2dRowSame" checked>
+          </label>
+          <div id="grid2dRowPresets" role="group" aria-label="Animació per fila"></div>
+
+          <h3 class="panel-title">Animació per columna</h3>
+          <label class="control-row" for="grid2dColSame">
+            <span>Aplica la mateixa a totes les columnes</span>
+            <input type="checkbox" id="grid2dColSame" name="grid2dColSame" checked>
+          </label>
+          <div id="grid2dColPresets" role="group" aria-label="Animació per columna"></div>
         </section>
 
         <section class="panel" id="panel-3d" hidden>

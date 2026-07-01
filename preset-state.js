@@ -14,6 +14,7 @@ export const CREATIVE_PRESET_EXTRA_KEYS = Object.freeze([
   'accentColor', 'accentColor2', 'accentColor3', 'accentColor4',
   'morphForm', 'morphForm2', 'morphForm3', 'morphAuto',
   'customOutline',
+  'grid2d',
 ]);
 
 export const EPHEMERAL_PRESET_KEYS = Object.freeze([

@@ -48,7 +48,7 @@ const FONT_MAP = {
   'helvetica-bold':   { family: 'Helvetica, Arial, sans-serif', weight: 700 },
 };
 
-function resolveFontSpec(fontKey) {
+export function resolveFontSpec(fontKey) {
   return FONT_MAP[fontKey] || FONT_MAP['times-regular'];
 }
 

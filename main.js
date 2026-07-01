@@ -1,5 +1,6 @@
 // main.js — UI wiring for SHAPER 001
 import { buildSVG, buildScene, drawScene, DEFAULT_CUSTOM_OUTLINE } from './engine.js';
+import { layoutGrid2D, evaluateGrid2D, drawGrid2D, PRESET_NAMES } from './engine2d.js';
 import { store as _ghStore } from './presets-github.js';
 import { createPresetPanel } from './preset-panel.js';
 import { captureCreativePreset } from './preset-state.js';
@@ -67,6 +68,9 @@ const SLIDERS = {
   morphSpeed:    { label: 'Velocitat morph', def: 0 },
   morphScatter:  { label: 'Dispersió aleatòria', def: 0 },
   morphSpeedVar: { label: 'Variació de velocitat', def: 0 },
+  // --- 2D grid ---
+  grid2dIntensity: { label: 'Intensitat', def: 1 },
+  grid2dSpeed:     { label: 'Velocitat', def: 1 },
 };
 
 const FORM_3D_CONTROLS = {
@@ -128,6 +132,11 @@ const state = {
   seed: 1,
   hardWrap: false,
   mode: '3d',
+  grid2d: {
+    rows: 3, cols: 3,
+    rowSame: true, colSame: true,
+    rowPresets: ['none'], colPresets: ['none'],
+  },
   // --- 3D selects + checkboxes (sliders come from SLIDERS defaults below) ---
   form: 'mobius',
   projection: 'isometric',
@@ -356,8 +365,26 @@ function scheduleRender() {
 
 function render() {
   ensureCanvas();
+  if (state.mode === '2d') {
+    renderGrid2D();
+    return;
+  }
   const scene = buildScene(state, displayW, displayH);
   drawScene(displayCtx, scene, displayW, displayH, displayDpr);
+}
+
+function renderGrid2D() {
+  const grid = layoutGrid2D(state.text, state.grid2d.rows, state.grid2d.cols, displayW, displayH);
+  const evaluated = evaluateGrid2D(
+    grid, state.morphClock || 0,
+    { same: state.grid2d.rowSame, presets: state.grid2d.rowPresets },
+    { same: state.grid2d.colSame, presets: state.grid2d.colPresets },
+    state.grid2dIntensity, state.grid2dSpeed,
+  );
+  drawGrid2D(displayCtx, evaluated, displayW, displayH, {
+    fontSize: state.fontSize, font: state.font,
+    textColor: state.textColor, bgColor: state.bgColor, dpr: displayDpr,
+  });
 }
 
 // --- Animation loop ---
@@ -594,6 +621,101 @@ function updateEditorVisibility() {
   if (fovRow) fovRow.hidden = state.projection !== 'perspective';
 }
 
+// --- 2D grid panel ---
+const GRID2D_PRESET_LABELS = Object.freeze({
+  none: 'Cap', wave: 'Onada', accordion: 'Acordió', cascade: 'Cascada',
+  warpflow: 'Warp Flow', block: 'Block In',
+});
+
+function ensurePresetArrayLength(arr, n) {
+  while (arr.length < n) arr.push(arr[arr.length - 1] || 'none');
+  arr.length = Math.max(n, 1);
+}
+
+function buildAxisPresetSelects(containerEl, axisState, count, onChange) {
+  if (!containerEl) return;
+  // Preserve focus position across rebuild: if a select in this container
+  // had focus, refocus the select at the same index afterward (clamped).
+  const active = document.activeElement;
+  const hadFocus = active && containerEl.contains(active);
+  const focusedIndex = hadFocus ? Array.from(containerEl.querySelectorAll('select')).indexOf(active) : -1;
+  containerEl.innerHTML = '';
+  const n = axisState.same ? 1 : count;
+  const axisWord = axisState.axisLabel || '';
+  for (let i = 0; i < n; i++) {
+    const label = document.createElement('label');
+    label.className = 'control-row';
+    const span = document.createElement('span');
+    span.textContent = axisState.same ? 'Totes' : `${axisWord} ${i + 1}`;
+    const select = document.createElement('select');
+    const selectId = `${containerEl.id}-preset-${i}`;
+    select.id = selectId;
+    label.htmlFor = selectId;
+    PRESET_NAMES.forEach((name) => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = GRID2D_PRESET_LABELS[name] || name;
+      if ((axisState.presets[i] || 'none') === name) opt.selected = true;
+      select.appendChild(opt);
+    });
+    select.addEventListener('change', () => {
+      axisState.presets[i] = select.value;
+      onChange();
+    });
+    label.append(span, select);
+    containerEl.appendChild(label);
+  }
+  if (focusedIndex >= 0) {
+    const selects = containerEl.querySelectorAll('select');
+    const target = selects[Math.min(focusedIndex, selects.length - 1)];
+    if (target) target.focus();
+  }
+}
+
+function renderGrid2DAxisControls() {
+  const g = state.grid2d;
+  ensurePresetArrayLength(g.rowPresets, g.rowSame ? 1 : g.rows);
+  ensurePresetArrayLength(g.colPresets, g.colSame ? 1 : g.cols);
+  buildAxisPresetSelects($('grid2dRowPresets'), g.rowSame ? { same: true, presets: g.rowPresets, axisLabel: 'Fila' } : { same: false, presets: g.rowPresets, axisLabel: 'Fila' }, g.rows, scheduleRender);
+  buildAxisPresetSelects($('grid2dColPresets'), g.colSame ? { same: true, presets: g.colPresets, axisLabel: 'Columna' } : { same: false, presets: g.colPresets, axisLabel: 'Columna' }, g.cols, scheduleRender);
+}
+
+function wireGrid2D() {
+  const rowsInput = $('grid2dRows');
+  const colsInput = $('grid2dCols');
+  const rowSameCb = $('grid2dRowSame');
+  const colSameCb = $('grid2dColSame');
+  if (!rowsInput || !colsInput || !rowSameCb || !colSameCb) return;
+
+  rowsInput.value = state.grid2d.rows;
+  colsInput.value = state.grid2d.cols;
+  rowSameCb.checked = state.grid2d.rowSame;
+  colSameCb.checked = state.grid2d.colSame;
+
+  rowsInput.addEventListener('input', () => {
+    state.grid2d.rows = Math.max(1, Math.round(Number(rowsInput.value) || 1));
+    renderGrid2DAxisControls();
+    scheduleRender();
+  });
+  colsInput.addEventListener('input', () => {
+    state.grid2d.cols = Math.max(1, Math.round(Number(colsInput.value) || 1));
+    renderGrid2DAxisControls();
+    scheduleRender();
+  });
+  rowSameCb.addEventListener('change', () => {
+    state.grid2d.rowSame = rowSameCb.checked;
+    renderGrid2DAxisControls();
+    scheduleRender();
+  });
+  colSameCb.addEventListener('change', () => {
+    state.grid2d.colSame = colSameCb.checked;
+    renderGrid2DAxisControls();
+    scheduleRender();
+  });
+
+  renderGrid2DAxisControls();
+}
+
 // --- SVG shape import ---
 async function loadSvgOutline(file) {
   const text = await file.text();
@@ -650,6 +772,11 @@ function activatePanel(panelId) {
   if (panelId === 'panel-3d' && state.mode !== '3d') {
     state.mode = '3d';
     announce('Mode 3D activat');
+    scheduleRender();
+  }
+  if (panelId === 'panel-2d' && state.mode !== '2d') {
+    state.mode = '2d';
+    announce('Mode 2D activat');
     scheduleRender();
   }
 
@@ -1254,9 +1381,22 @@ function applyPreset(p) {
   if (p.hardWrap  != null) { state.hardWrap  = p.hardWrap;  $('hardWrap').checked  = p.hardWrap; }
   if (p.speed3d != null) { state.speed3d = p.speed3d; syncSliderUI('speed3d'); }
   if (p.mode != null) {
-    state.mode = '3d';
+    state.mode = p.mode === '2d' ? '2d' : '3d';
     updateEditorVisibility();
   }
+  if (p.grid2d && typeof p.grid2d === 'object') {
+    state.grid2d = {
+      rows: Math.max(1, Math.round(Number(p.grid2d.rows) || 3)),
+      cols: Math.max(1, Math.round(Number(p.grid2d.cols) || 3)),
+      rowSame: p.grid2d.rowSame !== false,
+      colSame: p.grid2d.colSame !== false,
+      rowPresets: Array.isArray(p.grid2d.rowPresets) ? p.grid2d.rowPresets.slice() : ['none'],
+      colPresets: Array.isArray(p.grid2d.colPresets) ? p.grid2d.colPresets.slice() : ['none'],
+    };
+    renderGrid2DAxisControls();
+  }
+  if (p.grid2dIntensity != null) { state.grid2dIntensity = p.grid2dIntensity; syncSliderUI('grid2dIntensity'); }
+  if (p.grid2dSpeed     != null) { state.grid2dSpeed     = p.grid2dSpeed;     syncSliderUI('grid2dSpeed'); }
   if (p.form       != null) { state.form       = p.form;       $('form').value       = p.form;       updateEditorVisibility(); }
   if (p.projection != null) { state.projection = p.projection; $('projection').value = p.projection; updateFovEnabled(); updateEditorVisibility(); }
   if (p.guides          != null) { state.guides          = p.guides;          $('guides').checked          = p.guides; }
@@ -1466,6 +1606,7 @@ function buildCharMap() {
 function init() {
   restoreCustomData();
   buildSliders();
+  wireGrid2D();
   bindNavigation();
   wireControls();
   shaperPresetPanel.activate();

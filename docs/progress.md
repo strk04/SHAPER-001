@@ -1,5 +1,51 @@
 # Progress — SHAPER 001
 
+## 2026-07-01 — Secció 2D: text repetit per cel·la + tots els paràmetres de l'Àtom + toggle de graella
+
+### Fet
+- L'usuari va reportar 3 problemes sobre la v1 de la secció 2D: (1) el text s'havia de repetir a
+  cada fila/columna en lloc de repartir-se; (2) molts paràmetres del panell Àtom no afectaven
+  l'àtom 2D; (3) volia poder mostrar/amagar les línies de la graella.
+- `engine2d.js` `layoutGrid2D()`: deixa de rebre `text` i de repartir paraules entre cel·les —
+  ara és pura geometria (`layoutGrid2D(rows, cols, width, height)`). El contingut és responsabilitat
+  del pas de dibuix.
+- `engine2d.js` `drawGrid2D()`: reescrit per cridar `layout()` (importat d'`engine.js`, ja existent
+  i usat pel pipeline 3D) amb l'`state` sencer per a cada cel·la, en lloc d'un `fillText` amb
+  word-wrap propi. Com que `layout()` ja calcula `extraOp`/`skew`/`sizeMul`/`accentT`/`blinkT` per
+  caràcter llegint `charTrack`, `leading`, `wordTrack`, `wordChaos`, `wordRamp`, `noiseAmt`,
+  `charChaos`, `yJitter(Affect)`, `dropProb`, `densityMap`, `wordsPerRow`, `hardWrap`, `charSkew`,
+  `opacityMode/Prob/Every`, `blinkMode/Rate/Prob/Every/Fade`, `sizeMode/Amt/Prob/Every`, els 4
+  `accentMode(N)/Prob(N)/Every(N)`, `seed`, `font`, `fontSize`, `t`, `speed` — reutilitzar-la fa que
+  **tots** aquests controls afectin automàticament el 2D, sense reimplementar cap efecte.
+  `drawGrid2D()` replica el bucle de dibuix per glif de `drawScene()` (blink amb `clockMs`
+  derivat de `morphClock`, colors d'accent, skew via `ctx.transform`, mida via `ctx.scale`) però
+  amb `ctx.translate`/`ctx.clip` per cel·la en lloc de la matriu 3D.
+- Cada cel·la es retalla (`ctx.clip()`) a la seva pròpia àrea perquè el desbordament de text d'una
+  cel·la no envaeixi visualment la cel·la veïna.
+- Nou toggle `showGrid` (checkbox "Mostra graella" a `panel-2d`, per defecte apagat): quan actiu,
+  `drawGrid2D()` dibuixa `strokeRect` per cada cel·la (amb l'escala animada de fila/columna ja
+  aplicada, perquè l'usuari vegi com es deforma la graella en temps real).
+- `main.js`: `state.grid2d.showGrid`; `wireGrid2D()` connecta el checkbox; `applyPreset()` el
+  restaura des del preset i sincronitza tots els inputs del panell 2D (files/columnes/checkboxes)
+  amb els valors carregats (abans només reconstruïa els selectors, no els altres controls).
+- Tests actualitzats a `tests/engine2d.test.mjs` (signatura nova de `layoutGrid2D`, sense `.text`
+  a les cel·les) i 2 tests nous per a `drawGrid2D()` amb un `ctx` fake (patró ja usat a
+  `tests/surface-fill.test.mjs`): repeteix el text a cada cel·la i pinta el fons; només dibuixa
+  `strokeRect` quan `showGrid` és `true`. Test de wiring nou a `project-wiring.test.mjs`.
+
+### Verificat
+- `node --test tests/*.mjs` → 34 pass (Shaper).
+- Sincronitzat a `02 Pixel Perfect/shaper/`; `node --test tests/*.mjs` → 29 pass allà.
+- Pujat a `strk04/SHAPER-001` (`1f6b7cc`) i `strk04/PIxel-Perfect` (`598a3f6`).
+
+### Pendent
+- Validació visual real al navegador (encara no s'ha provat cap d'aquests canvis en un navegador
+  real, només tests unitaris amb un `ctx` simulat).
+- El "Block In" continua sent la versió v1 simplificada (sense fase de push) — pendent confirmació.
+- Export SVG/PNG/MP4 encara no adaptat al mode 2D.
+- Amb graelles grans (moltes files×columnes) i textos llargs, cridar `layout()` sencer per cada
+  cel·la pot ser costós — no s'ha mesurat rendiment; possible optimització futura si cal.
+
 ## 2026-07-01 — Secció 2D v1: graella files×columnes amb animacions
 
 ### Fet

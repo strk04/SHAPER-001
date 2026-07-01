@@ -1,5 +1,30 @@
 # Decisions — SHAPER 001
 
+## 2026-07-01 — Secció 2D: repetir el text sencer, no repartir-lo entre cel·les
+
+Revertida la decisió original de la v1 (word-wrap del text en 2 eixos per omplir la graella
+exactament una vegada). L'usuari va indicar directament que "l'àtom hauria de repetir-se per cada
+columna i/o fila". `layoutGrid2D()` deixa de rebre `text`/de dividir paraules; cada cel·la mostra
+el mateix text sencer.
+
+Racional: no es va donar explicació — canvi de direcció de disseny un cop vist el resultat de la
+v1. Simplifica també el model (`layoutGrid2D` és ara pura geometria, sense dependència de
+`tokenize()`).
+
+## 2026-07-01 — Secció 2D: reutilitzar `layout()` en lloc d'un renderer 2D propi
+
+El primer intent de `drawGrid2D()` feia un `fillText` + word-wrap simple, only usant `fontSize`/
+`font`/`textColor`/`bgColor`. L'usuari va assenyalar que "molts paràmetres de la secció Àtom no
+afecten l'àtom 2D". En lloc de reimplementar cadascun d'aquests efectes (kerning, opacitat, blink,
+mida, skew, accent, soroll...) al mòdul 2D, es va decidir cridar `layout()` — la mateixa funció que
+ja usa el pipeline 3D — per cada cel·la, passant-hi l'`state` complet.
+
+Racional: `layout()` ja calcula tots aquests efectes per caràcter (rung 2 de l'escala YAGNI: "ja
+existeix al codebase"); reimplementar-los seria duplicar ~150 línies de lògica ja provada i
+mantenir dues fonts de veritat sincronitzades. Únic cost: cada cel·la corre el bucle de layout
+sencer (potencialment car amb graelles grans + textos llargs); acceptat sense optimitzar
+prematurament, marcat com a pendent de mesurar si cal.
+
 ## 2026-07-01 — Secció 2D: graella real, no dos modes separats
 
 Preguntat explícitament (`AskUserQuestion`) si files i columnes havien de ser una graella real

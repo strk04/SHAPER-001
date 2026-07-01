@@ -1,6 +1,6 @@
 # STATUS — SHAPER 001
 
-_Actualitzat: 2026-07-01 (Secció 2D v1: graella files×columnes amb animacions)_
+_Actualitzat: 2026-07-01 (Secció 2D: text repetit per cel·la + tots els paràmetres de l'Àtom + toggle de graella)_
 
 ## Estat general
 
@@ -15,8 +15,16 @@ Projecte vanilla JS zero-build. Flux habitual de publicació:
 `panel-2d` deixa de ser un tab buit. Model:
 
 - **Graella real**: N files × M columnes, definides per l'usuari (`Files`/`Columnes` a la UI).
-- El text de l'Àtom (compartit amb 3D) flueix i s'ajusta automàticament (word-wrap en 2 eixos) per
-  omplir exactament la graella — una sola font de text, no independent per cel·la.
+- El text de l'Àtom (compartit amb 3D) es **repeteix idèntic a cada cel·la** (2026-07-01; abans es
+  repartia entre cel·les, canviat a petició de l'usuari) — una sola font de text, no independent
+  per cel·la.
+- Cada cel·la es renderitza cridant `layout()` (la mateixa funció que usa el pipeline 3D) amb
+  l'`state` sencer, així que **tots** els controls del panell Àtom (kerning, interlínia, soroll,
+  opacitat/blink/mida/skew per caràcter, accents...) afecten el 2D exactament igual que el 3D
+  (2026-07-01; abans només `fontSize`/`font`/`textColor` tenien efecte). Cada cel·la es retalla
+  (`ctx.clip()`) perquè el desbordament no envaeixi la cel·la veïna.
+- Toggle **"Mostra graella"** (2026-07-01, per defecte apagat): dibuixa les vores de cada cel·la
+  respectant l'escala animada de fila/columna.
 - Cada fila pot tenir la seva pròpia animació, o aplicar-ne una a totes (`Aplica la mateixa a
   totes les files`); mateix mecanisme, independent, per columnes.
 - 5 animacions (`engine2d.js`, portades del "Stacked Text Tool" de referència): **wave, accordion,
@@ -114,18 +122,19 @@ Ultima verificacio executada el 2026-07-01:
 node --check main.js
 node --check engine.js
 node --check engine2d.js
-node --test tests/*.mjs   # 32 pass
+node --test tests/*.mjs   # 34 pass
 ```
 
 ## Pendent
 
 - Completar (o no) la fase de "push" del preset Block In 2D — pendent de confirmació de l'usuari.
 - Adaptar l'export SVG/PNG/MP4 al mode 2D (ara mateix sempre exporta des del pipeline 3D).
-- Validació visual real al navegador de la secció 2D (només verificat amb tests unitaris de la
-  matemàtica pura).
+- Validació visual real al navegador de la secció 2D (només verificat amb tests unitaris i un
+  `ctx` de canvas simulat).
+- Rendiment amb graelles grans + textos llargs no mesurat (`layout()` es crida sencer per cel·la).
 - Revisar deployment de Pixel Perfect si cal confirmar publicacio web.
 - `engine.js`/`motion.js` conserven `applyMotionBehaviors`/`motionBehaviors` com a codi mort — netejar
   si es vol en una sessió separada (no és Director, és previ).
 
-`17 SHAPER 001` pujat a `strk04/SHAPER-001` (`7d653bd`). `02 Pixel Perfect/shaper` sincronitzat i
-pujat a `strk04/PIxel-Perfect` (`c3b9c4e`).
+`17 SHAPER 001` pujat a `strk04/SHAPER-001` (`1f6b7cc`). `02 Pixel Perfect/shaper` sincronitzat i
+pujat a `strk04/PIxel-Perfect` (`598a3f6`).

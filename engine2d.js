@@ -161,16 +161,19 @@ export function drawGrid2D(ctx, evaluated, width, height, atomParams, opts = {})
   const baseColor = opts.textColor || atomParams.textColor || '#000000';
 
   for (const cell of evaluated.cells) {
-    const cw = cell.w * cell.colScale;
-    const ch = cell.h * cell.rowScale;
-    if (cw <= 0 || ch <= 0) continue;
-    const { lines } = layout(atomParams, cw, ch);
+    if (cell.colScale <= 0 || cell.rowScale <= 0) continue;
+    // Layout is computed at the cell's BASE size so word-wrap/line count stay
+    // stable; rowScale/colScale then stretch the atom itself via ctx.scale
+    // (not just its container), so the animation visibly grows/shrinks the
+    // text instead of resizing an invisible box around static-size glyphs.
+    const { lines } = layout(atomParams, cell.w, cell.h);
 
     ctx.save();
-    ctx.beginPath();
-    ctx.rect(cell.x + cell.warpX, cell.y + cell.warpY, cw, ch);
-    ctx.clip();
     ctx.translate(cell.x + cell.warpX, cell.y + cell.warpY);
+    ctx.scale(cell.colScale, cell.rowScale);
+    ctx.beginPath();
+    ctx.rect(0, 0, cell.w, cell.h);
+    ctx.clip();
     ctx.font = `${weight} ${atomParams.fontSize}px ${family}`;
 
     for (const line of lines) {

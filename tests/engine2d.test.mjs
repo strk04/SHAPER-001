@@ -40,8 +40,8 @@ function makeFakeCtx() {
     set lineWidth(value) { calls.push(['lineWidth', value]); },
     get lineWidth() { return 1; },
     setTransform: () => {},
-    translate: () => {},
-    scale: () => {},
+    translate: (...args) => calls.push(['translate', ...args]),
+    scale: (...args) => calls.push(['scale', ...args]),
     transform: () => {},
     fillRect: (...args) => calls.push(['fillRect', ...args]),
     strokeRect: (...args) => calls.push(['strokeRect', ...args]),
@@ -149,6 +149,18 @@ test('drawGrid2D repeats the Àtom text in every cell and paints the background'
   const fillTextCalls = ctx.calls.filter((c) => c[0] === 'fillText');
   assert.ok(fillTextCalls.length >= 8, 'expects "hi" (2 chars) drawn in each of the 4 cells');
   assert.ok(ctx.calls.some((c) => c[0] === 'fillRect'));
+});
+
+test('drawGrid2D scales the atom itself per cell, not just the cell container', () => {
+  const grid = layoutGrid2D(2, 1, 200, 200);
+  const evaluated = evaluateGrid2D(grid, 0.1, { same: false, presets: ['wave', 'none'] }, { same: true, presets: ['none'] }, 1, 1);
+  const row0 = evaluated.cells.find((c) => c.row === 0);
+  assert.notEqual(row0.rowScale, 1, 'precondition: row 0 has a non-neutral scale to actually test');
+  const ctx = makeFakeCtx();
+  drawGrid2D(ctx, evaluated, 200, 200, ATOM_PARAMS, {});
+  const scaleCalls = ctx.calls.filter((c) => c[0] === 'scale');
+  assert.equal(scaleCalls.length, evaluated.cells.length, 'one ctx.scale per cell');
+  assert.ok(scaleCalls.some((c) => c[2] === row0.rowScale), 'the animated rowScale is applied via ctx.scale, not just cell geometry');
 });
 
 test('drawGrid2D only strokes cell boundaries when showGrid is true', () => {

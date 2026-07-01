@@ -1,5 +1,14 @@
 # Decisions — SHAPER 001
 
+## 2026-07-02 — Eliminar tota la secció 2D
+
+L'usuari va demanar directament esborrar tota la secció 2D (graella files×columnes + pack dens
+per-instància, construïda 2026-07-01). Seguint el mateix precedent que l'eliminació del Director
+(2026-07-01): esborrat complet del fitxer motor (`engine2d.js`), el seu test, tot el markup del
+panell/tab, i tot el wiring/estat a `main.js`, sense mantenir cap resta ni flag de compatibilitat.
+`state.mode` torna a l'estat pre-2D (sempre `'3d'`). No es va preguntar abast perquè el patró ja
+estava establert per la sessió anterior (Director) i la petició és inequívoca ("tota la secció").
+
 ## 2026-07-01 — Secció 2D: pack dens per-instància dins de cada cel·la (no substituir la graella)
 
 Davant el feedback "el que tenim és bàsic i pobre" comparat amb exemples de referència densos i

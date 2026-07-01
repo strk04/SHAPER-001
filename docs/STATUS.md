@@ -1,6 +1,6 @@
 # STATUS — SHAPER 001
 
-_Actualitzat: 2026-07-01 (Secció 2D: pack dens per-instància amb variació orgànica de mida)_
+_Actualitzat: 2026-07-02 (Secció 2D eliminada completament)_
 
 ## Estat general
 
@@ -10,48 +10,21 @@ Projecte vanilla JS zero-build. Flux habitual de publicació:
 - sincronitzar a `02 Pixel Perfect/shaper/`
 - commit + push als dos repos
 
-## Secció 2D (v1, 2026-07-01)
+## Secció 2D (eliminada 2026-07-02)
 
-`panel-2d` deixa de ser un tab buit. Model:
+L'usuari va demanar esborrar tota la secció 2D (viscuda 2026-07-01, v1 amb graella
+files×columnes + pack dens per-instància). Ja no existeix:
 
-- **Graella real**: N files × M columnes, definides per l'usuari (`Files`/`Columnes` a la UI).
-- El text de l'Àtom (compartit amb 3D) es **repeteix idèntic a cada cel·la** (2026-07-01; abans es
-  repartia entre cel·les, canviat a petició de l'usuari) — una sola font de text, no independent
-  per cel·la.
-- Cada cel·la es renderitza cridant `layout()` (la mateixa funció que usa el pipeline 3D) amb
-  l'`state` sencer, així que **tots** els controls del panell Àtom (kerning, interlínia, soroll,
-  opacitat/blink/mida/skew per caràcter, accents...) afecten el 2D exactament igual que el 3D
-  (2026-07-01; abans només `fontSize`/`font`/`textColor` tenien efecte). Cada cel·la es retalla
-  (`ctx.clip()`) perquè el desbordament no envaeixi la cel·la veïna.
-- L'escala animada de fila/columna transforma l'**àtom mateix** via `ctx.scale()` (2026-07-01;
-  abans només redimensionava el rectangle de retall i el text quedava a mida fixa a dins, de manera
-  que l'animació només revelava/amagava text en lloc d'escalar-lo). `layout()` es calcula sempre a
-  la mida BASE de la cel·la (word-wrap estable); el `ctx.scale()` s'aplica abans de dibuixar i
-  abans del `ctx.clip()`, perquè la vora de retall escali junt amb l'àtom.
-- Toggle **"Mostra graella"** (2026-07-01, per defecte apagat): dibuixa les vores de cada cel·la
-  respectant l'escala animada de fila/columna.
-- **Pack dens per-instància** (2026-07-01): control `Densitat` (1-6, per defecte 1) subdivideix
-  cada cel·la en un `density×density` de repeticions independents de l'àtom. Cada instància té una
-  fase pròpia (`instancePhase`, seeded, no sincronitzada amb les altres) i oscil·la contínuament
-  amb `instanceSizeMul()`; el slider `Variació de mida` (0-1, per defecte 0) controla l'amplitud
-  d'aquesta oscil·lació. Amb valors per defecte (`density=1`, `sizeVariance=0`) el comportament és
-  idèntic al d'abans d'aquest canvi.
-- Cada fila pot tenir la seva pròpia animació, o aplicar-ne una a totes (`Aplica la mateixa a
-  totes les files`); mateix mecanisme, independent, per columnes.
-- 5 animacions (`engine2d.js`, portades del "Stacked Text Tool" de referència): **wave, accordion,
-  cascade** (multiplicador d'escala per índex), **warpflow** (deforma vores de cel·la), **block**
-  (revelat seqüencial — **v1 simplificada**, sense la fase de "push" de l'original).
-- Fila escala l'ALÇADA de la seva banda; columna escala l'AMPLADA — mateixa matemàtica, eix
-  diferent.
-- `state.mode` torna a ser commutable (`'2d'`/`'3d'`); `render()` bifurca al motor 2D o al pipeline
-  3D existent segons el mode. `activatePanel('panel-2d')` activa mode 2D igual que `panel-3d` ja
-  activava mode 3D.
-- Presets: `state.grid2d` es guarda/restaura (`CREATIVE_PRESET_EXTRA_KEYS` inclou `'grid2d'`);
-  `applyPreset()` ara restaura el `mode` real del preset en lloc de forçar sempre `'3d'`.
-- **Pendent conegut**: l'export SVG/PNG/MP4 encara no s'ha adaptat a 2D — si s'exporta estant en
-  mode 2D, l'export surt igualment del pipeline 3D (`buildSVG`/`buildScene`), no de la graella.
-- **Block In incomplet a propòsit**: només porta la fase d'arribada seqüencial; la fase de "push"
-  (cua que empeny cap amunt en bucle) de l'original no s'ha implementat.
+- `engine2d.js` i `tests/engine2d.test.mjs` — eliminats.
+- Tab/panell "2D" a `index.html` (graella, animacions per fila/columna, densitat, variació de
+  mida, toggle de graella) — eliminat.
+- Tot el wiring i estat a `main.js` (`state.grid2d`, `grid2dIntensity`/`grid2dSpeed`/
+  `grid2dSizeVariance`, `renderGrid2D`, `wireGrid2D`, `renderGrid2DAxisControls`,
+  `buildAxisPresetSelects`, la branca `state.mode === '2d'` a `render()`, l'activació de mode 2D a
+  `activatePanel()`) — eliminat.
+- `state.mode` torna a estar sempre a `'3d'` (com abans que existís la secció 2D); `applyPreset()`
+  ja no restaura `'2d'` des d'un preset antic, sempre força `'3d'`.
+- `preset-state.js` ja no guarda ni exclou res relacionat amb `grid2d`.
 
 ## Projecció Perspectiva — rendiment
 
@@ -124,29 +97,25 @@ Ja no hi ha:
 - `ATTRACT`, `REPEL`, `EXPLODE`
 - `REC`, `Atura`, `Hold`
 - export MP4 offline frame-exact
+- tab/panell 2D, `engine2d.js`, ni cap dels seus controls (graella, animacions per fila/columna,
+  densitat, variació de mida, toggle de graella)
 
 ## Verificació actual
 
-Ultima verificacio executada el 2026-07-01:
+Ultima verificacio executada el 2026-07-02:
 
 ```bash
 node --check main.js
 node --check engine.js
-node --check engine2d.js
-node --test tests/*.mjs   # 39 pass
+node --check preset-state.js
+node --test tests/*.mjs   # 22 pass
 ```
 
 ## Pendent
 
-- Completar (o no) la fase de "push" del preset Block In 2D — pendent de confirmació de l'usuari.
-- Adaptar l'export SVG/PNG/MP4 al mode 2D (ara mateix sempre exporta des del pipeline 3D).
-- Validació visual real al navegador de la secció 2D (només verificat amb tests unitaris i un
-  `ctx` de canvas simulat) — pendent especialment per al nou pack dens per-instància.
-- Rendiment amb graelles grans + densitat alta no mesurat (`layout()` es crida `rows × cols ×
-  density²` cops per frame).
 - Revisar deployment de Pixel Perfect si cal confirmar publicacio web.
 - `engine.js`/`motion.js` conserven `applyMotionBehaviors`/`motionBehaviors` com a codi mort — netejar
   si es vol en una sessió separada (no és Director, és previ).
 
-`17 SHAPER 001` pujat a `strk04/SHAPER-001` (`a3818c1`). `02 Pixel Perfect/shaper` sincronitzat i
-pujat a `strk04/PIxel-Perfect` (`b76c9e4`).
+`17 SHAPER 001` pujat a `strk04/SHAPER-001` (`7c50865`). `02 Pixel Perfect/shaper` sincronitzat i
+pujat a `strk04/PIxel-Perfect` (`723a002`).

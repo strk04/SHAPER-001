@@ -1,5 +1,28 @@
 # Progress — SHAPER 001
 
+## 2026-07-02 — Secció 2D eliminada completament
+
+### Fet
+- L'usuari va demanar esborrar tota la secció 2D (viscuda 2026-07-01: graella files×columnes,
+  animacions per fila/columna, pack dens per-instància amb variació de mida).
+- Eliminat `engine2d.js` i `tests/engine2d.test.mjs`.
+- Retirat el tab/panell "2D" d'`index.html` (graella, animacions, densitat, variació de mida,
+  toggle de graella).
+- Net tot el wiring/estat a `main.js`: `state.grid2d`, `grid2dIntensity`/`grid2dSpeed`/
+  `grid2dSizeVariance` (SLIDERS), `renderGrid2D`, `wireGrid2D`, `renderGrid2DAxisControls`,
+  `buildAxisPresetSelects`, la branca `mode === '2d'` de `render()`, l'activació de mode 2D dins
+  `activatePanel()`, i la restauració de `grid2d`/`mode:'2d'` a `applyPreset()` (torna a forçar
+  sempre `'3d'`, com abans de la secció 2D).
+- `preset-state.js`: retirat `'grid2d'` de `CREATIVE_PRESET_EXTRA_KEYS`.
+- Tests reescrits: `tests/project-wiring.test.mjs` substitueix els 3 tests de wiring 2D per un sol
+  test de regressió "2D grid section has been fully removed" (comprova absència de `grid2d`/
+  `panel-2d`/`engine2d` a `index.html`, `main.js`, `preset-state.js`, i que `engine2d.js` no
+  existeix).
+
+### Verificat
+- `node --test tests/*.mjs` → 22 pass (Shaper), 17 pass (mirall `02 Pixel Perfect/shaper`).
+- Sincronitzat i pujat: `strk04/SHAPER-001` (`7c50865`), `strk04/PIxel-Perfect` (`723a002`).
+
 ## 2026-07-01 — Secció 2D: pack dens per-instància amb variació orgànica de mida
 
 ### Fet

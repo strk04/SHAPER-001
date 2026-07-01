@@ -14,16 +14,12 @@ export const CREATIVE_PRESET_EXTRA_KEYS = Object.freeze([
   'accentColor', 'accentColor2', 'accentColor3', 'accentColor4',
   'morphForm', 'morphForm2', 'morphForm3', 'morphAuto',
   'customOutline',
-  'director',
 ]);
 
 export const EPHEMERAL_PRESET_KEYS = Object.freeze([
   'fps',
   't',
   'morphClock',
-  'directorTime',
-  'directorRate',
-  'selectedDirectorEffect',
 ]);
 
 function clonePresetValue(value) {

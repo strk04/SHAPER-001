@@ -37,10 +37,6 @@
           <span class="app-menu-mark" aria-hidden="true">[ ]</span>
           <span>Presets</span>
         </button>
-        <button class="app-menu-item" type="button" data-panel-target="panel-director" aria-pressed="false">
-          <span class="app-menu-mark" aria-hidden="true">[ ]</span>
-          <span>Director</span>
-        </button>
         <button class="app-menu-item" type="button" data-panel-target="panel-export" aria-pressed="false">
           <span class="app-menu-mark" aria-hidden="true">[ ]</span>
           <span>Export</span>
@@ -457,10 +453,6 @@
           <div id="shaperPresetContainer"></div>
         </section>
 
-        <section class="panel" id="panel-director" hidden>
-          <div id="directorInspector"></div>
-        </section>
-
         <section class="panel" id="panel-export" hidden>
           <h3 class="panel-title">Format</h3>
           <label class="control-row" for="format-select">
@@ -571,9 +563,6 @@
     <div class="canvas-shell">
       <div id="artwork" class="artwork" role="img" aria-label="Previsualització de tipografia generativa" tabindex="-1"></div>
     </div>
-    <section id="directorTimelineHost" class="director-timeline-host" aria-label="Timeline del Director">
-      <div id="directorTimeline"></div>
-    </section>
   </main>
 
   <script type="module" src="main.js"></script>

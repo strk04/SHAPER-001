@@ -1,11 +1,8 @@
 // main.js — UI wiring for SHAPER 001
 import { buildSVG, buildScene, drawScene, DEFAULT_CUSTOM_OUTLINE } from './engine.js';
-import { encodeDirectorFrames, resolveOfflineAnimationState } from './export-video.js';
 import { store as _ghStore } from './presets-github.js';
 import { createPresetPanel } from './preset-panel.js';
 import { captureCreativePreset } from './preset-state.js';
-import { DEFAULT_DIRECTOR, advanceDirectorTime, evaluateDirector, normalizeDirector, totalDuration, upsertEffect, removeEffect, AUTOMATABLE_PARAMS, DEFAULT_EASE_LENGTH } from './director.js';
-import { mountDirectorUI, AUTOMATION_CONTROL_IDS, DEFAULT_SEGMENT_LENGTH } from './director-ui.js';
 
 // Slider definitions: key -> { label, default }
 const SLIDERS = {
@@ -167,11 +164,6 @@ const state = {
   morphForm3: '',
   morphAuto: false,
   morphClock: 0,
-  // Director state
-  director: structuredClone(DEFAULT_DIRECTOR),
-  directorTime: 0,
-  directorRate: 1,
-  selectedDirectorEffect: null,
   // Custom 3D outline data.
   customOutline: DEFAULT_CUSTOM_OUTLINE.slice(),
   ...Object.fromEntries(Object.entries(SLIDERS).map(([k, v]) => [k, v.def])),
@@ -362,34 +354,11 @@ function scheduleRender() {
   });
 }
 
-function resolveRenderState(atTime = state.directorTime) {
-  if (!state.director.enabled) return state;
-  const resolved = evaluateDirector(state.director, atTime, state);
-  const animationSpeed = Number(resolved.params.speed3d ?? state.speed3d);
-  return {
-    ...state,
-    ...resolved.params,
-    t: atTime * (Number.isFinite(animationSpeed) ? animationSpeed : 1),
-    morphClock: atTime,
-    directorTime: atTime,
-  };
-}
-
-function render(atTime = state.directorTime) {
+function render() {
   ensureCanvas();
-  const renderState = resolveRenderState(atTime);
-  drawResolvedState(renderState);
-  directorUI?.setTime(atTime);
-}
-
-function drawResolvedState(renderState) {
-  ensureCanvas();
-  const scene = buildScene(renderState, displayW, displayH);
+  const scene = buildScene(state, displayW, displayH);
   drawScene(displayCtx, scene, displayW, displayH, displayDpr);
 }
-
-// --- Director UI ---
-let directorUI = null;
 
 // --- Animation loop ---
 let playing = false;
@@ -403,14 +372,6 @@ function frame(ts) {
     const speed = state.speed3d;
     state.t += dt * speed;
     state.morphClock = (state.morphClock || 0) + dt; // real seconds, for morph hold
-    if (state.director.enabled) {
-      state.directorTime = advanceDirectorTime(
-        state.directorTime,
-        dt * state.directorRate,
-        totalDuration(state.director),
-        state.director.loop,
-      );
-    }
     if (dt > 0) state.fps = state.fps * 0.85 + (1 / dt) * 0.15;
     if (recState.isRecording) {
       const fps = getRecordFps();
@@ -692,9 +653,6 @@ function activatePanel(panelId) {
     scheduleRender();
   }
 
-  const directorOpen = panelId === 'panel-director';
-  document.body.toggleAttribute('data-director-panel-active', directorOpen);
-  if (directorOpen) { directorUI?.render(); }
   resizeCanvas();
 
   if (panelId === 'panel-charmap') buildCharMap();
@@ -1099,8 +1057,7 @@ function setPresetStatus(msg) {
 function saveSVG() {
   const width = Math.max(1, Math.round(state.canvasW));
   const height = Math.max(1, Math.round(state.canvasH));
-  const exportState = resolveRenderState(state.directorTime);
-  const svg = buildSVG(exportState, width, height);
+  const svg = buildSVG(state, width, height);
   const blob = new Blob([svg], { type: 'image/svg+xml' });
   const url = URL.createObjectURL(blob);
   const a = Object.assign(document.createElement('a'), { href: url, download: `shaper-${state.seed}.svg` });
@@ -1116,8 +1073,7 @@ function savePNG(dpi) {
   const oc = document.createElement('canvas');
   oc.width = w; oc.height = h;
   const octx = oc.getContext('2d');
-  const exportState = resolveRenderState(state.directorTime);
-  const scene = buildScene(exportState, w, h);
+  const scene = buildScene(state, w, h);
   drawScene(octx, scene, w, h, 1);
   setExportStatus('Exportant PNG…');
   oc.toBlob((blob) => {
@@ -1213,49 +1169,6 @@ async function startRecord() {
     recState.loopTotal = isNaN(dur) ? 0 : dur * fps;
     recState.isRecording = true;
 
-    if (state.director.enabled) {
-      const duration = totalDuration(state.director);
-      const wasPlaying = playing;
-      pause();
-      try {
-        await encodeDirectorFrames({
-          duration, fps,
-          renderAt: (time) => render(time),
-          encodeCanvas: (index, exportFps) => encodeCurrentCanvas(index, exportFps),
-          onProgress: (done, total) => setExportStatus(`Exportant Director… ${done}/${total}`),
-        });
-        await stopRecord();
-      } finally {
-        state.directorTime = 0;
-        render(0);
-        if (wasPlaying) play();
-      }
-      return;
-    }
-
-    if (!Number.isNaN(dur)) {
-      const wasPlaying = playing;
-      const baseExportState = {
-        ...state,
-        cameraEnabled: { ...state.cameraEnabled },
-        customOutline: state.customOutline.slice(),
-      };
-      pause();
-      try {
-        await encodeDirectorFrames({
-          duration: dur, fps,
-          renderAt: (time) => drawResolvedState(resolveOfflineAnimationState(baseExportState, time, fps)),
-          encodeCanvas: (index, exportFps) => encodeCurrentCanvas(index, exportFps),
-          onProgress: (done, total) => setExportStatus(`Exportant MP4… ${done}/${total}`),
-        });
-        await stopRecord();
-      } finally {
-        render();
-        if (wasPlaying) play();
-      }
-      return;
-    }
-
     const btn = $('recordVideo');
     if (btn) {
       btn.setAttribute('aria-pressed', 'true');
@@ -1318,12 +1231,6 @@ function capturePreset() {
 
 function applyPreset(p) {
   if (!p || p.v !== 1) return;
-  state.director = normalizeDirector(p.director);
-  state.directorTime = 0;
-  state.selectedDirectorEffect = null;
-  if (state.director.unsupportedVersion) {
-    setPresetStatus('Aquest preset usa una versió més nova del Director; es carrega la composició base amb Director desactivat.');
-  }
   Object.keys(SLIDERS).forEach((k) => {
     if (p[k] != null) { state[k] = p[k]; syncSliderUI(k); }
   });
@@ -1400,8 +1307,6 @@ function applyPreset(p) {
   }
   if (['morphForm','morphForm2','morphForm3','morphAuto'].some(k => p[k] != null)) updateMorphVisibility();
   scheduleRender();
-  directorUI?.render();
-  updateAutomationButtonStates();
 }
 
 // --- Preset panel ---
@@ -1415,147 +1320,6 @@ const shaperPresetPanel = createPresetPanel({
   localKey:      'shaper-presets-v1',
   setStatus:     setPresetStatus,
 });
-
-// --- Director editing helpers ---
-function replaceDirector(nextDirector) {
-  state.director = nextDirector;
-  if (state.selectedDirectorEffect) {
-    const segments = nextDirector.automations?.[state.selectedDirectorEffect.path] || [];
-    const exists = segments.some((seg) => Math.abs(seg.start - state.selectedDirectorEffect.start) <= 0.0001);
-    if (!exists) state.selectedDirectorEffect = null;
-  }
-  directorUI.render(); scheduleRender();
-  updateAutomationButtonStates();
-}
-function updateDirectorDuration(duration) { state.director = normalizeDirector({ ...state.director, duration }); directorUI.render(); scheduleRender(); }
-function updateSelectedEffect(path, start, patch) {
-  const segments = state.director?.automations?.[path] || [];
-  const current = segments.find((seg) => Math.abs(seg.start - start) <= 0.0001);
-  if (!current) return;
-  const nextStart = Number.isFinite(Number(patch.start)) ? Number(patch.start) : current.start;
-  const nextEnd = Number.isFinite(Number(patch.end)) ? Number(patch.end) : current.end;
-  const nextValue = Object.prototype.hasOwnProperty.call(patch, 'value') ? patch.value : current.value;
-  const nextEaseIn = Number.isFinite(Number(patch.easeIn)) ? Number(patch.easeIn) : (current.easeIn ?? 0);
-  const nextEaseOut = Number.isFinite(Number(patch.easeOut)) ? Number(patch.easeOut) : (current.easeOut ?? 0);
-  let nextDirector = removeEffect(state.director, path, start);
-  nextDirector = upsertEffect(nextDirector, path, { start: nextStart, end: nextEnd, value: nextValue, easeIn: nextEaseIn, easeOut: nextEaseOut });
-  state.selectedDirectorEffect = { path, start: Math.max(0, Math.min(state.director.duration, nextStart)) };
-  replaceDirector(nextDirector);
-}
-
-function updateAutomationButtonStates() {
-  document.body.toggleAttribute('data-director-enabled', !!state.director?.enabled);
-  if (!state.director?.enabled) return;
-  const { localTime } = evaluateDirector(state.director, state.directorTime, state);
-  for (const name of Object.keys(AUTOMATION_CONTROL_IDS)) {
-    const btn = document.querySelector(`[data-automation-path="${name}"]`);
-    if (!btn) continue;
-    const segments = state.director?.automations?.[`param:${name}`] || [];
-    btn.setAttribute('aria-pressed', String(segments.some((s) => localTime >= s.start && localTime <= s.end)));
-  }
-}
-
-function installAutomationButtons() {
-  for (const [name, id] of Object.entries(AUTOMATION_CONTROL_IDS)) {
-    const control = $(id);
-    if (!control || document.querySelector(`[data-automation-path="${name}"]`)) continue;
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'automation-key-button';
-    button.dataset.automationPath = name;
-    button.setAttribute('aria-label', `Aplica ${name} en aquest instant`);
-    button.setAttribute('aria-pressed', 'false');
-    const glyph = document.createElement('span');
-    glyph.setAttribute('aria-hidden', 'true');
-    button.appendChild(glyph);
-    control.insertAdjacentElement('afterend', button);
-    button.addEventListener('click', () => {
-      const { localTime } = evaluateDirector(state.director, state.directorTime, state);
-      const path = `param:${name}`;
-      const segments = state.director?.automations?.[path] || [];
-      const active = segments.find((s) => localTime >= s.start && localTime <= s.end);
-      if (active) {
-        replaceDirector(removeEffect(state.director, path, active.start));
-      } else {
-        const isNumber = AUTOMATABLE_PARAMS[name] === 'number';
-        const value = isNumber ? Number(control.value) : control.value;
-        const end = Math.min(state.director.duration, localTime + DEFAULT_SEGMENT_LENGTH);
-        const ease = isNumber ? DEFAULT_EASE_LENGTH : 0;
-        replaceDirector(upsertEffect(state.director, path, { start: localTime, end, value, easeIn: ease, easeOut: ease }));
-      }
-    });
-  }
-}
-
-// --- Director wiring ---
-function wireDirector() {
-  directorUI = mountDirectorUI({
-    inspector: $('directorInspector'),
-    timeline: $('directorTimeline'),
-    getState: () => state,
-    onSeek: (time) => { state.directorTime = time; render(time); directorUI.render(); updateAutomationButtonStates(); },
-    onToggleEnabled: (enabled) => { state.director = { ...state.director, enabled }; scheduleRender(); directorUI.render(); updateAutomationButtonStates(); },
-    onDurationChange: updateDirectorDuration,
-    onSelectEffect: (path, start) => {
-      state.selectedDirectorEffect = { path, start };
-      directorUI.render();
-    },
-    onUpdateEffect: updateSelectedEffect,
-    onRemoveEffect: (path, start) => {
-      if (state.selectedDirectorEffect
-        && state.selectedDirectorEffect.path === path
-        && Math.abs(state.selectedDirectorEffect.start - start) <= 0.0001) {
-        state.selectedDirectorEffect = null;
-      }
-      replaceDirector(removeEffect(state.director, path, start));
-    },
-    onToggleEffect: (path, _field) => {
-      const { localTime } = evaluateDirector(state.director, state.directorTime, state);
-      const segments = state.director?.automations?.[path] || [];
-      const active = segments.find((s) => localTime >= s.start && localTime <= s.end);
-      if (active) {
-        if (state.selectedDirectorEffect
-          && state.selectedDirectorEffect.path === path
-          && Math.abs(state.selectedDirectorEffect.start - active.start) <= 0.0001) {
-          state.selectedDirectorEffect = null;
-        }
-        replaceDirector(removeEffect(state.director, path, active.start));
-        return;
-      }
-      let value = 0;
-      let isNumber = true;
-      if (path.startsWith('param:')) {
-        const name = path.slice(6);
-        value = state[name] !== undefined ? state[name] : 0;
-        isNumber = AUTOMATABLE_PARAMS[name] === 'number';
-      }
-      const end = Math.min(state.director.duration, localTime + DEFAULT_SEGMENT_LENGTH);
-      const ease = isNumber ? DEFAULT_EASE_LENGTH : 0;
-      state.selectedDirectorEffect = { path, start: localTime };
-      replaceDirector(upsertEffect(state.director, path, { start: localTime, end, value, easeIn: ease, easeOut: ease }));
-    },
-  });
-
-  // Reverse direction toggle
-  const reverseBtn = $('directorReverse');
-  if (reverseBtn) {
-    reverseBtn.addEventListener('click', () => {
-      state.directorRate = (state.directorRate ?? 1) * -1;
-      reverseBtn.setAttribute('aria-pressed', String(state.directorRate < 0));
-    });
-  }
-
-  // Loop toggle
-  const loopBtn = $('directorLoop');
-  if (loopBtn) {
-    loopBtn.addEventListener('click', () => {
-      const nowLoop = !state.director.loop;
-      state.director = { ...state.director, loop: nowLoop };
-      loopBtn.setAttribute('aria-pressed', String(nowLoop));
-    });
-  }
-
-}
 
 // --- Character Map ---
 const CHARMAP_FONT_CSS = {
@@ -1703,12 +1467,9 @@ function buildCharMap() {
 function init() {
   restoreCustomData();
   buildSliders();
-  installAutomationButtons();
-  updateAutomationButtonStates();
   bindNavigation();
   wireControls();
   shaperPresetPanel.activate();
-  wireDirector();
   // Sync select / checkbox UI to state defaults
   $('text').value = state.text;
   $('font').value = state.font;

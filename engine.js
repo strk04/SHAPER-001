@@ -1601,7 +1601,7 @@ function build3D(params, width, height) {
   };
 
   const motionBehaviors = Array.isArray(params.motionBehaviors) ? params.motionBehaviors : [];
-  const motionTime = Number.isFinite(params.directorTime) ? params.directorTime : 0;
+  const motionTime = Number.isFinite(params.morphClock) ? params.morphClock : 0;
   const glyphs = [];
   const surfaces = buildSurfaceTiles();
   const pendingGlyphs = [];
@@ -2553,7 +2553,7 @@ export function buildScene(params, width, height) {
       params.accentColor3 || params.accentColor || textColor,
       params.accentColor4 || params.accentColor || textColor,
     ],
-    clockMs: Number.isFinite(params.directorTime) ? params.directorTime * 1000 : null,
+    clockMs: Number.isFinite(params.morphClock) ? params.morphClock * 1000 : null,
   };
 }
 

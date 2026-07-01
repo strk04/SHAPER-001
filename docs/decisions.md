@@ -1,5 +1,21 @@
 # Decisions — SHAPER 001
 
+## 2026-07-01 — Secció 2D: escalar l'àtom via `ctx.scale()`, no el rectangle de retall
+
+Bug real detectat per l'usuari ("les animacions afecten al grid, no a l'àtom"): la implementació
+anterior calculava `cw`/`ch` (cel·la escalada) només per triar la mida del rectangle de retall i
+per cridar `layout()`, però els glifs es dibuixaven sempre a `fontSize` fix — l'animació no
+escalava el text, només revelava/amagava una porció fixa d'ell dins una caixa que canviava de mida.
+
+Fix: `ctx.scale(colScale, rowScale)` s'aplica directament abans de dibuixar els glifs, i `layout()`
+es calcula sempre a la mida BASE (no escalada) de la cel·la perquè el word-wrap no canviï amb
+l'animació — només la mida visual del resultat. El retall es fa després de l'escalat perquè la
+vora es mogui junt amb l'àtom.
+
+Racional: no calia preguntar-ho — és la interpretació correcta i l'única raonable de "l'animació
+escala la fila/columna": el contingut ha de créixer/encongir-se visiblement, no quedar amagat
+darrere d'un retall que canvia de mida al voltant d'un text estàtic.
+
 ## 2026-07-01 — Secció 2D: repetir el text sencer, no repartir-lo entre cel·les
 
 Revertida la decisió original de la v1 (word-wrap del text en 2 eixos per omplir la graella

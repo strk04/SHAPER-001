@@ -1,5 +1,31 @@
 # Progress — SHAPER 001
 
+## 2026-07-01 — Secció 2D: l'animació escala l'àtom, no només la cel·la
+
+### Fet
+- L'usuari va assenyalar: "tal i com ho has plantejat les animacions afecten al grid, no a
+  l'àtom". Diagnosi correcta: `drawGrid2D()` calculava `cw = cell.w * colScale` / `ch = cell.h *
+  rowScale` només per mida del rectangle de retall i per cridar `layout()`, però dibuixava els
+  glifs a `atomParams.fontSize` fix — l'animació només canviava quant de text (fix) quedava visible
+  dins la caixa retallada, mai la mida real dels glifs.
+- Fix a `engine2d.js` `drawGrid2D()`: `layout()` ara es crida amb les dimensions BASE de la cel·la
+  (`cell.w`, `cell.h`, sense escalar) perquè el word-wrap/nombre de línies es mantingui estable; el
+  `ctx.scale(colScale, rowScale)` s'aplica abans de dibuixar, així que és l'àtom (els glifs) qui
+  visiblement creix/s'encongeix. El retall (`ctx.clip()`) es fa DESPRÉS de `ctx.scale()`, de manera
+  que la vora de retall escala exactament igual que l'àtom (mateix efecte visual que abans a nivell
+  de mida de caixa, però ara coherent amb el contingut real).
+- Test de regressió nou: `drawGrid2D scales the atom itself per cell, not just the cell container`
+  — verifica que `ctx.scale()` es crida amb el `rowScale`/`colScale` real de cada cel·la.
+
+### Verificat
+- `node --test tests/*.mjs` → 35 pass (Shaper).
+- Sincronitzat a `02 Pixel Perfect/shaper/`; `node --test tests/*.mjs` → 30 pass allà.
+- Pujat a `strk04/SHAPER-001` (`9bab921`) i `strk04/PIxel-Perfect` (`27f89a3`).
+
+### Pendent
+- Validació visual real al navegador (aquest fix es va raonar i verificar amb tests unitaris i un
+  `ctx` simulat, no s'ha comprovat encara amb els ulls).
+
 ## 2026-07-01 — Secció 2D: text repetit per cel·la + tots els paràmetres de l'Àtom + toggle de graella
 
 ### Fet

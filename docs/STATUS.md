@@ -1,6 +1,6 @@
 # STATUS — SHAPER 001
 
-_Actualitzat: 2026-07-01 (Secció 2D: text repetit per cel·la + tots els paràmetres de l'Àtom + toggle de graella)_
+_Actualitzat: 2026-07-01 (Secció 2D: l'animació escala l'àtom, no només la cel·la)_
 
 ## Estat general
 
@@ -23,6 +23,11 @@ Projecte vanilla JS zero-build. Flux habitual de publicació:
   opacitat/blink/mida/skew per caràcter, accents...) afecten el 2D exactament igual que el 3D
   (2026-07-01; abans només `fontSize`/`font`/`textColor` tenien efecte). Cada cel·la es retalla
   (`ctx.clip()`) perquè el desbordament no envaeixi la cel·la veïna.
+- L'escala animada de fila/columna transforma l'**àtom mateix** via `ctx.scale()` (2026-07-01;
+  abans només redimensionava el rectangle de retall i el text quedava a mida fixa a dins, de manera
+  que l'animació només revelava/amagava text en lloc d'escalar-lo). `layout()` es calcula sempre a
+  la mida BASE de la cel·la (word-wrap estable); el `ctx.scale()` s'aplica abans de dibuixar i
+  abans del `ctx.clip()`, perquè la vora de retall escali junt amb l'àtom.
 - Toggle **"Mostra graella"** (2026-07-01, per defecte apagat): dibuixa les vores de cada cel·la
   respectant l'escala animada de fila/columna.
 - Cada fila pot tenir la seva pròpia animació, o aplicar-ne una a totes (`Aplica la mateixa a
@@ -122,7 +127,7 @@ Ultima verificacio executada el 2026-07-01:
 node --check main.js
 node --check engine.js
 node --check engine2d.js
-node --test tests/*.mjs   # 34 pass
+node --test tests/*.mjs   # 35 pass
 ```
 
 ## Pendent
@@ -136,5 +141,5 @@ node --test tests/*.mjs   # 34 pass
 - `engine.js`/`motion.js` conserven `applyMotionBehaviors`/`motionBehaviors` com a codi mort — netejar
   si es vol en una sessió separada (no és Director, és previ).
 
-`17 SHAPER 001` pujat a `strk04/SHAPER-001` (`1f6b7cc`). `02 Pixel Perfect/shaper` sincronitzat i
-pujat a `strk04/PIxel-Perfect` (`598a3f6`).
+`17 SHAPER 001` pujat a `strk04/SHAPER-001` (`9bab921`). `02 Pixel Perfect/shaper` sincronitzat i
+pujat a `strk04/PIxel-Perfect` (`27f89a3`).

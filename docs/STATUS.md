@@ -1,6 +1,6 @@
 # STATUS — SHAPER 001
 
-_Actualitzat: 2026-07-01_
+_Actualitzat: 2026-07-01 (Director: línia temporal única)_
 
 ## Estat general
 
@@ -12,27 +12,28 @@ Projecte vanilla JS zero-build. Flux habitual de publicació:
 
 ## Motion Director
 
-S'ha eliminat el sistema de Moviment (Deriva/Òrbita/Atracció/Explosió, `behaviors`).
-Director ara inclou:
+S'ha eliminat el sistema de Moviment (Deriva/Òrbita/Atracció/Explosió, `behaviors`) i, des de
+2026-07-01, també el model d'escenes. Director ara és **una única línia temporal contínua**:
 
 - activació global
-- escenes
-- durada per escena
-- transició + easing per escena
-- llista d'efectes concrets per escena, agrupats: Àtom (Kerning, Interlínia, Aplicació de l'àtom),
+- una sola `Durada` per a tota la línia temporal (no hi ha escenes ni transicions entre elles)
+- llista d'efectes concrets, agrupats: Àtom (Kerning, Interlínia, Aplicació de l'àtom),
   Forma 3D (Forma, Mida de forma, Proporció), Càmera (Rotació X/Y/Z, Angle X/Y),
   Moviment 3D (Velocitat, Probabilitat de pluja, Velocitat de pluja)
-- cada efecte es manipula amb keyframes (mateix mecanisme que abans, ara exposat des del propi panell Director)
-- keyframes / automatització
+- cada efecte es manipula amb keyframes col·locats directament sobre la línia temporal sencera
+  (abans eren relatius a l'escena activa)
 - controls globals `Reverse` i `Loop`
-- timeline inline sota el canvas, a la columna 3
-- indicador de temps del timeline sincronitzat amb la reproducció
-- playhead draggable
+- timeline inline sota el canvas, a la columna 3: una única barra (`role="slider"`) seekable per
+  pointer i teclat (fletxes, Home, End), amb `aria-valuetext` en format `m:ss.s`
+- playhead draggable superposat a la barra
 - keyframes editables des de la columna 2
 - menú contextual de supressió sobre rombos
 
 `engine.js`/`motion.js` conserven `applyMotionBehaviors` com a codi mort (ja no s'hi alimenta cap
 behavior des del Director); no s'ha tocat per estar fora d'abast d'aquest canvi.
+
+Pendent d'indicació de l'usuari: quins efectes concrets vol poder aplicar sobre la línia temporal
+i amb quin comportament (properes instruccions).
 
 ## Export MP4
 
@@ -74,26 +75,19 @@ Ja no hi ha:
 
 ## Verificació actual
 
-Ultima verificacio executada el 2026-06-30:
+Ultima verificacio executada el 2026-07-01:
 
 ```bash
 node --check director.js
 node --check director-ui.js
 node --check main.js
-node --test tests/*.mjs   # 49 pass
+node --test tests/*.mjs   # 46 pass
 ```
 
 ## Pendent
 
-- Decidir si més endavant la timeline ha de mostrar keyframes de totes les escenes o només de l’escena activa.
+- L'usuari ha d'indicar quins efectes concrets vol poder aplicar sobre la línia temporal única i com.
 - Revisar deployment de Pixel Perfect si cal confirmar publicacio web.
-- Sincronitzar el canvi d'efectes Director a `02 Pixel Perfect/shaper/`: els 5 fitxers
-  (`director.js`, `director-ui.js`, `main.js`, `styles.css`, `tests/project-wiring.test.mjs`) ja estan
-  editats al working tree de PP i els 27 tests de PP passen, però falta `git commit` + `git push` allà
-  — el classificador d'auto-mode bloqueja `git commit`/`git push` quan detecta contingut copiat entre
-  repos, encara que les edicions de fitxer individuals sí que es permeten. Cal que l'usuari executi
-  manualment a `02 Pixel Perfect/shaper/`:
-  `git add director.js director-ui.js main.js styles.css tests/project-wiring.test.mjs && git commit -m "feat: replace Director moviment with concrete effects list" && git push`
 
-`17 SHAPER 001` ja pujat a `strk04/SHAPER-001` (`a3f277d`). `02 Pixel Perfect/shaper` encara no té
-aquest commit.
+`17 SHAPER 001` pujat a `strk04/SHAPER-001` (`5365602`). `02 Pixel Perfect/shaper` sincronitzat i
+pujat a `strk04/PIxel-Perfect` (`ec932f5`).

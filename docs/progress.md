@@ -1,5 +1,24 @@
 # Progress — SHAPER 001
 
+## 2026-07-01 — Director: escenes eliminades, línia temporal única
+
+### Fet
+- Substituït el model d'escenes de `director.js` per una única línia temporal: `{ enabled, loop, duration, automations }`. Eliminats `normalizeScene`, `locateScene`, `resolveScene`, `blendNumberRecords`, `addScene`, `duplicateScene`, `moveScene`, `removeScene`, `applySceneAction` — ja no hi ha transicions entre escenes ni durada/transició per escena.
+- `director-ui.js`: el radiogroup d'escenes (`.director-scenes`/`.director-scene`) se substitueix per un únic `#directorTrack` (`role="slider"`, seekable per pointer i teclat amb ArrowLeft/ArrowRight/Home/End, `aria-valuemin/valuenow/valuemax/valuetext`). L'inspector passa a tenir un sol camp `Durada` (abans `Durada total`/`Durada transició`/`Estil transició` per escena). Efectes i editor de keyframe operen directament sobre `director.automations`.
+- `main.js`: eliminats `selectedDirectorSceneId`, `replaceDirectorScene`, `selectedDirectorScene`, `handleDirectorSceneAction`, `updateSelectedSceneDuration`, `updateSelectedTransition`; substituïts per `replaceDirector`/`updateDirectorDuration` que operen sobre `state.director` sencer.
+- `preset-state.js`: retirat `selectedDirectorSceneId` de la llista de camps efímers (ja no existeix).
+- Revisió d'accessibilitat (accessibility-lead) sobre el nou `role="slider"` abans d'editar `styles.css`: recomanava afegir `aria-valuetext` (fet, format `m:ss.s`) i `:focus-visible` explícit al track (afegit); confirmat que el patró de teclat i `min-height: 44px` ja complien.
+- `styles.css`: `.director-scenes`/`.director-scene*` reemplaçats per `.director-track` + `.director-track:focus-visible`; eliminades `.director-scene-toolbar` i `.director-scene-card` (ja no s'emeten).
+- Tests reescrits: `tests/director.test.mjs` (sense escenes), `tests/director-ui.test.mjs` (view model d'una sola línia), `tests/project-wiring.test.mjs` (assercions d'escena substituïdes per assercions de línia única).
+
+### Verificat
+- `node --test tests/*.mjs` → 46 pass (Shaper).
+- Sincronitzat a `02 Pixel Perfect/shaper/`; `node --test tests/*.mjs` → 41 pass allà.
+- Pujat a `strk04/SHAPER-001` (`5365602`) i `strk04/PIxel-Perfect` (`ec932f5`).
+
+### Pendent
+- L'usuari indicarà quins efectes concrets vol aplicar sobre la línia temporal i com (properes instruccions).
+
 ## 2026-07-01 — CLAUDE.md projecte + proposta summary
 
 - Creat `CLAUDE.md` al projecte amb instrucció permanent de sync dual (commit+push a SHAPER i PP).

@@ -1,5 +1,26 @@
 # Decisions — SHAPER 001
 
+## 2026-07-01 — Director: una sola línia temporal, sense escenes
+
+S'elimina el model d'escenes del Director (cada escena amb la seva pròpia durada, transició i
+automatitzacions locals) i es substitueix per una única línia temporal contínua: una `Durada` total i
+un conjunt de keyframes per paràmetre col·locats directament sobre aquesta línia.
+
+Racional: l'usuari vol pensar l'animació com una sola timeline on va aplicant efectes al llarg del
+temps, no com una seqüència d'escenes discretes que cal encadenar amb transicions. El mecanisme de
+keyframes per paràmetre (`AUTOMATABLE_PARAMS`/`EFFECT_GROUPS`, ja introduït a la decisió anterior) es
+manté intacte; només canvia el contenidor: abans cada escena tenia el seu propi rellotge local i les
+seves pròpies automatitzacions, ara tot viu en un únic espai de temps absolut.
+
+Conseqüències: `addScene`/`duplicateScene`/`moveScene`/`removeScene`/`applySceneAction` i les
+transicions entre escenes desapareixen del tot (no es conserven com a codi mort, ja que no tenien cap
+sentit sense escenes). **Trencament de compatibilitat conegut i acceptat**: `normalizeDirector` ja no
+llegeix `input.scenes`; un preset antic amb escenes es carrega amb Director actiu però `duration=5` i
+`automations={}` (buit) — no falla, però perd el contingut animat. No s'ha escrit cap migrador perquè
+encara no hi ha presets amb Director en producció fora d'aquesta sessió de desenvolupament. El
+radiogroup d'escenes de la UI se substitueix per un únic `role="slider"` (`#directorTrack`) seekable per
+pointer i teclat — revisat amb accessibility-lead abans d'aplicar el CSS corresponent.
+
 ## 2026-06-30 — Director: efectes concrets per paràmetre, no "moviments" de partícula
 
 S'elimina el selector `Moviment` per escena (Deriva/Òrbita/Atracció/Explosió, amb `intensity`/`cohesion`)

@@ -1,29 +1,72 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  layoutGrid2D, SCALE_PRESETS, warpBoundaryOffset, blockReveal, evaluateGrid2D,
+  layoutGrid2D, SCALE_PRESETS, warpBoundaryOffset, blockReveal, evaluateGrid2D, drawGrid2D,
 } from '../engine2d.js';
 
-test('layoutGrid2D distributes words evenly in row-major reading order', () => {
-  const grid = layoutGrid2D('one two three four five six', 2, 3, 300, 200);
+const ATOM_PARAMS = {
+  text: 'hi', font: 'courier-regular', seed: 1, fontSize: 16,
+  charTrack: 0, trackRand: 0, leading: 20, noiseAmt: 0,
+  wordTrack: 0, wordChaos: 0, wordRamp: 0, charChaos: 0,
+  yJitter: 0, yJitterAffect: 0, dropProb: 0, densityMap: 0,
+  wordsPerRow: 5, hardWrap: true, t: 0, speed: 1,
+  charOpacity: 0.6, charSkew: 0,
+  opacityMode: 'none', opacityProb: 0.15, opacityEvery: 2,
+  blinkMode: 'none', blinkRate: 2, blinkProb: 0.15, blinkEvery: 2, blinkFade: 0,
+  sizeMode: 'none', sizeAmt: 1.5, sizeProb: 0.15, sizeEvery: 2,
+  accentMode: 'none', accentProb: 0.15, accentEvery: 2,
+  accentMode2: 'none', accentProb2: 0, accentEvery2: 2,
+  accentMode3: 'none', accentProb3: 0, accentEvery3: 2,
+  accentMode4: 'none', accentProb4: 0, accentEvery4: 2,
+  textColor: '#111111', bgColor: '#ffffff', morphClock: 0,
+};
+
+function makeFakeCtx() {
+  const calls = [];
+  return {
+    calls,
+    set fillStyle(value) { calls.push(['fillStyle', value]); },
+    get fillStyle() { return '#000'; },
+    set strokeStyle(value) { calls.push(['strokeStyle', value]); },
+    get strokeStyle() { return '#000'; },
+    set globalAlpha(value) { calls.push(['globalAlpha', value]); },
+    get globalAlpha() { return 1; },
+    set font(value) { calls.push(['font', value]); },
+    get font() { return ''; },
+    set textAlign(value) { calls.push(['textAlign', value]); },
+    get textAlign() { return 'left'; },
+    set textBaseline(value) { calls.push(['textBaseline', value]); },
+    get textBaseline() { return 'alphabetic'; },
+    set lineWidth(value) { calls.push(['lineWidth', value]); },
+    get lineWidth() { return 1; },
+    setTransform: () => {},
+    translate: () => {},
+    scale: () => {},
+    transform: () => {},
+    fillRect: (...args) => calls.push(['fillRect', ...args]),
+    strokeRect: (...args) => calls.push(['strokeRect', ...args]),
+    save: () => {},
+    restore: () => {},
+    beginPath: () => {},
+    rect: () => {},
+    clip: () => {},
+    fillText: (...args) => calls.push(['fillText', ...args]),
+  };
+}
+
+test('layoutGrid2D lays out cells in row-major reading order', () => {
+  const grid = layoutGrid2D(2, 3, 300, 200);
   assert.equal(grid.cells.length, 6);
   assert.equal(grid.cellW, 100);
   assert.equal(grid.cellH, 100);
-  assert.deepEqual(grid.cells.map((c) => c.text), ['one', 'two', 'three', 'four', 'five', 'six']);
   assert.equal(grid.cells[0].row, 0);
   assert.equal(grid.cells[0].col, 0);
   assert.equal(grid.cells[3].row, 1);
   assert.equal(grid.cells[3].col, 0);
 });
 
-test('layoutGrid2D spreads remainder words across the first cells', () => {
-  const grid = layoutGrid2D('a b c d e', 1, 2, 100, 50);
-  assert.equal(grid.cells[0].text, 'a b c');
-  assert.equal(grid.cells[1].text, 'd e');
-});
-
 test('layoutGrid2D clamps rows/cols to at least 1 and rounds', () => {
-  const grid = layoutGrid2D('x', 0, 2.6, 100, 100);
+  const grid = layoutGrid2D(0, 2.6, 100, 100);
   assert.equal(grid.rows, 1);
   assert.equal(grid.cols, 3);
 });
@@ -57,7 +100,7 @@ test('blockReveal loops back to the start after all indices have arrived', () =>
 });
 
 test('evaluateGrid2D applies a shared preset to every row when rowAnim.same is true', () => {
-  const grid = layoutGrid2D('a b c d', 2, 2, 200, 200);
+  const grid = layoutGrid2D(2, 2, 200, 200);
   const evaluated = evaluateGrid2D(
     grid, 0.1,
     { same: true, presets: ['wave'] },
@@ -71,7 +114,7 @@ test('evaluateGrid2D applies a shared preset to every row when rowAnim.same is t
 });
 
 test('evaluateGrid2D lets each row/column use its own preset when not shared', () => {
-  const grid = layoutGrid2D('a b c d', 2, 1, 200, 200);
+  const grid = layoutGrid2D(2, 1, 200, 200);
   const evaluated = evaluateGrid2D(
     grid, 0.25,
     { same: false, presets: ['wave', 'none'] },
@@ -85,7 +128,7 @@ test('evaluateGrid2D lets each row/column use its own preset when not shared', (
 });
 
 test('evaluateGrid2D produces zero warp offsets when no warpflow preset is active', () => {
-  const grid = layoutGrid2D('a b c d', 2, 2, 200, 200);
+  const grid = layoutGrid2D(2, 2, 200, 200);
   const evaluated = evaluateGrid2D(
     grid, 0.5,
     { same: true, presets: ['wave'] },
@@ -96,4 +139,27 @@ test('evaluateGrid2D produces zero warp offsets when no warpflow preset is activ
     assert.equal(cell.warpX, 0);
     assert.equal(cell.warpY, 0);
   }
+});
+
+test('drawGrid2D repeats the Àtom text in every cell and paints the background', () => {
+  const grid = layoutGrid2D(2, 2, 200, 200);
+  const evaluated = evaluateGrid2D(grid, 0, { same: true, presets: ['none'] }, { same: true, presets: ['none'] }, 1, 1);
+  const ctx = makeFakeCtx();
+  drawGrid2D(ctx, evaluated, 200, 200, ATOM_PARAMS, { textColor: '#111111', bgColor: '#ffffff', dpr: 1 });
+  const fillTextCalls = ctx.calls.filter((c) => c[0] === 'fillText');
+  assert.ok(fillTextCalls.length >= 8, 'expects "hi" (2 chars) drawn in each of the 4 cells');
+  assert.ok(ctx.calls.some((c) => c[0] === 'fillRect'));
+});
+
+test('drawGrid2D only strokes cell boundaries when showGrid is true', () => {
+  const grid = layoutGrid2D(2, 2, 200, 200);
+  const evaluated = evaluateGrid2D(grid, 0, { same: true, presets: ['none'] }, { same: true, presets: ['none'] }, 1, 1);
+  const hiddenCtx = makeFakeCtx();
+  drawGrid2D(hiddenCtx, evaluated, 200, 200, ATOM_PARAMS, { showGrid: false });
+  assert.equal(hiddenCtx.calls.some((c) => c[0] === 'strokeRect'), false);
+
+  const shownCtx = makeFakeCtx();
+  drawGrid2D(shownCtx, evaluated, 200, 200, ATOM_PARAMS, { showGrid: true });
+  const strokeRectCalls = shownCtx.calls.filter((c) => c[0] === 'strokeRect');
+  assert.equal(strokeRectCalls.length, 4);
 });

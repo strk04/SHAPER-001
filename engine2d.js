@@ -1,7 +1,9 @@
 // engine2d.js — pure functions for the 2D grid section of SHAPER 001.
-// Independent from the 3D pipeline (engine.js): shares only Àtom text/typography
-// inputs at the call site, not any rendering machinery.
-import { tokenize, resolveFontSpec } from './engine.js';
+// Independent from the 3D pipeline (engine.js) except for `layout()`: every
+// cell repeats the full Àtom text through the same character-level layout
+// engine used by 3D, so every Àtom slider/mode (kerning, opacity, blink,
+// size, skew, accent...) applies identically per cell.
+import { layout, resolveFontSpec } from './engine.js';
 
 // ── Easing (ported from the reference "Stacked Text Tool" motion presets) ────
 export const EASE = {
@@ -14,33 +16,19 @@ export const EASE = {
 
 const PERIOD = 3.5;
 
-// ── Grid layout: distribute Àtom text into rows × cols cells ────────────────
-// Words fill cells in reading order (row-major), split as evenly as possible.
-export function layoutGrid2D(text, rows, cols, width, height) {
+// ── Grid layout: pure geometry, N rows × M cols ─────────────────────────────
+// The Àtom text repeats identically in every cell (see drawGrid2D), so this
+// only needs to compute cell rectangles.
+export function layoutGrid2D(rows, cols, width, height) {
   const r = Math.max(1, Math.round(rows));
   const c = Math.max(1, Math.round(cols));
-  const words = tokenize(text);
-  const cellCount = r * c;
-  const base = Math.floor(words.length / cellCount);
-  const extra = words.length % cellCount;
-
   const cellW = width / c;
   const cellH = height / r;
 
   const cells = [];
-  let wordIndex = 0;
   for (let row = 0; row < r; row++) {
     for (let col = 0; col < c; col++) {
-      const idx = row * c + col;
-      const count = base + (idx < extra ? 1 : 0);
-      const cellWords = words.slice(wordIndex, wordIndex + count);
-      wordIndex += count;
-      cells.push({
-        row, col,
-        x: col * cellW, y: row * cellH,
-        w: cellW, h: cellH,
-        text: cellWords.join(' '),
-      });
+      cells.push({ row, col, x: col * cellW, y: row * cellH, w: cellW, h: cellH });
     }
   }
   return { rows: r, cols: c, cellW, cellH, cells };
@@ -142,50 +130,77 @@ export function evaluateGrid2D(grid, animTime, rowAnim, colAnim, intensity, spee
 }
 
 // ── Canvas drawing ───────────────────────────────────────────────────────────
-function wrapTextToWidth(ctx, text, maxWidth) {
-  const words = text.split(' ').filter(Boolean);
-  if (!words.length) return [];
-  const lines = [];
-  let line = words[0];
-  for (let i = 1; i < words.length; i++) {
-    const candidate = `${line} ${words[i]}`;
-    if (ctx.measureText(candidate).width <= maxWidth || !line) {
-      line = candidate;
-    } else {
-      lines.push(line);
-      line = words[i];
-    }
-  }
-  lines.push(line);
-  return lines;
-}
-
-// Paints an evaluated grid onto a 2D canvas context. `opts`:
-// { fontSize, font (key), textColor, bgColor, dpr }
-export function drawGrid2D(ctx, evaluated, width, height, opts) {
+// Paints an evaluated grid onto a 2D canvas context. `atomParams` is the full
+// shared Àtom state (text, font, fontSize, charTrack, leading, noise/chaos,
+// opacity/blink/size/accent modes, seed, t, speed...) — passed straight to
+// `layout()` so every Àtom control affects the 2D grid exactly as it does 3D.
+// `opts`: { textColor, bgColor, dpr, showGrid, gridColor }
+export function drawGrid2D(ctx, evaluated, width, height, atomParams, opts = {}) {
   const d = opts.dpr || 1;
   ctx.setTransform(d, 0, 0, d, 0, 0);
-  ctx.fillStyle = opts.bgColor || '#ffffff';
+  ctx.fillStyle = opts.bgColor || atomParams.bgColor || '#ffffff';
   ctx.fillRect(0, 0, width, height);
 
-  const { family, weight } = resolveFontSpec(opts.font);
-  ctx.font = `${weight} ${opts.fontSize}px ${family}`;
-  ctx.fillStyle = opts.textColor || '#000000';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  const lineHeight = opts.fontSize * 1.2;
+  const { family, weight } = resolveFontSpec(atomParams.font);
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+
+  const clockMs = (atomParams.morphClock || 0) * 1000;
+  const blinkHalfMs = atomParams.blinkRate > 0 ? (500 / atomParams.blinkRate) : 500;
+  const blinkActive = atomParams.blinkFade === 0 && atomParams.blinkMode !== 'none'
+    && Math.floor(clockMs / blinkHalfMs) % 2 === 0;
+  const cosPhase = (Math.cos(clockMs / (blinkHalfMs * 2) * Math.PI * 2) + 1) / 2;
+  const blinkFadeFactor = atomParams.blinkFade > 0 && atomParams.blinkMode !== 'none'
+    ? 1 - atomParams.blinkFade * (1 - cosPhase) : 1;
+  const accentColors = {
+    1: atomParams.accentColor  || opts.textColor || atomParams.textColor,
+    2: atomParams.accentColor2 || opts.textColor || atomParams.textColor,
+    3: atomParams.accentColor3 || opts.textColor || atomParams.textColor,
+    4: atomParams.accentColor4 || opts.textColor || atomParams.textColor,
+  };
+  const baseColor = opts.textColor || atomParams.textColor || '#000000';
 
   for (const cell of evaluated.cells) {
     const cw = cell.w * cell.colScale;
     const ch = cell.h * cell.rowScale;
-    const cx = cell.x + cell.warpX + cw / 2;
-    const cy = cell.y + cell.warpY + ch / 2;
-    if (!cell.text) continue;
-    const lines = wrapTextToWidth(ctx, cell.text, Math.max(1, cw - 4));
-    const totalH = lines.length * lineHeight;
-    const startY = cy - totalH / 2 + lineHeight / 2;
-    lines.forEach((line, i) => {
-      ctx.fillText(line, cx, startY + i * lineHeight);
-    });
+    if (cw <= 0 || ch <= 0) continue;
+    const { lines } = layout(atomParams, cw, ch);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(cell.x + cell.warpX, cell.y + cell.warpY, cw, ch);
+    ctx.clip();
+    ctx.translate(cell.x + cell.warpX, cell.y + cell.warpY);
+    ctx.font = `${weight} ${atomParams.fontSize}px ${family}`;
+
+    for (const line of lines) {
+      for (const char of line.chars) {
+        if (char.blinkT && blinkActive) continue;
+        const baseOp = (char.blinkT && atomParams.blinkFade > 0) ? blinkFadeFactor : 1;
+        ctx.globalAlpha = baseOp * (char.extraOp !== undefined ? char.extraOp : 1);
+        ctx.fillStyle = char.accentT ? (accentColors[char.accentT] || baseColor) : baseColor;
+        const sm = char.sizeMul !== undefined ? char.sizeMul : 1;
+        ctx.save();
+        ctx.translate(char.x, char.y);
+        if (sm !== 1) ctx.scale(sm, sm);
+        if (char.skew) ctx.transform(1, 0, char.skew, 1, 0, 0);
+        ctx.fillText(char.ch, 0, 0);
+        ctx.restore();
+      }
+    }
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+
+  if (opts.showGrid) {
+    ctx.save();
+    ctx.strokeStyle = opts.gridColor || '#999999';
+    ctx.lineWidth = 1;
+    for (const cell of evaluated.cells) {
+      const cw = cell.w * cell.colScale;
+      const ch = cell.h * cell.rowScale;
+      ctx.strokeRect(cell.x + cell.warpX + 0.5, cell.y + cell.warpY + 0.5, cw, ch);
+    }
+    ctx.restore();
   }
 }

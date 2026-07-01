@@ -98,3 +98,16 @@ test('2D grid panel is wired: rows/cols, per-axis presets, mode switch', async (
   assert.match(main, /function wireGrid2D\(\)/);
   assert.match(presetState, /'grid2d'/);
 });
+
+test('2D grid repeats the shared Àtom text and exposes a grid-lines toggle', async () => {
+  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  const main = await readFile(new URL('../main.js', import.meta.url), 'utf8');
+  const engine2d = await readFile(new URL('../engine2d.js', import.meta.url), 'utf8');
+  assert.match(html, /id="grid2dShowGrid"/);
+  assert.match(main, /showGridCb\.checked = state\.grid2d\.showGrid/);
+  assert.match(main, /drawGrid2D\(displayCtx, evaluated, displayW, displayH, state,/);
+  // layoutGrid2D no longer takes text — every cell repeats the shared Àtom
+  // layout instead of splitting words across cells.
+  assert.match(engine2d, /export function layoutGrid2D\(rows, cols, width, height\)/);
+  assert.match(engine2d, /import \{ layout, resolveFontSpec \} from '\.\/engine\.js'/);
+});

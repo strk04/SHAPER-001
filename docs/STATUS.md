@@ -1,6 +1,6 @@
 # STATUS — SHAPER 001
 
-_Actualitzat: 2026-07-01 (Director: efectes en desplegables + segments Inici/Final)_
+_Actualitzat: 2026-07-01 (Director: selector de forma + easing d'entrada/sortida)_
 
 ## Estat general
 
@@ -21,10 +21,13 @@ S'ha eliminat el sistema de Moviment (Deriva/Òrbita/Atracció/Explosió, `behav
   defecte): Àtom (Kerning, Interlínia, Aplicació de l'àtom), Forma 3D (Forma, Mida de forma,
   Proporció), Càmera (Rotació X/Y/Z, Angle X/Y), Moviment 3D (Velocitat, Probabilitat de pluja,
   Velocitat de pluja)
-- cada efecte és un **segment amb Inici i Final** (`{start, end, value}`) que manté un valor fix
-  mentre el playhead hi és dins; fora del rang cau al valor base. No hi ha rampa ni fade — decisió
-  explícita de l'usuari. Clicar un efecte crea un segment d'1s des del playhead; l'editor lateral
-  permet ajustar Valor/Inici/Final o eliminar-lo
+- cada efecte és un **segment amb Inici i Final** (`{start, end, value, easeIn, easeOut}`). Dins el
+  segment manté un valor fix, però ara entra/surt amb **easing configurable** (`Easing entrada`/
+  `Easing sortida`, en segons, per defecte `0.3s` als efectes numèrics) en lloc de canviar de cop.
+  Efectes de valor discret (Forma, wrapMode) no tenen easing — un string no s'interpola. Clicar un
+  efecte crea un segment d'1s des del playhead; l'editor lateral permet ajustar Valor/Inici/Final/
+  Easing o eliminar-lo. El camp "Valor" de Forma i wrapMode és un `<select>` amb les opcions reals
+  (no cal escriure-les a mà)
 - controls globals `Reverse` i `Loop`
 - timeline inline sota el canvas, a la columna 3: una única barra (`role="slider"`) seekable per
   pointer i teclat (fletxes, Home, End), amb `aria-valuetext` en format `m:ss.s`; cada efecte aplicat
@@ -81,14 +84,17 @@ Ultima verificacio executada el 2026-07-01:
 node --check director.js
 node --check director-ui.js
 node --check main.js
-node --test tests/*.mjs   # 47 pass
+node --test tests/*.mjs   # 52 pass
 ```
 
 ## Pendent
 
-- Decidir si la durada per defecte d'un segment nou (1s, `DEFAULT_SEGMENT_LENGTH` a `director-ui.js`)
-  ha de ser configurable.
+- Decidir si la durada per defecte d'un segment nou (1s, `DEFAULT_SEGMENT_LENGTH`) i l'easing per
+  defecte (0.3s, `DEFAULT_EASE_LENGTH`, ambdós a `director.js`/`director-ui.js`) han de ser
+  configurables.
+- Sense crossfade directe entre segments veïns: l'easing sempre va cap al/des del valor base, no
+  cap al segment adjacent.
 - Revisar deployment de Pixel Perfect si cal confirmar publicacio web.
 
-`17 SHAPER 001` pujat a `strk04/SHAPER-001` (`0c6acf4`). `02 Pixel Perfect/shaper` sincronitzat i
-pujat a `strk04/PIxel-Perfect` (`0b4434e`).
+`17 SHAPER 001` pujat a `strk04/SHAPER-001` (`687e52c`). `02 Pixel Perfect/shaper` sincronitzat i
+pujat a `strk04/PIxel-Perfect` (`858a608`).

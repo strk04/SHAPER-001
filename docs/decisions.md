@@ -1,5 +1,38 @@
 # Decisions — SHAPER 001
 
+## 2026-07-01 — Director: easing d'entrada/sortida reintroduït (contradiu la decisió anterior)
+
+Un cop implementat el model "hold" (valor fix, sense rampa), l'usuari va provar-ho i va demanar
+canviar-ho: "el canvi entre efectes no pot ser brusc, hi ha d'haver un easing d'entrada i de sortida
+i una duració de l'easing d'entrar i sortir". Això reobre la decisió del mateix dia ("Director:
+segments amb valor fix", més avall) sense contradir-la del tot: el **cos** del segment continua
+mantenint un valor fix (no és una rampa contínua d'un valor a un altre com l'opció "b" descartada
+llavors), però ara els **límits** (entrada/sortida) sí que interpolen suaument des de/cap al valor
+base durant una durada configurable (`easeIn`/`easeOut` en segons, per segment).
+
+Racional: la primera decisió (hold pur) resultava massa brusca a la pràctica un cop provada; l'usuari
+no volia tornar a una rampa contínua completa (opció "b"/"c" descartades explícitament la primera
+vegada), sinó suavitzar només les vores. Aquesta és una afinació de la decisió original, no una
+reversió completa.
+
+Conseqüències: `evaluateDirector` torna a fer interpolació lineal (com abans de simplificar-ho), però
+només a les vores del segment i només per a valors numèrics — els efectes de valor discret (Forma,
+wrapMode) continuen sense easing perquè un string no s'interpola. Per defecte els segments numèrics
+nous reben `easeIn=easeOut=0.3s` (`DEFAULT_EASE_LENGTH`) perquè el comportament brusc no torni a
+aparèixer per omissió.
+
+## 2026-07-01 — Director: selector de forma en lloc de text lliure
+
+El camp "Valor" de l'editor d'efecte, per a paràmetres de valor discret (Forma, Aplicació de l'àtom),
+passa de `<input type="text">` a `<select>` amb les mateixes opcions que el control real de la
+pàgina (`document.getElementById(AUTOMATION_CONTROL_IDS[name])`), en lloc de duplicar-ne la llista
+de 45 formes com a constant nova.
+
+Racional: l'usuari havia d'escriure a mà l'id intern de la forma (`"cylinder"`, `"torus-knot"`...)
+sense cap ajuda, propens a error. Reutilitzar les opcions del control ja existent (rung 2 de
+l'escala d'YAGNI: "ja existeix al codebase") evita duplicar 45 línies i mantenir dues fonts de
+veritat sincronitzades.
+
 ## 2026-07-01 — Director: segments amb valor fix (no rampa ni fade)
 
 Cada efecte aplicat sobre la línia temporal té un **Inici** i un **Final**, i manté **un sol valor

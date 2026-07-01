@@ -1,5 +1,43 @@
 # Progress — SHAPER 001
 
+## 2026-07-01 — Director: selector de forma + easing d'entrada/sortida
+
+### Fet
+- L'usuari va reportar dos problemes concrets sobre la sessió anterior: (1) l'efecte "Forma" obligava
+  a escriure el valor a mà; (2) el canvi entre segments era brusc, sense easing.
+- `director-ui.js`: nova `buildValueField(path, segment)` — quan `AUTOMATABLE_PARAMS[name] === 'hold'`
+  (Forma, Aplicació de l'àtom), el camp "Valor" de l'editor és un `<select>` amb les opcions clonades
+  1:1 del control real de la pàgina (`document.getElementById(AUTOMATION_CONTROL_IDS[name])`), amb
+  l'opció actual marcada `selected`. Per a efectes numèrics, es manté l'`<input>` de sempre.
+- `director.js`: cada segment guarda `easeIn`/`easeOut` (segons, clampats a `[0, span]`, on
+  `span = end - start`). `evaluateDirector`/`segmentValue` interpolen linealment el valor des del
+  fallback (valor base) cap al valor del segment durant `easeIn` a l'entrada, i a la inversa durant
+  `easeOut` a la sortida; la resta del segment manté el valor fix com abans. Sense easing per a
+  valors no numèrics (Forma/wrapMode) — un string no es pot interpolar, es manté snap immediat.
+  Nova constant `DEFAULT_EASE_LENGTH = 0.3`.
+- `main.js`: en crear un segment nou (des del botó d'efecte o des dels botons-diamant dels sliders),
+  els efectes numèrics reben `easeIn=easeOut=DEFAULT_EASE_LENGTH` per defecte; els de valor discret
+  reben `0`. `updateSelectedEffect()` preserva `easeIn`/`easeOut` existents quan s'edita només
+  Valor/Inici/Final.
+- Revisió d'accessibilitat (accessibility-lead), ràpida perquè reutilitza patrons ja aprovats aquesta
+  mateixa sessió (`.control-row`/`.director-duration-field`): confirmat que `max="0"` en un input
+  numèric és un estat vàlid (indica rang fix, sense necessitat d'ARIA extra), i que canviar
+  `<input>` per `<select>` sota el mateix `<label for>` no necessita cap ajust. Sense canvis a
+  `styles.css` (cap classe nova).
+- Tests nous a `tests/director.test.mjs` (clamp d'`easeIn`/`easeOut`, ramp in/out, sense easing per
+  a valors no numèrics) i a `tests/project-wiring.test.mjs` (presència del selector i dels camps
+  d'easing).
+
+### Verificat
+- `node --test tests/*.mjs` → 52 pass (Shaper).
+- Sincronitzat a `02 Pixel Perfect/shaper/`; `node --test tests/*.mjs` → 47 pass allà.
+- Pujat a `strk04/SHAPER-001` (`687e52c`) i `strk04/PIxel-Perfect` (`858a608`).
+
+### Pendent
+- Cap ramp/fade "crossfade" entre segments adjacents encara — l'easing sempre va cap al/des del
+  valor base (fallback), no cap al segment veí. Si l'usuari vol un encadenat directe entre dos
+  segments consecutius del mateix paràmetre, caldrà una decisió nova.
+
 ## 2026-07-01 — Director: efectes en desplegables + segments Inici/Final
 
 ### Fet

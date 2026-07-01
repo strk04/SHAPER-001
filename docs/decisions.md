@@ -1,5 +1,26 @@
 # Decisions — SHAPER 001
 
+## 2026-07-01 — Director eliminat del tot (incloent l'export MP4 offline)
+
+Després d'una sessió sencera desenvolupant i refinant el Director (escenes → línia temporal →
+segments amb easing → selector de forma), l'usuari va demanar directament "borrem tota la secció
+director". Es va preguntar explícitament (`AskUserQuestion`) si calia conservar el mecanisme
+d'export MP4 offline frame-exact que el Director havia introduït (`encodeDirectorFrames`/
+`resolveOfflineAnimationState`, també usat per l'export de durada fixa sense Director actiu) o
+eliminar-ho tot. L'usuari va triar **eliminar-ho tot**.
+
+Racional: no se'ns ha donat raó explícita del canvi de direcció — es tracta d'una decisió de
+producte de l'usuari, no d'un bug. Conseqüència acceptada explícitament: l'export de durada fixa
+(5/10/15/30s) deixa de ser frame-exact/offline i torna a ser una captura en temps real (com
+`Manual`), depenent del rendiment del navegador durant la gravació.
+
+Conseqüències tècniques: `director.js`, `director-ui.js`, `export-video.js` i tots els seus tests
+desapareixen. `engine.js` conserva `clockMs`/`motionTime` (usats per blink determinista i pel
+motor de moviment ja mort) però repuntats a `params.morphClock` en lloc del `directorTime` eliminat
+— sense aquest canvi, aquest codi hauria quedat silenciosament trencat (sempre agafant el valor de
+fallback). Cap migrador de presets antics amb un camp `director`: simplement queda ignorat, no hi
+ha cap lectura d'aquell camp enlloc del codi.
+
 ## 2026-07-01 — Director: easing d'entrada/sortida reintroduït (contradiu la decisió anterior)
 
 Un cop implementat el model "hold" (valor fix, sense rampa), l'usuari va provar-ho i va demanar

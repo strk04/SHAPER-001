@@ -1,5 +1,57 @@
 # Progress — SHAPER 001
 
+## 2026-07-01 — Director eliminat del tot
+
+### Fet
+- L'usuari va demanar esborrar tota la secció Director, després d'una sessió sencera iterant-hi
+  (escenes → línia temporal única → segments amb easing → selector de forma). Confirmat amb
+  `AskUserQuestion` que calia eliminar també el mecanisme d'export MP4 offline frame-exact
+  (`encodeDirectorFrames`/`resolveOfflineAnimationState`), no només la UI.
+- Eliminats `director.js`, `director-ui.js`, `export-video.js` i els tests corresponents
+  (`tests/director.test.mjs`, `tests/director-ui.test.mjs`, `tests/export-video.test.mjs`).
+- `index.html`: retirat el botó de nav "Director", el `<section id="panel-director">` i tot
+  `<section id="directorTimelineHost">` sota el canvas.
+- `main.js`: retirat tot l'estat (`director`, `directorTime`, `directorRate`,
+  `selectedDirectorEffect`), `resolveRenderState`/`drawResolvedState` (fusionats de nou en un
+  `render()` directe sobre `state`), `wireDirector`, `installAutomationButtons`,
+  `updateAutomationButtonStates`, `replaceDirector`, `updateDirectorDuration`,
+  `updateSelectedEffect`, i les crides corresponents a `init()`.
+- `main.js` export MP4: eliminades les dues branques offline (`state.director.enabled` i
+  `!Number.isNaN(dur)` amb `encodeDirectorFrames`). L'export de durada fixa ara cau al mateix camí
+  que `Manual` — ja hi havia captura en temps real (`captureFrame()` dins `frame()`) amb aturada
+  automàtica via `recState.loopTotal`, així que no calia escriure cap substitut nou.
+- `saveSVG()`/`savePNG()`: ja no criden `resolveRenderState(state.directorTime)`; exporten `state`
+  directament.
+- `preset-state.js`: retirats `'director'` de `CREATIVE_PRESET_EXTRA_KEYS` i `directorTime`/
+  `directorRate`/`selectedDirectorEffect` de `EPHEMERAL_PRESET_KEYS`.
+- `engine.js`: `clockMs` i `motionTime` llegien `params.directorTime`; repuntats a
+  `params.morphClock` (el rellotge de segons reals que ja existia i continua actiu), mateix
+  comportament (blink determinista durant l'export), font diferent. `applyMotionBehaviors`/
+  `motionBehaviors` es deixen intactes com a codi mort — són previs al Director i fora d'abast
+  d'aquesta neteja.
+- `styles.css`: eliminades totes les regles `.director-*` i `.automation-key-button` (línies
+  791–1114, tot el final del fitxer), més l'override `.stage { grid-template-rows: minmax(0, 1fr)
+  auto; }` que reservava una segona fila de grid per a la timeline ja desapareguda.
+- Revisió d'accessibilitat (accessibility-lead) abans d'esborrar el CSS: confirmat que la supressió
+  no deixa cap element orfe (el JS que creava `.automation-key-button` ja estava eliminat) ni cap
+  problema de focus/reflow.
+- `tests/project-wiring.test.mjs`: reescrit de 216 a ~90 línies. Es mantenen els tests no
+  relacionats amb Director (superfície, guies, retirada de regions 3D); s'afegeixen dos tests nous
+  ("Director feature has been fully removed", "fixed-duration MP4 export falls back to real-time
+  capture") que actuen com a regressió perquè no torni a aparèixer cap referència.
+- `tests/preset-state.test.mjs`: eliminades les referències a `director`/`selectedDirectorEffect`
+  del fixture i canviats els asserts a `assert.equal(..., false)`.
+
+### Verificat
+- `node --test tests/*.mjs` → 21 pass (Shaper, baixa de 52 perquè s'han eliminat ~30 tests
+  específics de Director i se n'han afegit 2 de regressió).
+- Sincronitzat a `02 Pixel Perfect/shaper/`; `node --test tests/*.mjs` → 16 pass allà.
+- Pujat a `strk04/SHAPER-001` (`24d2770`) i `strk04/PIxel-Perfect` (`e06a968`).
+
+### Pendent
+- Cap. La neteja de codi mort `applyMotionBehaviors`/`motionBehaviors` a `motion.js`/`engine.js` és
+  previa al Director i queda com a possible tasca separada, no derivada d'aquesta sessió.
+
 ## 2026-07-01 — Director: selector de forma + easing d'entrada/sortida
 
 ### Fet

@@ -4,47 +4,46 @@ _Actualitzat: 2026-07-01_
 
 ## Què ha canviat (última sessió)
 
-- Director: model d'escenes eliminat → línia temporal única.
-- Director: cada efecte és un segment amb **Inici/Final** que manté un valor fix, però ara amb
-  **easing d'entrada/sortida** configurable (`Easing entrada`/`Easing sortida`, segons) perquè el
-  canvi no sigui brusc — reafinament de la decisió "hold pur" presa a la mateixa sessió (vegeu
-  `docs/decisions.md`).
-- Director: efecte "Forma" (i "Aplicació de l'àtom") ja no requereix escriure el valor a mà — l'editor
-  mostra un `<select>` amb les opcions reals clonades del control de la pàgina.
-- Director: els 4 grups d'efectes són desplegables natius (`<details>/<summary>`).
-- Múltiples revisions d'accessibilitat (accessibility-lead) al llarg de la sessió, abans/després de
-  cada canvi de markup o CSS.
-- Vegeu `docs/decisions.md` i `docs/progress.md` (entrades 2026-07-01, ordre cronològic invers) per
-  detall complet de cada iteració.
-- Sincronitzat i pujat a tots dos repos: `strk04/SHAPER-001` (`687e52c`) i `strk04/PIxel-Perfect`
-  (`858a608`). `node --test tests/*.mjs` → 52 pass (Shaper) / 47 pass (mirall PP).
+- L'usuari ha demanat eliminar tota la secció Director, després de tota una sessió desenvolupant-la.
+  Confirmat via `AskUserQuestion` que calia eliminar també l'export MP4 offline frame-exact que en
+  depenia, no només la UI.
+- Eliminats: `director.js`, `director-ui.js`, `export-video.js` i els seus tests; tab/panell/
+  timeline de Director a `index.html`; tot el wiring corresponent a `main.js`; totes les regles
+  `.director-*`/`.automation-key-button` a `styles.css`.
+- L'export MP4 de durada fixa (5/10/15/30s) ja no és offline/frame-exact — cau al mateix mecanisme
+  que `Manual` (captura en temps real, ja existia, s'atura sola).
+- `engine.js`: `clockMs`/`motionTime` repuntats de `directorTime` (eliminat) a `morphClock`
+  (encara actiu), mateix comportament.
+- `preset-state.js`: net de qualsevol referència a Director.
+- Revisió d'accessibilitat (accessibility-lead) abans d'esborrar el CSS, confirmant que no queda
+  cap element orfe ni problema de focus/reflow.
+- Vegeu `docs/decisions.md` i `docs/progress.md` (entrada 2026-07-01, "Director eliminat del tot")
+  per detall complet.
+- Sincronitzat i pujat a tots dos repos: `strk04/SHAPER-001` (`24d2770`) i `strk04/PIxel-Perfect`
+  (`e06a968`). `node --test tests/*.mjs` → 21 pass (Shaper) / 16 pass (mirall PP).
 
 ## Estat actual
 
-- Director: línia temporal única, efectes en desplegables, cada segment amb Inici/Final + easing
-  d'entrada/sortida (numèrics) o selector de valor (Forma/wrapMode).
-- Export MP4 offline frame-exact, superfície 3D configurable, guies amb colors propis (sense canvis
-  aquesta sessió).
+- Sense funció Director. `render()` és directe sobre `state`, sense cap capa de resolució de
+  paràmetres animats.
+- Export MP4: `Manual` (temps real) i durades fixes (5/10/15/30s, també temps real ara).
+- Superfície 3D configurable, guies amb colors propis (sense canvis aquesta sessió).
 
 ## Verificació
 
 ```bash
-node --test tests/*.mjs   # 52 pass (Shaper)
+node --test tests/*.mjs   # 21 pass (Shaper)
 ```
 
 ## Fitxers clau
 
-- `director.js`, `director-ui.js`, `main.js`, `styles.css`
-- `preset-state.js`, `engine.js`, `export-video.js`
-- `tests/director.test.mjs`, `tests/director-ui.test.mjs`, `tests/project-wiring.test.mjs`,
-  `tests/preset-state.test.mjs`
+- `main.js`, `engine.js`, `styles.css`, `preset-state.js`
+- `tests/project-wiring.test.mjs`, `tests/preset-state.test.mjs`, `tests/surface-fill.test.mjs`,
+  `tests/motion.test.mjs`
 
 ## Següent pas
 
-- Cap ramp/fade directe entre segments veïns encara — l'easing sempre va cap al/des del valor base,
-  no cap al segment adjacent. Si l'usuari vol un encadenat directe, cal decisió nova.
-- Decidir si `DEFAULT_SEGMENT_LENGTH` (1s) i `DEFAULT_EASE_LENGTH` (0.3s) han de ser configurables.
-- Trencament de compatibilitat conegut i acceptat: presets antics (amb `scenes`, o amb keyframes
-  puntuals `{time,value,easing}`) es carreguen sense error però perden el contingut animat. Sense
-  migrador — no hi ha presets amb Director en producció encara.
-- `engine.js`/`motion.js` conserven `applyMotionBehaviors` com a codi mort — netejar si es vol.
+- Cap tasca pendent derivada d'aquesta sessió.
+- `engine.js`/`motion.js` conserven `applyMotionBehaviors`/`motionBehaviors` com a codi mort, previ
+  al Director — netejar-ho és una tasca separada i opcional, no part d'aquesta neteja.
+- Revisar deployment de Pixel Perfect si cal confirmar publicació web.

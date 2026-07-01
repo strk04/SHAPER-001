@@ -1,6 +1,6 @@
 # STATUS — SHAPER 001
 
-_Actualitzat: 2026-07-01 (Director: selector de forma + easing d'entrada/sortida)_
+_Actualitzat: 2026-07-01 (Director eliminat del tot)_
 
 ## Estat general
 
@@ -10,45 +10,40 @@ Projecte vanilla JS zero-build. Flux habitual de publicació:
 - sincronitzar a `02 Pixel Perfect/shaper/`
 - commit + push als dos repos
 
-## Motion Director
+## Director (eliminat 2026-07-01)
 
-S'ha eliminat el sistema de Moviment (Deriva/Òrbita/Atracció/Explosió, `behaviors`) i, des de
-2026-07-01, també el model d'escenes. Director ara és **una única línia temporal contínua**:
+L'usuari va demanar esborrar tota la secció Director. Ja no existeix:
 
-- activació global
-- una sola `Durada` per a tota la línia temporal (no hi ha escenes ni transicions entre elles)
-- llista d'efectes concrets, agrupats en **desplegables natius** (`<details>/<summary>`, plegats per
-  defecte): Àtom (Kerning, Interlínia, Aplicació de l'àtom), Forma 3D (Forma, Mida de forma,
-  Proporció), Càmera (Rotació X/Y/Z, Angle X/Y), Moviment 3D (Velocitat, Probabilitat de pluja,
-  Velocitat de pluja)
-- cada efecte és un **segment amb Inici i Final** (`{start, end, value, easeIn, easeOut}`). Dins el
-  segment manté un valor fix, però ara entra/surt amb **easing configurable** (`Easing entrada`/
-  `Easing sortida`, en segons, per defecte `0.3s` als efectes numèrics) en lloc de canviar de cop.
-  Efectes de valor discret (Forma, wrapMode) no tenen easing — un string no s'interpola. Clicar un
-  efecte crea un segment d'1s des del playhead; l'editor lateral permet ajustar Valor/Inici/Final/
-  Easing o eliminar-lo. El camp "Valor" de Forma i wrapMode és un `<select>` amb les opcions reals
-  (no cal escriure-les a mà)
-- controls globals `Reverse` i `Loop`
-- timeline inline sota el canvas, a la columna 3: una única barra (`role="slider"`) seekable per
-  pointer i teclat (fletxes, Home, End), amb `aria-valuetext` en format `m:ss.s`; cada efecte aplicat
-  es dibuixa com una barra (no un punt) proporcional a la seva durada
-- playhead draggable superposat a la barra
-- menú contextual de supressió sobre els segments
+- `director.js`, `director-ui.js`, `export-video.js` i els seus tests — eliminats.
+- Tab/panell "Director", timeline sota el canvas (`directorTimelineHost`), tot el CSS `.director-*`
+  i `.automation-key-button` — eliminats.
+- Tot el wiring a `main.js` (estat `director`/`directorTime`/`directorRate`/`selectedDirectorEffect`,
+  `resolveRenderState`, `wireDirector`, `installAutomationButtons`, etc.) — eliminat.
+- `render()` torna a ser directe: dibuixa `state` sense cap resolució de paràmetres animats.
 
 `engine.js`/`motion.js` conserven `applyMotionBehaviors` com a codi mort (ja no s'hi alimenta cap
-behavior des del Director); no s'ha tocat per estar fora d'abast d'aquest canvi.
+behavior des d'enlloc); no s'ha tocat perquè és previ al Director i fora d'abast d'aquesta neteja.
+`engine.js` llegeix ara `params.morphClock` (en lloc del `directorTime` eliminat) per a `clockMs`
+(blink determinista durant l'export) i per a `motionTime` — mateix comportament, font diferent.
 
 ## Export MP4
 
-- Amb Director actiu, l'MP4 s'exporta offline a partir de la durada total del Director.
-- Sense Director, les durades fixes (`5 s`, `10 s`, `15 s`, `30 s`) també s'exporten offline amb mostreig uniforme per frame.
-- La gravació `Manual` continua sent real-time i depèn del rendiment del navegador.
+- Ja no hi ha export offline frame-exact (`encodeDirectorFrames`/`resolveOfflineAnimationState`
+  eliminats amb Director).
+- L'export de durada fixa (`5 s`, `10 s`, `15 s`, `30 s`) ara cau al mateix mecanisme que `Manual`:
+  captura en temps real via `captureFrame()` dins el bucle d'animació, aturant-se sola quan
+  `recState.frameN` arriba a `recState.loopTotal` (`dur * fps`). Depèn del rendiment del navegador
+  igual que `Manual`.
 
 ## Presets
 
 - Els presets usen un snapshot creatiu centralitzat a `preset-state.js`.
-- Es guarden sliders, seed, colors, modes, càmera, toggles de càmera, outline custom, morph, canvas i Director.
-- No es guarden camps efímers de sessió com `fps`, `t`, `morphClock`, `directorTime`, `directorRate` ni seleccions temporals del Director.
+- Es guarden sliders, seed, colors, modes, càmera, toggles de càmera, outline custom, morph i canvas.
+- Ja no es guarda ni s'exclou res relacionat amb Director (`director`, `directorTime`,
+  `directorRate`, `selectedDirectorEffect` retirats de `CREATIVE_PRESET_EXTRA_KEYS` i
+  `EPHEMERAL_PRESET_KEYS`).
+- Presets antics que continguin un camp `director` simplement l'ignoren en carregar-se (no hi ha cap
+  codi que el llegeixi); no calia migrador.
 
 ## Superficies 3D
 
@@ -67,34 +62,27 @@ behavior des del Director); no s'ha tocat per estar fora d'abast d'aquest canvi.
 
 Ja no hi ha:
 
+- tab/panell Director, ni cap dels seus controls (escenes, efectes, segments, easing, timeline)
 - selector `Moviment` (Deriva/Òrbita/Atracció/Explosió) ni ajustos `intensity`/`cohesion` per escena
 - `ATTRACT`, `REPEL`, `EXPLODE`
-- `REC`
-- `Atura`
-- `Hold`
-- dock inferior de timeline
-- resize handle del timeline
-- botó `Timeline` a la columna 2
+- `REC`, `Atura`, `Hold`
+- export MP4 offline frame-exact
 
 ## Verificació actual
 
 Ultima verificacio executada el 2026-07-01:
 
 ```bash
-node --check director.js
-node --check director-ui.js
 node --check main.js
-node --test tests/*.mjs   # 52 pass
+node --check engine.js
+node --test tests/*.mjs   # 21 pass
 ```
 
 ## Pendent
 
-- Decidir si la durada per defecte d'un segment nou (1s, `DEFAULT_SEGMENT_LENGTH`) i l'easing per
-  defecte (0.3s, `DEFAULT_EASE_LENGTH`, ambdós a `director.js`/`director-ui.js`) han de ser
-  configurables.
-- Sense crossfade directe entre segments veïns: l'easing sempre va cap al/des del valor base, no
-  cap al segment adjacent.
 - Revisar deployment de Pixel Perfect si cal confirmar publicacio web.
+- `engine.js`/`motion.js` conserven `applyMotionBehaviors`/`motionBehaviors` com a codi mort — netejar
+  si es vol en una sessió separada (no és Director, és previ).
 
-`17 SHAPER 001` pujat a `strk04/SHAPER-001` (`687e52c`). `02 Pixel Perfect/shaper` sincronitzat i
-pujat a `strk04/PIxel-Perfect` (`858a608`).
+`17 SHAPER 001` pujat a `strk04/SHAPER-001` (`24d2770`). `02 Pixel Perfect/shaper` sincronitzat i
+pujat a `strk04/PIxel-Perfect` (`e06a968`).

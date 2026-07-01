@@ -1255,7 +1255,6 @@ function applyPreset(p) {
   if (p.speed3d != null) { state.speed3d = p.speed3d; syncSliderUI('speed3d'); }
   if (p.mode != null) {
     state.mode = '3d';
-    activatePanel('panel-3d');
     updateEditorVisibility();
   }
   if (p.form       != null) { state.form       = p.form;       $('form').value       = p.form;       updateEditorVisibility(); }

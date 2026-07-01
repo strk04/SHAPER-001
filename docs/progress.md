@@ -1,5 +1,25 @@
 # Progress — SHAPER 001
 
+## 2026-07-01 — Presets: no canviar de panell en carregar
+
+### Fet
+- L'usuari va reportar que en carregar un preset, l'app saltava automàticament al panell `3D`,
+  quan volia quedar-se al panell `Presets`.
+- Causa: `applyPreset()` a `main.js` cridava `activatePanel('panel-3d')` sempre que el preset
+  incloïa `mode`. Com que `state.mode` és sempre `'3d'` (l'app no té mode 2D), aquesta crida no
+  aportava res a l'estat — només forçava el canvi visual de panell.
+- Fix: eliminada la crida `activatePanel('panel-3d')` dins `applyPreset()`. Es manté
+  `state.mode = '3d'` i `updateEditorVisibility()` (necessari per mostrar els sliders correctes
+  segons la forma del preset), però ja no es toca quin panell està actiu.
+
+### Verificat
+- `node --test tests/*.mjs` → 21 pass (Shaper).
+- Sincronitzat a `02 Pixel Perfect/shaper/`; `node --test tests/*.mjs` → 16 pass allà.
+- Pujat a `strk04/SHAPER-001` (`9180ecf`) i `strk04/PIxel-Perfect` (`472c560`).
+
+### Pendent
+- Cap.
+
 ## 2026-07-01 — Perspectiva: reduir el cost de `ctx.font` per glif
 
 ### Fet

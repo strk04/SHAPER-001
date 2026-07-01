@@ -1,6 +1,6 @@
 # STATUS — SHAPER 001
 
-_Actualitzat: 2026-07-01 (Perspectiva: menys cost de ctx.font per glif)_
+_Actualitzat: 2026-07-01 (Presets ja no canvien de panell en carregar)_
 
 ## Estat general
 
@@ -54,6 +54,9 @@ behavior des d'enlloc); no s'ha tocat perquè és previ al Director i fora d'aba
   `EPHEMERAL_PRESET_KEYS`).
 - Presets antics que continguin un camp `director` simplement l'ignoren en carregar-se (no hi ha cap
   codi que el llegeixi); no calia migrador.
+- Carregar un preset ja no canvia el panell actiu (abans saltava a `panel-3d` sempre que el preset
+  incloïa `mode`); `state.mode` es fixa a `'3d'` igualment, però l'usuari es queda al panell des
+  d'on ha carregat el preset (típicament `Presets`).
 
 ## Superficies 3D
 
@@ -94,5 +97,5 @@ node --test tests/*.mjs   # 21 pass
 - `engine.js`/`motion.js` conserven `applyMotionBehaviors`/`motionBehaviors` com a codi mort — netejar
   si es vol en una sessió separada (no és Director, és previ).
 
-`17 SHAPER 001` pujat a `strk04/SHAPER-001` (`eef99b4`). `02 Pixel Perfect/shaper` sincronitzat i
-pujat a `strk04/PIxel-Perfect` (`5b2a3e0`).
+`17 SHAPER 001` pujat a `strk04/SHAPER-001` (`9180ecf`). `02 Pixel Perfect/shaper` sincronitzat i
+pujat a `strk04/PIxel-Perfect` (`472c560`).

@@ -1,5 +1,15 @@
 # Decisions — SHAPER 001
 
+## 2026-07-01 — Presets: no forçar canvi de panell en carregar
+
+`applyPreset()` deixa de cridar `activatePanel('panel-3d')`. Aquesta crida era un residu de quan
+l'app tenia mode 2D/3D commutable: com que `state.mode` és sempre `'3d'`, forçar el canvi de panell
+no aportava cap valor funcional, només interrompia el flux de l'usuari (carregava un preset des de
+`Presets` i es trobava al panell `3D` sense haver-ho demanat).
+
+Conseqüències: cap — `updateEditorVisibility()` es manté per assegurar que els sliders correctes
+(segons la forma del preset) es mostren encara que l'usuari no vegi el panell 3D en aquell moment.
+
 ## 2026-07-01 — Perspectiva: arrodonir la mida de font enlloc de fer-la exacta
 
 Al mode Billboard, la mida de font varia contínuament amb la profunditat (efecte de perspectiva).

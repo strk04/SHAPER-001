@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   layoutGrid2D, SCALE_PRESETS, warpBoundaryOffset, blockReveal, evaluateGrid2D, drawGrid2D,
+  instanceSizeMul,
 } from '../engine2d.js';
 
 const ATOM_PARAMS = {
@@ -161,6 +162,36 @@ test('drawGrid2D scales the atom itself per cell, not just the cell container', 
   const scaleCalls = ctx.calls.filter((c) => c[0] === 'scale');
   assert.equal(scaleCalls.length, evaluated.cells.length, 'one ctx.scale per cell');
   assert.ok(scaleCalls.some((c) => c[2] === row0.rowScale), 'the animated rowScale is applied via ctx.scale, not just cell geometry');
+});
+
+test('instanceSizeMul stays at 1 with zero variance and oscillates otherwise', () => {
+  assert.equal(instanceSizeMul(0.3, 1, 0.5, 0), 1);
+  const a = instanceSizeMul(0.1, 1, 0.11, 0.5);
+  const b = instanceSizeMul(0.1, 1, 0.73, 0.5);
+  assert.notEqual(a, b, 'different phases produce different sizes at the same instant');
+});
+
+test('drawGrid2D packs density×density independent repeats per cell', () => {
+  const grid = layoutGrid2D(1, 1, 200, 200);
+  const evaluated = evaluateGrid2D(grid, 0, { same: true, presets: ['none'] }, { same: true, presets: ['none'] }, 1, 1);
+  const ctx = makeFakeCtx();
+  drawGrid2D(ctx, evaluated, 200, 200, ATOM_PARAMS, { density: 1 });
+  const fillTextCallsD1 = ctx.calls.filter((c) => c[0] === 'fillText').length;
+
+  const ctx2 = makeFakeCtx();
+  drawGrid2D(ctx2, evaluated, 200, 200, ATOM_PARAMS, { density: 2 });
+  const fillTextCallsD2 = ctx2.calls.filter((c) => c[0] === 'fillText').length;
+
+  assert.ok(fillTextCallsD2 > fillTextCallsD1, 'density 2 (2x2=4 sub-instances) draws more repeats than density 1');
+});
+
+test('drawGrid2D gives each sub-instance its own animated font size when sizeVariance > 0', () => {
+  const grid = layoutGrid2D(1, 1, 200, 200);
+  const evaluated = evaluateGrid2D(grid, 0, { same: true, presets: ['none'] }, { same: true, presets: ['none'] }, 1, 1);
+  const ctx = makeFakeCtx();
+  drawGrid2D(ctx, evaluated, 200, 200, ATOM_PARAMS, { density: 3, sizeVariance: 0.8, animTime: 0.37, animSpeed: 1 });
+  const fontValues = new Set(ctx.calls.filter((c) => c[0] === 'font').map((c) => c[1]));
+  assert.ok(fontValues.size > 1, 'sub-instances render at different font sizes, not one uniform size');
 });
 
 test('drawGrid2D only strokes cell boundaries when showGrid is true', () => {

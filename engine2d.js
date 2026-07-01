@@ -83,6 +83,26 @@ export function blockReveal(t, i, n) {
 
 export const PRESET_NAMES = Object.freeze(['none', 'wave', 'accordion', 'cascade', 'warpflow', 'block']);
 
+// ── Per-instance density pack ────────────────────────────────────────────────
+// Each grid cell can hold a density×density sub-pack of independent repeats of
+// the atom, each with its own seeded phase so they oscillate out of sync —
+// this is what makes a dense field feel organic instead of one uniform block.
+function instancePhase(seed, row, col, k) {
+  let h = (seed >>> 0) ^ Math.imul(row + 1, 73856093) ^ Math.imul(col + 1, 19349663) ^ Math.imul(k + 1, 83492791);
+  h = Math.imul(h ^ (h >>> 16), 2246822507);
+  h = Math.imul(h ^ (h >>> 13), 3266489909);
+  h ^= h >>> 16;
+  return (h >>> 0) / 4294967296; // [0, 1)
+}
+
+// Continuous size multiplier for one instance: smooth sine, own random phase,
+// NOT synced to any other instance's phase — an organic ripple rather than a
+// lockstep pulse. `variance` in [0,1] controls the oscillation amplitude.
+export function instanceSizeMul(animTime, speed, phase, variance) {
+  const s = Math.sin((animTime * speed + phase) * Math.PI * 2);
+  return 1 + variance * s;
+}
+
 // evalAxis: resolves one axis's per-index multiplier for a given preset name.
 // Returns 1 (neutral) for 'none' or an unknown preset.
 function evalAxisScale(preset, animTime, speed, i, n, intensity) {
@@ -134,7 +154,10 @@ export function evaluateGrid2D(grid, animTime, rowAnim, colAnim, intensity, spee
 // shared Àtom state (text, font, fontSize, charTrack, leading, noise/chaos,
 // opacity/blink/size/accent modes, seed, t, speed...) — passed straight to
 // `layout()` so every Àtom control affects the 2D grid exactly as it does 3D.
-// `opts`: { textColor, bgColor, dpr, showGrid, gridColor }
+// `opts`: { textColor, bgColor, dpr, showGrid, gridColor, density, sizeVariance,
+//           animTime, animSpeed }. `density` (default 1) packs density×density
+// independent repeats per cell, each with its own animated size (see
+// `instanceSizeMul`) for a dense, organic field instead of one static block.
 export function drawGrid2D(ctx, evaluated, width, height, atomParams, opts = {}) {
   const d = opts.dpr || 1;
   ctx.setTransform(d, 0, 0, d, 0, 0);
@@ -159,23 +182,17 @@ export function drawGrid2D(ctx, evaluated, width, height, atomParams, opts = {})
     4: atomParams.accentColor4 || opts.textColor || atomParams.textColor,
   };
   const baseColor = opts.textColor || atomParams.textColor || '#000000';
+  const density = Math.max(1, Math.round(opts.density || 1));
+  const variance = Math.max(0, Math.min(1, opts.sizeVariance != null ? opts.sizeVariance : 0));
+  const animTime = opts.animTime || 0;
+  const animSpeed = opts.animSpeed != null ? opts.animSpeed : 1;
 
-  for (const cell of evaluated.cells) {
-    if (cell.colScale <= 0 || cell.rowScale <= 0) continue;
-    // Layout is computed at the cell's BASE size so word-wrap/line count stay
-    // stable; rowScale/colScale then stretch the atom itself via ctx.scale
-    // (not just its container), so the animation visibly grows/shrinks the
-    // text instead of resizing an invisible box around static-size glyphs.
-    const { lines } = layout(atomParams, cell.w, cell.h);
-
-    ctx.save();
-    ctx.translate(cell.x + cell.warpX, cell.y + cell.warpY);
-    ctx.scale(cell.colScale, cell.rowScale);
+  const drawInstance = (instParams, instW, instH) => {
+    const { lines } = layout(instParams, instW, instH);
     ctx.beginPath();
-    ctx.rect(0, 0, cell.w, cell.h);
+    ctx.rect(0, 0, instW, instH);
     ctx.clip();
-    ctx.font = `${weight} ${atomParams.fontSize}px ${family}`;
-
+    ctx.font = `${weight} ${instParams.fontSize}px ${family}`;
     for (const line of lines) {
       for (const char of line.chars) {
         if (char.blinkT && blinkActive) continue;
@@ -188,6 +205,32 @@ export function drawGrid2D(ctx, evaluated, width, height, atomParams, opts = {})
         if (sm !== 1) ctx.scale(sm, sm);
         if (char.skew) ctx.transform(1, 0, char.skew, 1, 0, 0);
         ctx.fillText(char.ch, 0, 0);
+        ctx.restore();
+      }
+    }
+  };
+
+  for (const cell of evaluated.cells) {
+    if (cell.colScale <= 0 || cell.rowScale <= 0) continue;
+    // rowScale/colScale stretch the whole cell (the atom itself, via
+    // ctx.scale — not just its container) so row/column animations visibly
+    // grow/shrink the text. Within that, a density×density sub-pack of
+    // independent repeats gives the dense, organic field the user asked for:
+    // each sub-instance has its own seeded phase, so they pulse out of sync.
+    ctx.save();
+    ctx.translate(cell.x + cell.warpX, cell.y + cell.warpY);
+    ctx.scale(cell.colScale, cell.rowScale);
+
+    const subW = cell.w / density;
+    const subH = cell.h / density;
+    for (let sr = 0; sr < density; sr++) {
+      for (let sc = 0; sc < density; sc++) {
+        const k = sr * density + sc;
+        const phase = instancePhase(atomParams.seed || 0, cell.row * density + sr, cell.col * density + sc, k);
+        const sizeMul = instanceSizeMul(animTime, animSpeed, phase, variance);
+        ctx.save();
+        ctx.translate(sc * subW, sr * subH);
+        drawInstance({ ...atomParams, fontSize: atomParams.fontSize * sizeMul }, subW, subH);
         ctx.restore();
       }
     }

@@ -71,6 +71,7 @@ const SLIDERS = {
   // --- 2D grid ---
   grid2dIntensity: { label: 'Intensitat', def: 1 },
   grid2dSpeed:     { label: 'Velocitat', def: 1 },
+  grid2dSizeVariance: { label: 'Variació de mida', def: 0 },
 };
 
 const FORM_3D_CONTROLS = {
@@ -137,6 +138,7 @@ const state = {
     rowSame: true, colSame: true,
     rowPresets: ['none'], colPresets: ['none'],
     showGrid: false,
+    density: 1,
   },
   // --- 3D selects + checkboxes (sliders come from SLIDERS defaults below) ---
   form: 'mobius',
@@ -385,6 +387,10 @@ function renderGrid2D() {
   drawGrid2D(displayCtx, evaluated, displayW, displayH, state, {
     textColor: state.textColor, bgColor: state.bgColor, dpr: displayDpr,
     showGrid: state.grid2d.showGrid,
+    density: state.grid2d.density,
+    sizeVariance: state.grid2dSizeVariance,
+    animTime: state.morphClock || 0,
+    animSpeed: state.grid2dSpeed,
   });
 }
 
@@ -687,13 +693,15 @@ function wireGrid2D() {
   const rowSameCb = $('grid2dRowSame');
   const colSameCb = $('grid2dColSame');
   const showGridCb = $('grid2dShowGrid');
-  if (!rowsInput || !colsInput || !rowSameCb || !colSameCb || !showGridCb) return;
+  const densityInput = $('grid2dDensity');
+  if (!rowsInput || !colsInput || !rowSameCb || !colSameCb || !showGridCb || !densityInput) return;
 
   rowsInput.value = state.grid2d.rows;
   colsInput.value = state.grid2d.cols;
   rowSameCb.checked = state.grid2d.rowSame;
   colSameCb.checked = state.grid2d.colSame;
   showGridCb.checked = state.grid2d.showGrid;
+  densityInput.value = state.grid2d.density;
 
   rowsInput.addEventListener('input', () => {
     state.grid2d.rows = Math.max(1, Math.round(Number(rowsInput.value) || 1));
@@ -717,6 +725,10 @@ function wireGrid2D() {
   });
   showGridCb.addEventListener('change', () => {
     state.grid2d.showGrid = showGridCb.checked;
+    scheduleRender();
+  });
+  densityInput.addEventListener('input', () => {
+    state.grid2d.density = Math.max(1, Math.min(6, Math.round(Number(densityInput.value) || 1)));
     scheduleRender();
   });
 
@@ -1400,6 +1412,7 @@ function applyPreset(p) {
       rowPresets: Array.isArray(p.grid2d.rowPresets) ? p.grid2d.rowPresets.slice() : ['none'],
       colPresets: Array.isArray(p.grid2d.colPresets) ? p.grid2d.colPresets.slice() : ['none'],
       showGrid: !!p.grid2d.showGrid,
+      density: Math.max(1, Math.min(6, Math.round(Number(p.grid2d.density) || 1))),
     };
     renderGrid2DAxisControls();
     const rowsInput = $('grid2dRows'); if (rowsInput) rowsInput.value = state.grid2d.rows;
@@ -1407,9 +1420,11 @@ function applyPreset(p) {
     const rowSameCb = $('grid2dRowSame'); if (rowSameCb) rowSameCb.checked = state.grid2d.rowSame;
     const colSameCb = $('grid2dColSame'); if (colSameCb) colSameCb.checked = state.grid2d.colSame;
     const showGridCb = $('grid2dShowGrid'); if (showGridCb) showGridCb.checked = state.grid2d.showGrid;
+    const densityInput = $('grid2dDensity'); if (densityInput) densityInput.value = state.grid2d.density;
   }
   if (p.grid2dIntensity != null) { state.grid2dIntensity = p.grid2dIntensity; syncSliderUI('grid2dIntensity'); }
   if (p.grid2dSpeed     != null) { state.grid2dSpeed     = p.grid2dSpeed;     syncSliderUI('grid2dSpeed'); }
+  if (p.grid2dSizeVariance != null) { state.grid2dSizeVariance = p.grid2dSizeVariance; syncSliderUI('grid2dSizeVariance'); }
   if (p.form       != null) { state.form       = p.form;       $('form').value       = p.form;       updateEditorVisibility(); }
   if (p.projection != null) { state.projection = p.projection; $('projection').value = p.projection; updateFovEnabled(); updateEditorVisibility(); }
   if (p.guides          != null) { state.guides          = p.guides;          $('guides').checked          = p.guides; }

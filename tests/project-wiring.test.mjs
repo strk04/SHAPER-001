@@ -111,3 +111,16 @@ test('2D grid repeats the shared Àtom text and exposes a grid-lines toggle', as
   assert.match(engine2d, /export function layoutGrid2D\(rows, cols, width, height\)/);
   assert.match(engine2d, /import \{ layout, resolveFontSpec \} from '\.\/engine\.js'/);
 });
+
+test('2D grid supports a dense per-instance repeat pack with animated size variance', async () => {
+  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
+  const main = await readFile(new URL('../main.js', import.meta.url), 'utf8');
+  const engine2d = await readFile(new URL('../engine2d.js', import.meta.url), 'utf8');
+  assert.match(html, /id="grid2dDensity"/);
+  assert.match(html, /data-key="grid2dSizeVariance"/);
+  assert.match(main, /grid2dSizeVariance:\s*\{\s*label:\s*'Variació de mida'/);
+  assert.match(main, /density: state\.grid2d\.density/);
+  assert.match(main, /sizeVariance: state\.grid2dSizeVariance/);
+  assert.match(engine2d, /export function instanceSizeMul/);
+  assert.match(engine2d, /function instancePhase/);
+});

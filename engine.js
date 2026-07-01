@@ -2694,10 +2694,14 @@ export function drawScene(ctx, scene, width, height, dpr) {
       ctx.setTransform(
         d * (g.mirrored ? -1 : 1), 0, d * sk * 0.3, d, d * g.X, d * g.Y,
       );
-      // Billboard font size varies per glyph; apply sizeMul on top.
-      const fs = g.fontSize * sm;
-      ctx.font = `${fs3d.weight} ${fs}px ${fs3d.family}`;
-      lastFs = fs;
+      // Billboard font size varies per glyph (perspective depth); rounding to the
+      // nearest half-pixel is visually invisible but lets many glyphs at similar
+      // depth share one ctx.font string, avoiding a full font re-resolution per glyph.
+      const fs = Math.round(g.fontSize * sm * 2) / 2;
+      if (fs !== lastFs) {
+        ctx.font = `${fs3d.weight} ${fs}px ${fs3d.family}`;
+        lastFs = fs;
+      }
       ctx.fillText(g.ch, 0, 0);
     }
   };

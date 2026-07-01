@@ -4,7 +4,7 @@ import { encodeDirectorFrames, resolveOfflineAnimationState } from './export-vid
 import { store as _ghStore } from './presets-github.js';
 import { createPresetPanel } from './preset-panel.js';
 import { captureCreativePreset } from './preset-state.js';
-import { DEFAULT_DIRECTOR, advanceDirectorTime, evaluateDirector, normalizeDirector, totalDuration, upsertEffect, removeEffect, AUTOMATABLE_PARAMS } from './director.js';
+import { DEFAULT_DIRECTOR, advanceDirectorTime, evaluateDirector, normalizeDirector, totalDuration, upsertEffect, removeEffect, AUTOMATABLE_PARAMS, DEFAULT_EASE_LENGTH } from './director.js';
 import { mountDirectorUI, AUTOMATION_CONTROL_IDS, DEFAULT_SEGMENT_LENGTH } from './director-ui.js';
 
 // Slider definitions: key -> { label, default }
@@ -1435,8 +1435,10 @@ function updateSelectedEffect(path, start, patch) {
   const nextStart = Number.isFinite(Number(patch.start)) ? Number(patch.start) : current.start;
   const nextEnd = Number.isFinite(Number(patch.end)) ? Number(patch.end) : current.end;
   const nextValue = Object.prototype.hasOwnProperty.call(patch, 'value') ? patch.value : current.value;
+  const nextEaseIn = Number.isFinite(Number(patch.easeIn)) ? Number(patch.easeIn) : (current.easeIn ?? 0);
+  const nextEaseOut = Number.isFinite(Number(patch.easeOut)) ? Number(patch.easeOut) : (current.easeOut ?? 0);
   let nextDirector = removeEffect(state.director, path, start);
-  nextDirector = upsertEffect(nextDirector, path, { start: nextStart, end: nextEnd, value: nextValue });
+  nextDirector = upsertEffect(nextDirector, path, { start: nextStart, end: nextEnd, value: nextValue, easeIn: nextEaseIn, easeOut: nextEaseOut });
   state.selectedDirectorEffect = { path, start: Math.max(0, Math.min(state.director.duration, nextStart)) };
   replaceDirector(nextDirector);
 }
@@ -1475,9 +1477,11 @@ function installAutomationButtons() {
       if (active) {
         replaceDirector(removeEffect(state.director, path, active.start));
       } else {
-        const value = AUTOMATABLE_PARAMS[name] === 'number' ? Number(control.value) : control.value;
+        const isNumber = AUTOMATABLE_PARAMS[name] === 'number';
+        const value = isNumber ? Number(control.value) : control.value;
         const end = Math.min(state.director.duration, localTime + DEFAULT_SEGMENT_LENGTH);
-        replaceDirector(upsertEffect(state.director, path, { start: localTime, end, value }));
+        const ease = isNumber ? DEFAULT_EASE_LENGTH : 0;
+        replaceDirector(upsertEffect(state.director, path, { start: localTime, end, value, easeIn: ease, easeOut: ease }));
       }
     });
   }
@@ -1519,13 +1523,16 @@ function wireDirector() {
         return;
       }
       let value = 0;
+      let isNumber = true;
       if (path.startsWith('param:')) {
         const name = path.slice(6);
         value = state[name] !== undefined ? state[name] : 0;
+        isNumber = AUTOMATABLE_PARAMS[name] === 'number';
       }
       const end = Math.min(state.director.duration, localTime + DEFAULT_SEGMENT_LENGTH);
+      const ease = isNumber ? DEFAULT_EASE_LENGTH : 0;
       state.selectedDirectorEffect = { path, start: localTime };
-      replaceDirector(upsertEffect(state.director, path, { start: localTime, end, value }));
+      replaceDirector(upsertEffect(state.director, path, { start: localTime, end, value, easeIn: ease, easeOut: ease }));
     },
   });
 

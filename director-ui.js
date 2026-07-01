@@ -1,5 +1,5 @@
 // director-ui.js — Pure model + DOM mount for the Director panel (single timeline, hold segments)
-import { normalizeDirector, totalDuration, EFFECT_GROUPS } from './director.js';
+import { normalizeDirector, totalDuration, EFFECT_GROUPS, AUTOMATABLE_PARAMS, DEFAULT_EASE_LENGTH } from './director.js';
 
 // ── Pure view model ─────────────────────────────────────────────────────────
 
@@ -185,6 +185,14 @@ export function mountDirectorUI({
         onUpdateEffect(path, start, { value });
         return;
       }
+      if (target.id === 'directorEffectEaseIn') {
+        onUpdateEffect(path, start, { easeIn: Number(target.value) });
+        return;
+      }
+      if (target.id === 'directorEffectEaseOut') {
+        onUpdateEffect(path, start, { easeOut: Number(target.value) });
+        return;
+      }
     }
     if (target.id === 'directorDuration' && onDurationChange) {
       onDurationChange(Number(target.value));
@@ -331,13 +339,50 @@ export function mountDirectorUI({
     }).join('');
   }
 
+  // Effects whose value is a discrete choice (a shape id, a wrap mode) get a <select> in the
+  // editor cloned from the live control's own <option> list, instead of a freeform text input.
+  function buildValueField(path, segment) {
+    const name = path.startsWith('param:') ? path.slice(6) : path;
+    const editorAttrs = `data-effect-editor-path="${escapeHtml(path)}" data-effect-editor-start="${segment.start}"`;
+    if (AUTOMATABLE_PARAMS[name] === 'hold') {
+      const sourceEl = document.getElementById(AUTOMATION_CONTROL_IDS[name]);
+      const options = sourceEl && sourceEl.tagName === 'SELECT' ? Array.from(sourceEl.options) : [];
+      const optionsHtml = options.map((opt) => `<option value="${escapeHtml(opt.value)}"${opt.value === String(segment.value) ? ' selected' : ''}>${escapeHtml(opt.textContent)}</option>`).join('');
+      return `<select id="directorEffectValue" ${editorAttrs}>${optionsHtml}</select>`;
+    }
+    const inputType = effectInputType(segment.value);
+    return `<input id="directorEffectValue" type="${inputType}" ${inputType === 'number' ? 'step="any"' : ''}
+      value="${escapeHtml(segment.value ?? '')}" ${editorAttrs}>`;
+  }
+
   function buildEffectsArea(director, selectedEffect, time) {
     const effectsList = buildEffectsList(director, time);
 
     let effectEditor = '';
     if (selectedEffect) {
       const { path, segment } = selectedEffect;
-      const inputType = effectInputType(segment.value);
+      const name = path.startsWith('param:') ? path.slice(6) : path;
+      const span = Math.max(0, segment.end - segment.start);
+      const canEase = AUTOMATABLE_PARAMS[name] !== 'hold';
+      const easingFields = canEase ? `
+          <label class="control-row" for="directorEffectEaseIn"><span>Easing entrada</span>
+            <span class="director-duration-field">
+              <input id="directorEffectEaseIn" type="number" min="0" max="${span}" step="0.1" inputmode="decimal"
+                value="${segment.easeIn ?? 0}"
+                data-effect-editor-path="${escapeHtml(path)}"
+                data-effect-editor-start="${segment.start}">
+              <span class="director-inline-unit">seg</span>
+            </span>
+          </label>
+          <label class="control-row" for="directorEffectEaseOut"><span>Easing sortida</span>
+            <span class="director-duration-field">
+              <input id="directorEffectEaseOut" type="number" min="0" max="${span}" step="0.1" inputmode="decimal"
+                value="${segment.easeOut ?? 0}"
+                data-effect-editor-path="${escapeHtml(path)}"
+                data-effect-editor-start="${segment.start}">
+              <span class="director-inline-unit">seg</span>
+            </span>
+          </label>` : '';
       effectEditor = `
         <div class="director-keyframe-editor director-behavior-item" role="group" aria-label="Edició de l'efecte">
           <h5 class="director-settings-title">Efecte</h5>
@@ -345,10 +390,7 @@ export function mountDirectorUI({
             <output class="director-keyframe-readonly">${escapeHtml(effectLabel(path))}</output>
           </label>
           <label class="control-row" for="directorEffectValue"><span>Valor</span>
-            <input id="directorEffectValue" type="${inputType}" ${inputType === 'number' ? 'step="any"' : ''}
-              value="${escapeHtml(segment.value ?? '')}"
-              data-effect-editor-path="${escapeHtml(path)}"
-              data-effect-editor-start="${segment.start}">
+            ${buildValueField(path, segment)}
           </label>
           <label class="control-row" for="directorEffectStart"><span>Inici</span>
             <span class="director-duration-field">
@@ -368,6 +410,7 @@ export function mountDirectorUI({
               <span class="director-inline-unit">seg</span>
             </span>
           </label>
+          ${easingFields}
           <div class="director-scene-card-actions">
             <button type="button" data-director-effect-delete data-effect-path="${escapeHtml(path)}" data-effect-start="${segment.start}">Eliminar</button>
           </div>

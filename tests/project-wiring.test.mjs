@@ -197,6 +197,16 @@ test('director timeline is inline under canvas and shows keyframe label plus val
   assert.doesNotMatch(css, /\.director-scenes\s*\{/);
 });
 
+test('director effect editor offers a shape/mode picker and easing durations', async () => {
+  const ui = await readFile(new URL('../director-ui.js', import.meta.url), 'utf8');
+  assert.match(ui, /function buildValueField/);
+  assert.match(ui, /AUTOMATABLE_PARAMS\[name\] === 'hold'/);
+  assert.match(ui, /<select id="directorEffectValue"/);
+  assert.match(ui, /<span>Easing entrada<\/span>/);
+  assert.match(ui, /<span>Easing sortida<\/span>/);
+  assert.doesNotMatch(ui, /Estil transició/);
+});
+
 test('fixed-duration MP4 export renders offline outside Director', async () => {
   const main = await readFile(new URL('../main.js', import.meta.url), 'utf8');
   assert.match(main, /resolveOfflineAnimationState/);

@@ -35,13 +35,27 @@ export function advanceDirectorTime(time, delta, duration, loop) {
   return ((next % duration) + duration) % duration;
 }
 
-// A segment holds ONE fixed value for the whole [start, end] window; outside it, the
-// param falls back to whatever the base state already had.
+// A segment holds ONE value for [start, end]; outside it, the param falls back to
+// whatever the base state already had. For numeric values, easeIn/easeOut (seconds)
+// ramp from/to that fallback at the segment's edges instead of snapping abruptly.
 function segmentValue(segments, time, fallback) {
   const list = (Array.isArray(segments) ? segments : [])
     .filter((seg) => Number.isFinite(seg?.start) && Number.isFinite(seg?.end));
   const hit = list.find((seg) => time >= seg.start && time <= seg.end);
-  return hit ? hit.value : fallback;
+  if (!hit) return fallback;
+  if (typeof hit.value !== 'number' || typeof fallback !== 'number') return hit.value;
+  const span = hit.end - hit.start;
+  const easeIn = clamp(finite(hit.easeIn, 0), 0, span);
+  const easeOut = clamp(finite(hit.easeOut, 0), 0, span - easeIn);
+  if (easeIn > 0 && time < hit.start + easeIn) {
+    const mix = (time - hit.start) / easeIn;
+    return fallback + (hit.value - fallback) * mix;
+  }
+  if (easeOut > 0 && time > hit.end - easeOut) {
+    const mix = (hit.end - time) / easeOut;
+    return fallback + (hit.value - fallback) * mix;
+  }
+  return hit.value;
 }
 
 export const AUTOMATABLE_PARAMS = Object.freeze({
@@ -63,12 +77,17 @@ export function isAutomatablePath(path) {
   return parts[0] === 'param' && parts.length === 2 && parts[1] in AUTOMATABLE_PARAMS;
 }
 
+export const DEFAULT_EASE_LENGTH = 0.3;
+
 export function upsertEffect(directorInput, path, segmentInput) {
   const director = normalizeDirector(directorInput);
   if (!isAutomatablePath(path)) return director;
   const start = clamp(finite(segmentInput?.start, 0), 0, director.duration);
   const end = clamp(finite(segmentInput?.end, start), start, director.duration);
-  const segment = { start, end, value: segmentInput?.value };
+  const span = end - start;
+  const easeIn = clamp(finite(segmentInput?.easeIn, 0), 0, span);
+  const easeOut = clamp(finite(segmentInput?.easeOut, 0), 0, span - easeIn);
+  const segment = { start, end, value: segmentInput?.value, easeIn, easeOut };
   const existing = Array.isArray(director.automations[path]) ? director.automations[path] : [];
   const segments = [...existing.filter((item) => Math.abs(item.start - start) > 0.0001), segment]
     .sort((a, b) => a.start - b.start);

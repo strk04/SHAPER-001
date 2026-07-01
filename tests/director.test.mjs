@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   DEFAULT_DIRECTOR, normalizeDirector, evaluateDirector, totalDuration, advanceDirectorTime,
-  upsertEffect, removeEffect, isAutomatablePath,
+  upsertEffect, removeEffect, isAutomatablePath, DEFAULT_EASE_LENGTH,
 } from '../director.js';
 
 test('normalizeDirector returns a safe disabled config for missing input', () => {
@@ -73,14 +73,22 @@ test('disabled director returns the original base object', () => {
 test('upsertEffect clamps start/end to [0, duration] and keeps end >= start', () => {
   const director = normalizeDirector(null);
   const seg = upsertEffect(director, 'param:charTrack', { start: 8, end: 20, value: 0.4 });
-  assert.deepEqual(seg.automations['param:charTrack'], [{ start: 5, end: 5, value: 0.4 }]);
+  assert.deepEqual(seg.automations['param:charTrack'], [{ start: 5, end: 5, value: 0.4, easeIn: 0, easeOut: 0 }]);
 });
 
 test('upsertEffect replaces the segment that starts at the same time', () => {
   const director = normalizeDirector(null);
   const once = upsertEffect(director, 'param:charTrack', { start: 1, end: 2, value: 0.4 });
   const twice = upsertEffect(once, 'param:charTrack', { start: 1, end: 3, value: 0.9 });
-  assert.deepEqual(twice.automations['param:charTrack'], [{ start: 1, end: 3, value: 0.9 }]);
+  assert.deepEqual(twice.automations['param:charTrack'], [{ start: 1, end: 3, value: 0.9, easeIn: 0, easeOut: 0 }]);
+});
+
+test('upsertEffect clamps easeIn/easeOut so they never exceed the segment span', () => {
+  const director = normalizeDirector(null);
+  const seg = upsertEffect(director, 'param:charTrack', { start: 1, end: 2, value: 0.4, easeIn: 5, easeOut: 5 });
+  const frame = seg.automations['param:charTrack'][0];
+  assert.equal(frame.easeIn, 1);
+  assert.equal(frame.easeOut, 0);
 });
 
 test('removeEffect removes the segment starting at that time and cleans empty lane', () => {
@@ -90,7 +98,7 @@ test('removeEffect removes the segment starting at that time and cleans empty la
     'param:charTrack', { start: 3, end: 4, value: 0.8 },
   );
   const after = removeEffect(with2, 'param:charTrack', 1);
-  assert.deepEqual(after.automations['param:charTrack'], [{ start: 3, end: 4, value: 0.8 }]);
+  assert.deepEqual(after.automations['param:charTrack'], [{ start: 3, end: 4, value: 0.8, easeIn: 0, easeOut: 0 }]);
 
   const empty = removeEffect(after, 'param:charTrack', 3);
   assert.equal('param:charTrack' in empty.automations, false, 'lane removed when empty');
@@ -101,7 +109,32 @@ test('removeEffect is a no-op for unknown path or missing start', () => {
   const withEffect = upsertEffect(director, 'param:charTrack', { start: 2, end: 3, value: 0.5 });
   assert.deepEqual(removeEffect(withEffect, 'param:unknown', 2), removeEffect(withEffect, 'param:unknown', 2));
   assert.deepEqual(removeEffect(withEffect, 'param:charTrack', 9).automations['param:charTrack'],
-    [{ start: 2, end: 3, value: 0.5 }], 'non-matching start leaves lane intact');
+    [{ start: 2, end: 3, value: 0.5, easeIn: 0, easeOut: 0 }], 'non-matching start leaves lane intact');
+});
+
+test('evaluateDirector ramps in/out over easeIn/easeOut instead of snapping', () => {
+  const config = normalizeDirector({
+    version: 1, enabled: true, duration: 5,
+    automations: { 'param:charTrack': [{ start: 1, end: 3, value: 1, easeIn: 0.5, easeOut: 0.5 }] },
+  });
+  assert.equal(evaluateDirector(config, 1, { charTrack: 0 }).params.charTrack, 0);
+  assert.equal(evaluateDirector(config, 1.25, { charTrack: 0 }).params.charTrack, 0.5);
+  assert.equal(evaluateDirector(config, 1.5, { charTrack: 0 }).params.charTrack, 1);
+  assert.equal(evaluateDirector(config, 2.5, { charTrack: 0 }).params.charTrack, 1);
+  assert.equal(evaluateDirector(config, 2.75, { charTrack: 0 }).params.charTrack, 0.5);
+  assert.equal(evaluateDirector(config, 3, { charTrack: 0 }).params.charTrack, 0);
+});
+
+test('evaluateDirector skips easing entirely for non-numeric (hold-kind) values', () => {
+  const config = normalizeDirector({
+    version: 1, enabled: true, duration: 5,
+    automations: { 'param:form': [{ start: 1, end: 3, value: 'sphere', easeIn: 0.5, easeOut: 0.5 }] },
+  });
+  assert.equal(evaluateDirector(config, 1.1, { form: 'plane' }).params.form, 'sphere');
+});
+
+test('DEFAULT_EASE_LENGTH is a small positive default', () => {
+  assert.ok(DEFAULT_EASE_LENGTH > 0 && DEFAULT_EASE_LENGTH < 1);
 });
 
 test('automation allowlist accepts known paths and rejects arbitrary state', () => {

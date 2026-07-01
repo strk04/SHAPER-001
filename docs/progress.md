@@ -1,10 +1,10 @@
 # Progress — SHAPER 001
 
-## 2026-07-01 — Proposta summary git
+## 2026-07-01 — CLAUDE.md projecte + proposta summary
 
-- L'usuari ha demanat proposta de summary/changelog per als canvis recents.
-- Proposades dues opcions: curta (tag/release) i llarga (changelog desglossat).
-- Cap canvi de codi.
+- Creat `CLAUDE.md` al projecte amb instrucció permanent de sync dual (commit+push a SHAPER i PP).
+- Proposta de summary/changelog per als canvis recents (dues opcions: curta i llarga).
+- Pujat a `strk04/SHAPER-001` (`975083d`).
 
 ## 2026-06-30 — Director: efectes concrets en comptes de Moviment
 

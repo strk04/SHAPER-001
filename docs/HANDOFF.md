@@ -4,8 +4,8 @@ _Actualitzat: 2026-07-01_
 
 ## Què ha canviat (última sessió)
 
-- Sessió breu: l'usuari ha demanat una proposta de summary per a git (release notes / changelog).
-- No s'ha tocat codi.
+- Creat `CLAUDE.md` al projecte amb instrucció de sync dual Shaper + PP automàtic.
+- Proposta de summary/changelog per als canvis recents.
 
 ## Estat actual
 

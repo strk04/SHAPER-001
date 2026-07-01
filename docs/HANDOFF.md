@@ -4,39 +4,43 @@ _Actualitzat: 2026-07-01_
 
 ## Què ha canviat (última sessió)
 
-- Director reescrit: model d'escenes eliminat, ara és una única línia temporal contínua
-  (`{ enabled, loop, duration, automations }`). Vegeu `docs/decisions.md` (2026-07-01) i
-  `docs/progress.md` per detall complet de fitxers tocats.
-- `director-ui.js`: radiogroup d'escenes → un únic `#directorTrack` (`role="slider"`, seekable per
-  pointer i teclat), revisat amb accessibility-lead abans del canvi de CSS.
-- Sincronitzat i pujat a tots dos repos: `strk04/SHAPER-001` (`5365602`) i `strk04/PIxel-Perfect`
-  (`ec932f5`). `node --test tests/*.mjs` → 46 pass (Shaper) / 41 pass (mirall PP).
+- Director: model d'escenes eliminat → línia temporal única (`{enabled, loop, duration,
+  automations}`).
+- Director: cada efecte passa de keyframe puntual a **segment amb Inici/Final** que manté un valor
+  fix mentre el playhead hi és dins (decidit amb `AskUserQuestion`: hold, no rampa ni fade).
+- Director: els 4 grups d'efectes ara són desplegables natius (`<details>/<summary>`), plegats per
+  defecte.
+- Timeline: cada efecte es dibuixa com una barra proporcional (no un punt), amplada mínima 24px.
+- Dues revisions d'accessibilitat (accessibility-lead) abans de tocar `styles.css` en cada canvi.
+- Vegeu `docs/decisions.md` i `docs/progress.md` (entrades 2026-07-01) per detall complet.
+- Sincronitzat i pujat a tots dos repos: `strk04/SHAPER-001` (`0c6acf4`) i `strk04/PIxel-Perfect`
+  (`0b4434e`). `node --test tests/*.mjs` → 47 pass (Shaper) / 42 pass (mirall PP).
 
 ## Estat actual
 
-- Director: línia temporal única, efectes concrets (Àtom, Forma 3D, Càmera, Moviment 3D) amb
-  keyframes col·locats directament sobre la línia.
-- Export MP4 offline frame-exact (sense canvis aquesta sessió).
-- Superfície 3D configurable (color, transparència, oclusió) (sense canvis aquesta sessió).
-- Guies amb colors propis i capa darrere/davant (sense canvis aquesta sessió).
+- Director: línia temporal única, efectes en desplegables, cadascun amb segments Inici/Final de
+  valor fix.
+- Export MP4 offline frame-exact, superfície 3D configurable, guies amb colors propis (sense canvis
+  aquesta sessió).
 
 ## Verificació
 
 ```bash
-node --test tests/*.mjs   # 46 pass (Shaper)
+node --test tests/*.mjs   # 47 pass (Shaper)
 ```
 
 ## Fitxers clau
 
 - `director.js`, `director-ui.js`, `main.js`, `styles.css`
 - `preset-state.js`, `engine.js`, `export-video.js`
-- `tests/director.test.mjs`, `tests/director-ui.test.mjs`, `tests/project-wiring.test.mjs`
+- `tests/director.test.mjs`, `tests/director-ui.test.mjs`, `tests/project-wiring.test.mjs`,
+  `tests/preset-state.test.mjs`
 
 ## Següent pas
 
-- L'usuari indicarà quins efectes concrets vol poder aplicar sobre la línia temporal i com es
-  comporten (propera instrucció esperada).
-- Trencament de compatibilitat conegut: presets antics amb `scenes` es carreguen sense error però
-  perden el contingut animat (`duration` cau a `5`, `automations` buit). Sense migrador — no hi ha
-  presets amb Director en producció encara.
+- Decidir si la durada per defecte d'un segment nou (1s, `DEFAULT_SEGMENT_LENGTH` a
+  `director-ui.js`) ha de ser configurable.
+- Trencament de compatibilitat conegut i acceptat: presets antics amb `scenes` o amb keyframes
+  puntuals `{time,value,easing}` es carreguen sense error però perden el contingut animat. Sense
+  migrador — no hi ha presets amb Director en producció encara.
 - `engine.js`/`motion.js` conserven `applyMotionBehaviors` com a codi mort — netejar si es vol.

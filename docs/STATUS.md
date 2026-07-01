@@ -1,6 +1,6 @@
 # STATUS — SHAPER 001
 
-_Actualitzat: 2026-07-01 (Director: línia temporal única)_
+_Actualitzat: 2026-07-01 (Director: efectes en desplegables + segments Inici/Final)_
 
 ## Estat general
 
@@ -17,23 +17,23 @@ S'ha eliminat el sistema de Moviment (Deriva/Òrbita/Atracció/Explosió, `behav
 
 - activació global
 - una sola `Durada` per a tota la línia temporal (no hi ha escenes ni transicions entre elles)
-- llista d'efectes concrets, agrupats: Àtom (Kerning, Interlínia, Aplicació de l'àtom),
-  Forma 3D (Forma, Mida de forma, Proporció), Càmera (Rotació X/Y/Z, Angle X/Y),
-  Moviment 3D (Velocitat, Probabilitat de pluja, Velocitat de pluja)
-- cada efecte es manipula amb keyframes col·locats directament sobre la línia temporal sencera
-  (abans eren relatius a l'escena activa)
+- llista d'efectes concrets, agrupats en **desplegables natius** (`<details>/<summary>`, plegats per
+  defecte): Àtom (Kerning, Interlínia, Aplicació de l'àtom), Forma 3D (Forma, Mida de forma,
+  Proporció), Càmera (Rotació X/Y/Z, Angle X/Y), Moviment 3D (Velocitat, Probabilitat de pluja,
+  Velocitat de pluja)
+- cada efecte és un **segment amb Inici i Final** (`{start, end, value}`) que manté un valor fix
+  mentre el playhead hi és dins; fora del rang cau al valor base. No hi ha rampa ni fade — decisió
+  explícita de l'usuari. Clicar un efecte crea un segment d'1s des del playhead; l'editor lateral
+  permet ajustar Valor/Inici/Final o eliminar-lo
 - controls globals `Reverse` i `Loop`
 - timeline inline sota el canvas, a la columna 3: una única barra (`role="slider"`) seekable per
-  pointer i teclat (fletxes, Home, End), amb `aria-valuetext` en format `m:ss.s`
+  pointer i teclat (fletxes, Home, End), amb `aria-valuetext` en format `m:ss.s`; cada efecte aplicat
+  es dibuixa com una barra (no un punt) proporcional a la seva durada
 - playhead draggable superposat a la barra
-- keyframes editables des de la columna 2
-- menú contextual de supressió sobre rombos
+- menú contextual de supressió sobre els segments
 
 `engine.js`/`motion.js` conserven `applyMotionBehaviors` com a codi mort (ja no s'hi alimenta cap
 behavior des del Director); no s'ha tocat per estar fora d'abast d'aquest canvi.
-
-Pendent d'indicació de l'usuari: quins efectes concrets vol poder aplicar sobre la línia temporal
-i amb quin comportament (properes instruccions).
 
 ## Export MP4
 
@@ -81,13 +81,14 @@ Ultima verificacio executada el 2026-07-01:
 node --check director.js
 node --check director-ui.js
 node --check main.js
-node --test tests/*.mjs   # 46 pass
+node --test tests/*.mjs   # 47 pass
 ```
 
 ## Pendent
 
-- L'usuari ha d'indicar quins efectes concrets vol poder aplicar sobre la línia temporal única i com.
+- Decidir si la durada per defecte d'un segment nou (1s, `DEFAULT_SEGMENT_LENGTH` a `director-ui.js`)
+  ha de ser configurable.
 - Revisar deployment de Pixel Perfect si cal confirmar publicacio web.
 
-`17 SHAPER 001` pujat a `strk04/SHAPER-001` (`5365602`). `02 Pixel Perfect/shaper` sincronitzat i
-pujat a `strk04/PIxel-Perfect` (`ec932f5`).
+`17 SHAPER 001` pujat a `strk04/SHAPER-001` (`0c6acf4`). `02 Pixel Perfect/shaper` sincronitzat i
+pujat a `strk04/PIxel-Perfect` (`0b4434e`).

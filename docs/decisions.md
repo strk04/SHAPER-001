@@ -1,5 +1,22 @@
 # Decisions — SHAPER 001
 
+## 2026-07-01 — Director: segments amb valor fix (no rampa ni fade)
+
+Cada efecte aplicat sobre la línia temporal té un **Inici** i un **Final**, i manté **un sol valor
+fix** mentre el playhead és dins d'aquest rang; fora del rang, el paràmetre cau al seu valor base.
+Es va preguntar explícitament a l'usuari (`AskUserQuestion`) entre tres opcions — valor fix (hold),
+rampa entre dos valors, o fade in/out — i va triar **hold**.
+
+Racional: l'usuari vol pensar en "aquest efecte és actiu entre aquests dos instants", no en corbes
+d'interpolació. Simplifica també la UI (no cal easing per segment) i el model (`director.js` ja no
+necessita `EASINGS` ni cap lògica d'interpolació entre segments).
+
+Conseqüències: cap ramp/fade nativa. Si en el futur es vol una transició suau a l'entrada/sortida
+d'un segment, caldrà una decisió nova i explícita (no assumir-la implícitament); de moment un
+efecte "apareix"/"desapareix" de cop als límits del segment. Trencament de compatibilitat amb
+l'antic format `{time, value, easing}` (keyframe puntual) — no hi ha migrador perquè no hi ha
+presets amb Director en producció.
+
 ## 2026-07-01 — Director: una sola línia temporal, sense escenes
 
 S'elimina el model d'escenes del Director (cada escena amb la seva pròpia durada, transició i

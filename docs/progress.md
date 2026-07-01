@@ -1,5 +1,44 @@
 # Progress — SHAPER 001
 
+## 2026-07-01 — Director: efectes en desplegables + segments Inici/Final
+
+### Fet
+- Model d'automatització canviat de keyframes puntuals a **segments amb valor fix**: cada efecte
+  aplicat és `{ start, end, value }` i manté aquest valor mentre el playhead és dins `[start, end]`;
+  fora del rang cau al valor base (sense ramp/fade — decidit explícitament amb `AskUserQuestion`,
+  l'usuari va triar "manté un valor fix" per sobre de rampa o fade in/out).
+- `director.js`: `upsertKeyframe`/`removeKeyframe`/`laneValue` → `upsertEffect`/`removeEffect`/
+  `segmentValue`. Eliminat tot el concepte d'`easing` per interpolació (ja no calia, un segment és
+  un valor fix, no una corba). `EASINGS` eliminat.
+- `director-ui.js`: els 4 grups d'efectes (Àtom, Forma 3D, Càmera, Moviment 3D) ara són `<details>/
+  <summary>` natius, plegats per defecte, en lloc d'una fila sempre visible de botons. Clicar un
+  efecte crea un segment d'1s des del playhead (o n'elimina el que el cobreix). L'editor lateral
+  mostra Valor/Inici/Final/Eliminar (sense selector d'easing). La timeline pinta cada efecte com una
+  barra (`left%`+`width%`) en lloc d'un punt/diamant.
+- `main.js`: `selectedDirectorKeyframe` → `selectedDirectorEffect` (`{path, start}`); tota la
+  cablejada de toggle/select/update/remove adaptada als segments.
+- `preset-state.js`: camp efímer renombrat igual.
+- Revisió d'accessibilitat (accessibility-lead) en dues passades: (1) abans d'escriure CSS —
+  confirmat que `<details>/<summary>` és un patró natiu correcte, sense gaps; (2) després de veure
+  el CSS/markup complet — wording d'`aria-label` corregit ("Kerning: crea/edita un segment en aquest
+  instant" en lloc de fer semblar un toggle binari), `:focus-visible` explícit al `<summary>`, i
+  amplada mínima de 24px (`width:max(X%, 24px)`) perquè segments curts segueixin sent una diana
+  clicable vàlida (WCAG 2.5.8).
+- `styles.css`: `.director-keyframe`/`.director-keyframe-diamond` (punt centrat amb
+  `translateX(-50%)`) substituïts per `.director-effect-segment` (barra ancorada a l'esquerra, con
+  vora esquerra que marca l'inici); alçada de fila reduïda de 78px a 40px.
+
+### Verificat
+- `node --test tests/*.mjs` → 47 pass (Shaper).
+- Sincronitzat a `02 Pixel Perfect/shaper/`; `node --test tests/*.mjs` → 42 pass allà.
+- Pujat a `strk04/SHAPER-001` (`0c6acf4`) i `strk04/PIxel-Perfect` (`0b4434e`).
+
+### Pendent
+- Decidir si la durada per defecte d'un segment nou (actualment 1s, `DEFAULT_SEGMENT_LENGTH`) ha de
+  ser configurable o diferent.
+- Sense migrador per a presets amb l'antic format de keyframes puntuals (`{time,value,easing}`) —
+  encara no n'hi ha en producció.
+
 ## 2026-07-01 — Director: escenes eliminades, línia temporal única
 
 ### Fet

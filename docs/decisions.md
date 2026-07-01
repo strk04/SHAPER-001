@@ -1,5 +1,55 @@
 # Decisions — SHAPER 001
 
+## 2026-07-01 — Secció 2D: graella real, no dos modes separats
+
+Preguntat explícitament (`AskUserQuestion`) si files i columnes havien de ser una graella real
+(totes dues simultànies, com cel·les d'una taula) o dos modes independents (o files, o columnes,
+mai combinades). L'usuari va triar **graella real**.
+
+Racional: no se'ns va donar el motiu explícit — decisió de disseny de l'usuari. Determina tota
+l'arquitectura de `engine2d.js`: cada cel·la té una fila I una columna, i pot rebre l'efecte
+combinat de totes dues alhora (l'escala de fila i la de columna es multipliquen sobre la mateixa
+cel·la), en lloc de ser mútuament excloents.
+
+## 2026-07-01 — Secció 2D: columna escala amplada (simetria amb fila/alçada)
+
+Els 5 presets de referència escalen l'alçada de cada línia (fila). Preguntat explícitament si una
+columna hauria d'escalar la seva amplada (eix natural, simètric) o traslladar-se verticalment
+(efecte diferent). L'usuari va triar **escalar l'amplada**.
+
+Racional: manté la mateixa matemàtica dels presets (`SCALE_PRESETS`) reutilitzada literalment en
+tots dos eixos, només canviant quina dimensió de la cel·la s'escala — cap duplicació de lògica,
+només d'aplicació.
+
+## 2026-07-01 — Secció 2D: text compartit auto-ajustat a la graella, no text per cel·la
+
+Preguntat explícitament si el text de l'Àtom (compartit amb 3D) s'havia de repartir automàticament
+per la graella (word-wrap en 2 eixos) o si cada cel·la hauria de tenir el seu propi text
+independent (com les Text layers de Mosaic a Pixel Perfect). L'usuari va triar **text compartit
+auto-ajustat**.
+
+Racional: coherent amb la premissa inicial de la sessió ("2D i 3D comparteixen l'àtom") — una sola
+font de veritat per al contingut textual, no dues.
+
+## 2026-07-01 — Secció 2D: Block In v1 sense fase de "push"
+
+El preset de referència "Block In" té dues fases: arribada (cada línia creix 0→1 en seqüència) i
+push (un cop totes han arribat, la primera línia és empesa cap avall i torna a entrar per dalt,
+en bucle continu, amb retallat via `clipPath`). `blockReveal()` a `engine2d.js` només porta la
+fase d'arribada, reiniciant el cicle en lloc de fer el push.
+
+Racional: la fase de push depèn de gestionar un desplaçament de cua sobre TOTES les files alhora
+(no és una funció pura per índex com les altres 4 animacions), i el retallat via `clipPath` és
+específic del renderer SVG original — adaptar-ho fidelment al canvas 2D requeria una arquitectura
+diferent (desplaçament + clip rectangle) fora de l'abast d'un v1 ràpid. Es va decidir fer aquesta
+simplificació sense preguntar explícitament (l'usuari havia dit "pots obviar tot el que no faci
+referència a les animacions", interpretat com llum verda per prioritzar velocitat d'entrega sobre
+fidelitat total en la primera iteració) i comunicar-ho clarament un cop fet.
+
+Conseqüències: el "Block In" 2D actual és una nova línia (o columna) que apareix en seqüència i
+el cicle es reinicia — no hi ha efecte de "cua que puja". Pendent confirmació de l'usuari sobre si
+cal completar la fase de push en una iteració futura.
+
 ## 2026-07-01 — Presets: no forçar canvi de panell en carregar
 
 `applyPreset()` deixa de cridar `activatePanel('panel-3d')`. Aquesta crida era un residu de quan

@@ -1,5 +1,77 @@
 # Progress — SHAPER 001
 
+## 2026-07-01 — Secció 2D v1: graella files×columnes amb animacions
+
+### Fet
+- L'usuari va demanar construir una v1 de la secció "2D" de Shaper, que fins ara era un tab i
+  panell buit sense cap funcionalitat. Es va aclarir el model amb `AskUserQuestion` en tres
+  rondes: (1) graella real (files × columnes simultànies, no dos modes separats), (2) l'eix
+  columna escala l'AMPLADA de la cel·la (simètric a com fila escala l'alçada), (3) el text
+  compartit de l'Àtom flueix i s'ajusta automàticament (word-wrap en 2 eixos) per omplir
+  exactament la graella, en lloc de text independent per cel·la.
+- Font d'inspiració per a les animacions: `docs` (fora del repo) amb el codi JS de referència
+  "Stacked Text Tool" (Cargo) — 5 presets de moviment (wave, accordion, cascade, warpflow, block)
+  amb easings escrits a mà, sense llibreria. Es va portar només la matemàtica de les animacions,
+  ignorant tota la resta (UI, export de vídeo, crazy mode, colors).
+- **`engine2d.js` nou** (mòdul pur, independent del pipeline 3D):
+  - `layoutGrid2D(text, rows, cols, w, h)`: reparteix les paraules del text en `rows*cols` cel·les
+    en ordre de lectura (row-major), amb el reste distribuït entre les primeres cel·les.
+  - `EASE` (sine/outQuint/inOutCubic/inOutQuint/inOutQuart) i `SCALE_PRESETS` (wave/accordion/
+    cascade): multiplicador d'escala centrat a 1, per índex `i` de `n`, amb `intensity`.
+  - `warpBoundaryOffset()`: deforma la vora entre cel·les adjacents (les vores exteriors mai es
+    mouen); generalitza el `warpflow` original (que deformava vores esquerra/dreta de bandes
+    horitzontals) a qualsevol eix (files o columnes).
+  - `blockReveal()`: **v1 simplificada** del "Block In" original — només la fase d'arribada
+    seqüencial per índex (creixement 0→1 amb `outQuint`), en bucle continu. La fase de "push"
+    (cua que empeny cap amunt) de l'original no s'ha portat.
+  - `evaluateGrid2D()`: combina graella + preset per fila/columna + intensitat/velocitat en un
+    frame concret; suporta `same: true` (una animació per a totes les files/columnes) o `same:
+    false` (una per índex).
+  - `drawGrid2D()`: pinta la graella en un `<canvas>` 2D natiu (word-wrap intern per cel·la,
+    centrat vertical/horitzontal).
+- **`main.js`**: `state.mode` torna a ser commutable `'2d'`/`'3d'` (abans fixat sempre a `'3d'`);
+  `render()` bifurca segons el mode; nou `state.grid2d` (`rows`, `cols`, `rowSame`, `colSame`,
+  `rowPresets`, `colPresets`); noves entrades `grid2dIntensity`/`grid2dSpeed` a `SLIDERS`
+  (reutilitzen el mecanisme genèric de sliders). `activatePanel('panel-2d')` activa mode 2D igual
+  que `panel-3d` ja activava mode 3D. `applyPreset()` ara restaura `state.mode` real des del
+  preset (abans forçava sempre `'3d'`, un residu de quan 2D no existia) i restaura `grid2d` si el
+  preset el conté.
+- **`index.html`**: `panel-2d` deixa de ser buit — controls de files/columnes, intensitat/
+  velocitat (sliders genèrics), i dos blocs (fila/columna) amb checkbox "Aplica la mateixa a
+  totes" + contenidor per als selectors dinàmics per índex.
+- **`preset-state.js`**: `'grid2d'` afegit a `CREATIVE_PRESET_EXTRA_KEYS`.
+- **Revisió d'accessibilitat** (accessibility-lead, dues passades sobre el markup nou, sense CSS
+  nova): (1) confirmat que reutilitzar `.control-row`/`.control-stack.slider` és correcte, sense
+  necessitat de classes noves; (2) revisió del contingut generat dinàmicament per JS
+  (`buildAxisPresetSelects`) va detectar i corregir dos problemes reals abans de tancar la
+  feina: labels `#1`/`#2` sense context d'eix (canviat a "Fila 1"/"Columna 1" amb `id`/`for`
+  explícits), i pèrdua de focus quan els inputs numèrics de files/columnes reconstruïen la llista
+  de selectors mentre un `<select>` tenia el focus (corregit preservant l'índex focused i
+  refocusant després de reconstruir).
+- **Nota de procés**: la segona passada de revisió d'accessibilitat va aplicar els fixos
+  directament i va fer `git commit`/`git push` pel seu compte (consistent amb la instrucció
+  global d'auto-commit de l'usuari, però executat per l'agent de revisió en lloc de la sessió
+  principal — verificat després que els tests seguien passant abans de sincronitzar a PP).
+- Tests nous: `tests/engine2d.test.mjs` (10 tests: distribució de paraules, remainder, clamps,
+  simetria dels presets d'escala, vores exteriors del warp, seqüència i bucle del block reveal,
+  `evaluateGrid2D` amb `same`/no-`same` i sense warp actiu). `tests/project-wiring.test.mjs`:
+  nou test de wiring del panell 2D.
+
+### Verificat
+- `node --test tests/*.mjs` → 32 pass (Shaper).
+- Sincronitzat a `02 Pixel Perfect/shaper/`; `node --test tests/*.mjs` → 27 pass allà.
+- Pujat a `strk04/SHAPER-001` (`7d653bd`) i `strk04/PIxel-Perfect` (`c3b9c4e`).
+
+### Pendent
+- **Block In v1 és incomplet a propòsit**: falta la fase de "push" (cua que empeny cap amunt) de
+  l'original; només porta l'arribada seqüencial. Comunicat explícitament a l'usuari; pendent de
+  confirmar si cal completar-ho.
+- Sense validació visual real al navegador (només raonament + tests unitaris de la matemàtica
+  pura; `drawGrid2D()` no té test perquè depèn d'un canvas real).
+- Export SVG/PNG/MP4 no s'ha adaptat encara al mode 2D (continua usant el pipeline 3D
+  `buildSVG`/`buildScene`); si l'usuari exporta estant en mode 2D, l'export sortirà del motor 3D,
+  no de la graella.
+
 ## 2026-07-01 — Presets: no canviar de panell en carregar
 
 ### Fet

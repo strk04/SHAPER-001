@@ -1,6 +1,6 @@
 # STATUS — SHAPER 001
 
-_Actualitzat: 2026-07-01 (Presets ja no canvien de panell en carregar)_
+_Actualitzat: 2026-07-01 (Secció 2D v1: graella files×columnes amb animacions)_
 
 ## Estat general
 
@@ -9,6 +9,30 @@ Projecte vanilla JS zero-build. Flux habitual de publicació:
 - editar a `17 SHAPER 001/`
 - sincronitzar a `02 Pixel Perfect/shaper/`
 - commit + push als dos repos
+
+## Secció 2D (v1, 2026-07-01)
+
+`panel-2d` deixa de ser un tab buit. Model:
+
+- **Graella real**: N files × M columnes, definides per l'usuari (`Files`/`Columnes` a la UI).
+- El text de l'Àtom (compartit amb 3D) flueix i s'ajusta automàticament (word-wrap en 2 eixos) per
+  omplir exactament la graella — una sola font de text, no independent per cel·la.
+- Cada fila pot tenir la seva pròpia animació, o aplicar-ne una a totes (`Aplica la mateixa a
+  totes les files`); mateix mecanisme, independent, per columnes.
+- 5 animacions (`engine2d.js`, portades del "Stacked Text Tool" de referència): **wave, accordion,
+  cascade** (multiplicador d'escala per índex), **warpflow** (deforma vores de cel·la), **block**
+  (revelat seqüencial — **v1 simplificada**, sense la fase de "push" de l'original).
+- Fila escala l'ALÇADA de la seva banda; columna escala l'AMPLADA — mateixa matemàtica, eix
+  diferent.
+- `state.mode` torna a ser commutable (`'2d'`/`'3d'`); `render()` bifurca al motor 2D o al pipeline
+  3D existent segons el mode. `activatePanel('panel-2d')` activa mode 2D igual que `panel-3d` ja
+  activava mode 3D.
+- Presets: `state.grid2d` es guarda/restaura (`CREATIVE_PRESET_EXTRA_KEYS` inclou `'grid2d'`);
+  `applyPreset()` ara restaura el `mode` real del preset en lloc de forçar sempre `'3d'`.
+- **Pendent conegut**: l'export SVG/PNG/MP4 encara no s'ha adaptat a 2D — si s'exporta estant en
+  mode 2D, l'export surt igualment del pipeline 3D (`buildSVG`/`buildScene`), no de la graella.
+- **Block In incomplet a propòsit**: només porta la fase d'arribada seqüencial; la fase de "push"
+  (cua que empeny cap amunt en bucle) de l'original no s'ha implementat.
 
 ## Projecció Perspectiva — rendiment
 
@@ -55,8 +79,9 @@ behavior des d'enlloc); no s'ha tocat perquè és previ al Director i fora d'aba
 - Presets antics que continguin un camp `director` simplement l'ignoren en carregar-se (no hi ha cap
   codi que el llegeixi); no calia migrador.
 - Carregar un preset ja no canvia el panell actiu (abans saltava a `panel-3d` sempre que el preset
-  incloïa `mode`); `state.mode` es fixa a `'3d'` igualment, però l'usuari es queda al panell des
-  d'on ha carregat el preset (típicament `Presets`).
+  incloïa `mode`); l'usuari es queda al panell des d'on ha carregat el preset (típicament
+  `Presets`). Des de la secció 2D (2026-07-01), `state.mode` es restaura al valor real del preset
+  (`'2d'` o `'3d'`) en lloc de forçar-se sempre a `'3d'`.
 
 ## Superficies 3D
 
@@ -88,14 +113,19 @@ Ultima verificacio executada el 2026-07-01:
 ```bash
 node --check main.js
 node --check engine.js
-node --test tests/*.mjs   # 21 pass
+node --check engine2d.js
+node --test tests/*.mjs   # 32 pass
 ```
 
 ## Pendent
 
+- Completar (o no) la fase de "push" del preset Block In 2D — pendent de confirmació de l'usuari.
+- Adaptar l'export SVG/PNG/MP4 al mode 2D (ara mateix sempre exporta des del pipeline 3D).
+- Validació visual real al navegador de la secció 2D (només verificat amb tests unitaris de la
+  matemàtica pura).
 - Revisar deployment de Pixel Perfect si cal confirmar publicacio web.
 - `engine.js`/`motion.js` conserven `applyMotionBehaviors`/`motionBehaviors` com a codi mort — netejar
   si es vol en una sessió separada (no és Director, és previ).
 
-`17 SHAPER 001` pujat a `strk04/SHAPER-001` (`9180ecf`). `02 Pixel Perfect/shaper` sincronitzat i
-pujat a `strk04/PIxel-Perfect` (`472c560`).
+`17 SHAPER 001` pujat a `strk04/SHAPER-001` (`7d653bd`). `02 Pixel Perfect/shaper` sincronitzat i
+pujat a `strk04/PIxel-Perfect` (`c3b9c4e`).

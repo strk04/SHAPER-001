@@ -80,47 +80,14 @@ test('fixed-duration MP4 export falls back to real-time capture', async () => {
   assert.match(main, /recState\.loopTotal = isNaN\(dur\) \? 0 : dur \* fps/);
 });
 
-test('2D grid panel is wired: rows/cols, per-axis presets, mode switch', async () => {
+test('2D grid section has been fully removed', async () => {
   const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
   const main = await readFile(new URL('../main.js', import.meta.url), 'utf8');
   const presetState = await readFile(new URL('../preset-state.js', import.meta.url), 'utf8');
-  assert.match(html, /id="panel-2d" hidden>/);
-  assert.match(html, /id="grid2dRows"/);
-  assert.match(html, /id="grid2dCols"/);
-  assert.match(html, /id="grid2dRowSame"/);
-  assert.match(html, /id="grid2dColSame"/);
-  assert.match(html, /id="grid2dRowPresets"/);
-  assert.match(html, /id="grid2dColPresets"/);
-  assert.match(main, /import \{ layoutGrid2D, evaluateGrid2D, drawGrid2D, PRESET_NAMES \} from '\.\/engine2d\.js'/);
-  assert.match(main, /grid2d:\s*\{/);
-  assert.match(main, /if \(panelId === 'panel-2d' && state\.mode !== '2d'\)/);
-  assert.match(main, /function renderGrid2D\(\)/);
-  assert.match(main, /function wireGrid2D\(\)/);
-  assert.match(presetState, /'grid2d'/);
-});
-
-test('2D grid repeats the shared Àtom text and exposes a grid-lines toggle', async () => {
-  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
-  const main = await readFile(new URL('../main.js', import.meta.url), 'utf8');
-  const engine2d = await readFile(new URL('../engine2d.js', import.meta.url), 'utf8');
-  assert.match(html, /id="grid2dShowGrid"/);
-  assert.match(main, /showGridCb\.checked = state\.grid2d\.showGrid/);
-  assert.match(main, /drawGrid2D\(displayCtx, evaluated, displayW, displayH, state,/);
-  // layoutGrid2D no longer takes text — every cell repeats the shared Àtom
-  // layout instead of splitting words across cells.
-  assert.match(engine2d, /export function layoutGrid2D\(rows, cols, width, height\)/);
-  assert.match(engine2d, /import \{ layout, resolveFontSpec \} from '\.\/engine\.js'/);
-});
-
-test('2D grid supports a dense per-instance repeat pack with animated size variance', async () => {
-  const html = await readFile(new URL('../index.html', import.meta.url), 'utf8');
-  const main = await readFile(new URL('../main.js', import.meta.url), 'utf8');
-  const engine2d = await readFile(new URL('../engine2d.js', import.meta.url), 'utf8');
-  assert.match(html, /id="grid2dDensity"/);
-  assert.match(html, /data-key="grid2dSizeVariance"/);
-  assert.match(main, /grid2dSizeVariance:\s*\{\s*label:\s*'Variació de mida'/);
-  assert.match(main, /density: state\.grid2d\.density/);
-  assert.match(main, /sizeVariance: state\.grid2dSizeVariance/);
-  assert.match(engine2d, /export function instanceSizeMul/);
-  assert.match(engine2d, /function instancePhase/);
+  assert.doesNotMatch(html, /grid2d/i);
+  assert.doesNotMatch(html, /panel-2d/i);
+  assert.doesNotMatch(main, /grid2d/i);
+  assert.doesNotMatch(main, /engine2d/i);
+  assert.doesNotMatch(presetState, /grid2d/i);
+  await assert.rejects(readFile(new URL('../engine2d.js', import.meta.url)));
 });

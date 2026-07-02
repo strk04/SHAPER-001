@@ -1465,7 +1465,17 @@ function build3D(params, width, height) {
   //   columns — text runs along the axis, one vertical column per line
   //   spiral  — rings sheared into a continuous helix
   //   panel   — flat patch clamped to the front of the surface, no wrap
+  //   brick   — like rings, but alternating lines start half a wrap apart
+  //   boustro — like rings, but alternating lines sweep the opposite way
+  //   fan     — rings compressed into a fixed angular sector (partial wrap)
+  //   ripple  — like rings, but v oscillates with u for a corrugated band
   const wrapMode = P.wrapMode || 'rings';
+  const lineLeading = Math.max(1, Number(params.leading) || 1);
+  const lineFontSize = Number(params.fontSize) || 0;
+  const lineParity = (yn) => {
+    const idx = Math.round((yn * height - lineFontSize) / lineLeading);
+    return ((idx % 2) + 2) % 2;
+  };
   const mapUV = (xPix, yNorm) => {
     const vN = P.vNorm ? normalizeV(formKey, yNorm) : yNorm;
     switch (wrapMode) {
@@ -1482,6 +1492,28 @@ function build3D(params, width, height) {
       }
       case 'panel':
         return { u: 0.25 + (xPix / width) * 0.5 + flowU, v: 0.25 + yNorm * 0.5, tangent: null };
+      case 'brick': {
+        const { u, tangent } = getArcLUT(vN)(xPix, flowU);
+        const shifted = (u + lineParity(yNorm) * 0.5) % 1;
+        return { u: shifted, v: vN, tangent };
+      }
+      case 'boustro': {
+        const px = lineParity(yNorm) ? -xPix : xPix;
+        const { u, tangent } = getArcLUT(vN)(px, flowU);
+        return { u, v: vN, tangent };
+      }
+      case 'fan': {
+        const fanSpan = 0.5;
+        const { u: u0 } = getArcLUT(vN)(xPix, flowU);
+        const u = (((u0 - 0.5) * fanSpan + 0.75) % 1 + 1) % 1;
+        return { u, v: vN, tangent: null };
+      }
+      case 'ripple': {
+        const { u, tangent } = getArcLUT(vN)(xPix, flowU);
+        const rippleAmt = 0.06;
+        const v = vN + Math.sin(u * Math.PI * 2 * 3 + flowU * Math.PI * 2) * rippleAmt;
+        return { u, v, tangent };
+      }
       case 'rings':
       default: {
         const { u, tangent } = getArcLUT(vN)(xPix, flowU);

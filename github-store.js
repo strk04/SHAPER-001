@@ -4,6 +4,10 @@
 
 const API = 'https://api.github.com';
 
+// Keeps Unicode letters/digits (accents catalans inclosos); strips path/control chars.
+export const sanitizePresetName = (name) =>
+  String(name).replace(/[^\p{L}\p{N}\s\-_.]/gu, '').trim();
+
 export function createGithubStore({ repo, prefix, tokenKey }) {
   const shas = new Map();
 
@@ -91,7 +95,7 @@ export function createGithubStore({ repo, prefix, tokenKey }) {
   }
 
   async function savePreset(project, name, data) {
-    const safe = name.replace(/[^\w\s\-]/g, '').trim() || 'preset';
+    const safe = sanitizePresetName(name) || 'preset';
     const path = `${prefix}/${project}/${safe}.json`;
     const body = { message: `preset: "${safe}"`, content: toBase64(data) };
     const sha = shas.get(path);

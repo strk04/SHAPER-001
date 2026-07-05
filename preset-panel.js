@@ -5,7 +5,11 @@
 //   const panel = createPresetPanel({ container, id, store, builtins, capturePreset, applyPreset, localKey, setStatus });
 //   panel.activate();   // call when the tool section becomes active (triggers auto-connect)
 
+import { sanitizePresetName } from './github-store.js';
+
 const esc = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+const CONFIRM_MS = 8000;
 
 export function createPresetPanel({ container, id, store, builtins = [], capturePreset, applyPreset, localKey, setStatus }) {
   const state = { connected: false, login: null, projects: [], project: null, list: [], active: null };
@@ -16,8 +20,9 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
     try { const s = JSON.parse(localStorage.getItem(localKey)); return Array.isArray(s) ? s : []; } catch { return []; }
   }
   function saveLocal(list) {
-    if (!localKey) return;
-    try { localStorage.setItem(localKey, JSON.stringify(list)); } catch { /* quota */ }
+    if (!localKey) return false;
+    try { localStorage.setItem(localKey, JSON.stringify(list)); return true; }
+    catch { return false; /* quota */ }
   }
 
   // ── DOM helpers ────────────────────────────────────────────────────────────
@@ -75,7 +80,7 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
     <div style="display:flex;gap:var(--space-1);margin-top:var(--space-6)">
       <button id="${id}-export-btn" type="button" style="flex:1 1 0;min-width:0" title="Exporta el preset actual com a fitxer JSON">EXPORT</button>
       <button id="${id}-import-btn" type="button" style="flex:1 1 0;min-width:0" title="Importa preset des d'un fitxer JSON">IMPORT</button>
-      <input id="${id}-import-input" type="file" accept=".json,application/json" class="sr-only">
+      <input id="${id}-import-input" type="file" accept=".json,application/json" class="sr-only" tabindex="-1">
     </div>
 
     <div id="${id}-connected-bottom" class="control-row" hidden style="margin-top:var(--space-2)">
@@ -86,9 +91,10 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
     <div id="${id}-disconnected-view" style="margin-top:var(--space-2)">
       <div class="control-row">
         <label class="sr-only" for="${id}-token">GitHub Personal Access Token</label>
-        <input type="password" id="${id}-token" placeholder="ghp_…" autocomplete="current-password" style="flex:1;min-width:0">
+        <input type="password" id="${id}-token" placeholder="ghp_…" autocomplete="off" aria-describedby="${id}-token-hint" style="flex:1;min-width:0">
         <button id="${id}-connect-btn" type="button">Connecta</button>
       </div>
+      <p class="hint" id="${id}-token-hint">Recomanat: fine-grained token limitat al repo de presets (Contents: Read and write). El token es guarda només en aquest navegador.</p>
     </div>`;
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -110,6 +116,14 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
         <button class="preset-btn preset-load" data-builtin="${i}" type="button" aria-label="Carrega preset ${esc(p.name)}">Load</button>
       </li>`).join('');
 
+    // suffix distingeix el nom accessible quan GitHub i local mostren el mateix nom
+    const localItemHtml = (p, i, suffix = '') => `
+      <li class="preset-item">
+        <span class="preset-name">${esc(p.name)}</span>
+        <button class="preset-btn preset-load" data-local="${i}" type="button" aria-label="Carrega preset ${esc(p.name)}${suffix}">Load</button>
+        <button class="preset-btn preset-delete" data-local="${i}" type="button" aria-label="Elimina preset ${esc(p.name)}${suffix}">✕</button>
+      </li>`;
+
     if (state.connected) {
       const userItems = state.list.length
         ? state.list.map(p => `
@@ -120,25 +134,28 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
           </li>`).join('')
         : `<li style="color:var(--ink-4);font-size:var(--text-xs);padding:var(--space-1) 0">Cap preset desat.</li>`;
 
+      // Local presets stay visible while connected, in their own labelled group
+      const local = loadLocal();
+      const localGroup = local.length
+        ? `<li role="presentation"><ul role="group" aria-label="Presets locals" style="list-style:none;padding:0;margin:0">
+            <li class="preset-divider">Presets locals</li>
+            ${local.map((p, i) => localItemHtml(p, i, ' (local)')).join('')}</ul></li>`
+        : '';
+
       if (builtins.length) {
         list.innerHTML =
           `<li role="presentation"><ul role="group" aria-label="Built-in presets" style="list-style:none;padding:0;margin:0">${builtinItems}</ul></li>` +
           `<li role="presentation"><ul role="group" aria-label="My Presets" style="list-style:none;padding:0;margin:0">
             <li class="preset-divider">${state.list.length ? 'My Presets' : ''}</li>
-            ${userItems}</ul></li>`;
+            ${userItems}</ul></li>` + localGroup;
       } else {
-        list.innerHTML = userItems;
+        list.innerHTML = userItems + localGroup;
       }
 
     } else {
       const local = loadLocal();
       const localItems = local.length
-        ? local.map((p, i) => `
-          <li class="preset-item">
-            <span class="preset-name">${esc(p.name)}</span>
-            <button class="preset-btn preset-load" data-local="${i}" type="button" aria-label="Carrega preset ${esc(p.name)}">Load</button>
-            <button class="preset-btn preset-delete" data-local="${i}" type="button" aria-label="Elimina preset ${esc(p.name)}">✕</button>
-          </li>`).join('')
+        ? local.map((p, i) => localItemHtml(p, i)).join('')
         : `<li style="color:var(--ink-4);font-size:var(--text-xs);padding:var(--space-1) 0">Cap preset desat.</li>`;
 
       if (builtins.length) {
@@ -262,7 +279,7 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
         this.dataset.confirming = '';
         this.textContent = 'Desconnecta';
         if (ann) ann.textContent = '';
-      }, 3000);
+      }, CONFIRM_MS);
       this.dataset.timer = String(timer);
     }
   });
@@ -292,10 +309,31 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
     renderList();
   });
 
-  $('save-btn')?.addEventListener('click', async () => {
+  $('save-btn')?.addEventListener('click', async function () {
     const nameEl = $('name');
     const name = (nameEl?.value ?? '').trim() || `Preset ${new Date().toLocaleTimeString()}`;
     if (!state.project) { setPanelStatus('Selecciona o crea un projecte primer.'); return; }
+
+    // Duplicate name → require a second click to overwrite (confirmation keyed to the name)
+    const safe = sanitizePresetName(name) || 'preset';
+    const exists = state.list.some(p => p.name === safe);
+    if (exists && this.dataset.confirmName !== safe) {
+      clearTimeout(Number(this.dataset.timer));
+      this.dataset.confirmName = safe;
+      this.textContent = 'Sobreescriure?';
+      setPanelStatus(`Ja existeix un preset "${safe}". Prem de nou per sobreescriure'l.`);
+      const timer = setTimeout(() => {
+        delete this.dataset.confirmName;
+        this.textContent = 'CREAR';
+        setPanelStatus('');
+      }, CONFIRM_MS);
+      this.dataset.timer = String(timer);
+      return;
+    }
+    clearTimeout(Number(this.dataset.timer));
+    delete this.dataset.confirmName;
+    this.textContent = 'CREAR';
+
     setPanelStatus(`Guardant "${name}"…`);
     try {
       const path = await store.savePreset(state.project, name, capturePreset());
@@ -316,7 +354,10 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
     const presets = loadLocal();
     presets.unshift({ name, data: capturePreset() });
     if (presets.length > 20) presets.length = 20;
-    saveLocal(presets);
+    if (!saveLocal(presets)) {
+      setPanelStatus(`No s'ha pogut guardar "${name}": espai local ple.`);
+      return;
+    }
     if (nameEl) nameEl.value = '';
     setActive({ type: 'local', index: 0, name });
     renderList();
@@ -335,7 +376,11 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
         renderList();
       } else {
         const presets = loadLocal();
-        if (presets[index]) { presets[index].data = capturePreset(); saveLocal(presets); renderList(); }
+        if (presets[index]) {
+          presets[index].data = capturePreset();
+          if (!saveLocal(presets)) throw new Error(`no s'ha pogut guardar "${name}": espai local ple`);
+          renderList();
+        }
       }
       const btn = $('update-btn');
       if (btn) {
@@ -348,9 +393,9 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
     }
   });
 
-  // Export current preset as JSON file
+  // Export current preset as JSON file (wrapped with the section id for import validation)
   $('export-btn')?.addEventListener('click', () => {
-    const data = capturePreset();
+    const data = { section: id, preset: capturePreset() };
     const name = $('name')?.value.trim() || $('offline-name')?.value.trim() || 'preset';
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -369,9 +414,14 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
     const reader = new FileReader();
     reader.onload = (ev) => {
       try {
-        const data = JSON.parse(ev.target.result);
-        applyPreset(data);
-        setPanelStatus(`Importat: "${file.name}"`);
+        const parsed = JSON.parse(ev.target.result);
+        const wrapped = parsed && typeof parsed === 'object' && 'section' in parsed && 'preset' in parsed;
+        if (wrapped && parsed.section !== id) {
+          setPanelStatus(`No s'ha importat: aquest preset és de la secció "${parsed.section}", no d'aquesta.`);
+        } else {
+          applyPreset(wrapped ? parsed.preset : parsed); // fitxers antics sense wrapper s'apliquen igual
+          setPanelStatus(`Importat: "${file.name}"`);
+        }
       } catch { setPanelStatus('Error: fitxer JSON invàlid.'); }
       e.target.value = '';
     };
@@ -419,13 +469,13 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
       } else {
         const name = ghDelBtn.getAttribute('aria-label')?.replace('Elimina preset ', '') ?? '';
         ghDelBtn.dataset.confirming = '1';
-        ghDelBtn.textContent = 'Sure?';
+        ghDelBtn.textContent = 'Segur?';
         ghDelBtn.setAttribute('aria-label', `Confirma: elimina preset ${name}`);
         const timer = setTimeout(() => {
           ghDelBtn.dataset.confirming = '';
           ghDelBtn.textContent = '✕';
           ghDelBtn.setAttribute('aria-label', `Elimina preset ${name}`);
-        }, 3000);
+        }, CONFIRM_MS);
         ghDelBtn.dataset.timer = String(timer);
       }
       return;
@@ -457,13 +507,13 @@ export function createPresetPanel({ container, id, store, builtins = [], capture
       } else {
         const name = localDelBtn.getAttribute('aria-label')?.replace('Elimina preset ', '') ?? '';
         localDelBtn.dataset.confirming = '1';
-        localDelBtn.textContent = 'Sure?';
+        localDelBtn.textContent = 'Segur?';
         localDelBtn.setAttribute('aria-label', `Confirma: elimina preset ${name}`);
         const timer = setTimeout(() => {
           localDelBtn.dataset.confirming = '';
           localDelBtn.textContent = '✕';
           localDelBtn.setAttribute('aria-label', `Elimina preset ${name}`);
-        }, 3000);
+        }, CONFIRM_MS);
         localDelBtn.dataset.timer = String(timer);
       }
       return;

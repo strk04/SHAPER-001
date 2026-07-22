@@ -230,7 +230,7 @@ git commit -m "feat: redesign director inline timeline"
 - Modify: `docs/STATUS.md`
 - Modify: `docs/progress.md`
 - Modify: `docs/decisions.md`
-- Modify: `/Users/albert/Library/CloudStorage/GoogleDrive-albert@querida.si/Mi unidad/EN CURS/CC/02 Pixel Perfect/shaper/` (sync copy)
+- Modify: `/Users/albert/Library/CloudStorage/GoogleDrive-albert@querida.si/Mi unidad/EN CURS/CC/02 LAB/shaper/` (sync copy)
 
 - [ ] **Step 1: Executar verificació fresca**
 
@@ -269,11 +269,11 @@ git commit -m "feat: move director timeline inline"
 git push
 ```
 
-- [ ] **Step 4: Sincronitzar la còpia Pixel Perfect**
+- [ ] **Step 4: Sincronitzar la còpia LAB**
 
 Copiar els fitxers actualitzats a:
 
-`/Users/albert/Library/CloudStorage/GoogleDrive-albert@querida.si/Mi unidad/EN CURS/CC/02 Pixel Perfect/shaper/`
+`/Users/albert/Library/CloudStorage/GoogleDrive-albert@querida.si/Mi unidad/EN CURS/CC/02 LAB/shaper/`
 
 i després:
 

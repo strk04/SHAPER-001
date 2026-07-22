@@ -20,8 +20,8 @@
   existeix).
 
 ### Verificat
-- `node --test tests/*.mjs` → 22 pass (Shaper), 17 pass (mirall `02 Pixel Perfect/shaper`).
-- Sincronitzat i pujat: `strk04/SHAPER-001` (`7c50865`), `strk04/PIxel-Perfect` (`723a002`).
+- `node --test tests/*.mjs` → 22 pass (Shaper), 17 pass (mirall `02 LAB/shaper`).
+- Sincronitzat i pujat: `strk04/SHAPER-001` (`7c50865`), `strk04/lab` (`723a002`).
 
 ## 2026-07-01 — Secció 2D: pack dens per-instància amb variació orgànica de mida
 
@@ -58,8 +58,8 @@
 
 ### Verificat
 - `node --test tests/*.mjs` → 39 pass (Shaper).
-- Sincronitzat a `02 Pixel Perfect/shaper/`; `node --test tests/*.mjs` → 34 pass allà.
-- Pujat a `strk04/SHAPER-001` (`a3818c1`) i `strk04/PIxel-Perfect` (`b76c9e4`).
+- Sincronitzat a `02 LAB/shaper/`; `node --test tests/*.mjs` → 34 pass allà.
+- Pujat a `strk04/SHAPER-001` (`a3818c1`) i `strk04/lab` (`b76c9e4`).
 
 ### Pendent
 - Validació visual real al navegador — encara no s'ha comprovat amb els ulls si el resultat
@@ -87,8 +87,8 @@
 
 ### Verificat
 - `node --test tests/*.mjs` → 35 pass (Shaper).
-- Sincronitzat a `02 Pixel Perfect/shaper/`; `node --test tests/*.mjs` → 30 pass allà.
-- Pujat a `strk04/SHAPER-001` (`9bab921`) i `strk04/PIxel-Perfect` (`27f89a3`).
+- Sincronitzat a `02 LAB/shaper/`; `node --test tests/*.mjs` → 30 pass allà.
+- Pujat a `strk04/SHAPER-001` (`9bab921`) i `strk04/lab` (`27f89a3`).
 
 ### Pendent
 - Validació visual real al navegador (aquest fix es va raonar i verificar amb tests unitaris i un
@@ -129,8 +129,8 @@
 
 ### Verificat
 - `node --test tests/*.mjs` → 34 pass (Shaper).
-- Sincronitzat a `02 Pixel Perfect/shaper/`; `node --test tests/*.mjs` → 29 pass allà.
-- Pujat a `strk04/SHAPER-001` (`1f6b7cc`) i `strk04/PIxel-Perfect` (`598a3f6`).
+- Sincronitzat a `02 LAB/shaper/`; `node --test tests/*.mjs` → 29 pass allà.
+- Pujat a `strk04/SHAPER-001` (`1f6b7cc`) i `strk04/lab` (`598a3f6`).
 
 ### Pendent
 - Validació visual real al navegador (encara no s'ha provat cap d'aquests canvis en un navegador
@@ -191,7 +191,7 @@
 - **Nota de procés**: la segona passada de revisió d'accessibilitat va aplicar els fixos
   directament i va fer `git commit`/`git push` pel seu compte (consistent amb la instrucció
   global d'auto-commit de l'usuari, però executat per l'agent de revisió en lloc de la sessió
-  principal — verificat després que els tests seguien passant abans de sincronitzar a PP).
+  principal — verificat després que els tests seguien passant abans de sincronitzar a LAB).
 - Tests nous: `tests/engine2d.test.mjs` (10 tests: distribució de paraules, remainder, clamps,
   simetria dels presets d'escala, vores exteriors del warp, seqüència i bucle del block reveal,
   `evaluateGrid2D` amb `same`/no-`same` i sense warp actiu). `tests/project-wiring.test.mjs`:
@@ -199,8 +199,8 @@
 
 ### Verificat
 - `node --test tests/*.mjs` → 32 pass (Shaper).
-- Sincronitzat a `02 Pixel Perfect/shaper/`; `node --test tests/*.mjs` → 27 pass allà.
-- Pujat a `strk04/SHAPER-001` (`7d653bd`) i `strk04/PIxel-Perfect` (`c3b9c4e`).
+- Sincronitzat a `02 LAB/shaper/`; `node --test tests/*.mjs` → 27 pass allà.
+- Pujat a `strk04/SHAPER-001` (`7d653bd`) i `strk04/lab` (`c3b9c4e`).
 
 ### Pendent
 - **Block In v1 és incomplet a propòsit**: falta la fase de "push" (cua que empeny cap amunt) de
@@ -226,8 +226,8 @@
 
 ### Verificat
 - `node --test tests/*.mjs` → 21 pass (Shaper).
-- Sincronitzat a `02 Pixel Perfect/shaper/`; `node --test tests/*.mjs` → 16 pass allà.
-- Pujat a `strk04/SHAPER-001` (`9180ecf`) i `strk04/PIxel-Perfect` (`472c560`).
+- Sincronitzat a `02 LAB/shaper/`; `node --test tests/*.mjs` → 16 pass allà.
+- Pujat a `strk04/SHAPER-001` (`9180ecf`) i `strk04/lab` (`472c560`).
 
 ### Pendent
 - Cap.
@@ -254,8 +254,8 @@
 ### Verificat
 - `node --check engine.js`; `node --test tests/*.mjs` → 21 pass (Shaper), sense canvis de resultat
   visual als tests existents (el canvi és només al camí de dibuix canvas, no al model de dades).
-- Sincronitzat a `02 Pixel Perfect/shaper/`; `node --test tests/*.mjs` → 16 pass allà.
-- Pujat a `strk04/SHAPER-001` (`eef99b4`) i `strk04/PIxel-Perfect` (`5b2a3e0`).
+- Sincronitzat a `02 LAB/shaper/`; `node --test tests/*.mjs` → 16 pass allà.
+- Pujat a `strk04/SHAPER-001` (`eef99b4`) i `strk04/lab` (`5b2a3e0`).
 
 ### Pendent
 - Validació visual/de rendiment real al navegador amb un preset pesat en Perspectiva, per confirmar
@@ -307,8 +307,8 @@
 ### Verificat
 - `node --test tests/*.mjs` → 21 pass (Shaper, baixa de 52 perquè s'han eliminat ~30 tests
   específics de Director i se n'han afegit 2 de regressió).
-- Sincronitzat a `02 Pixel Perfect/shaper/`; `node --test tests/*.mjs` → 16 pass allà.
-- Pujat a `strk04/SHAPER-001` (`24d2770`) i `strk04/PIxel-Perfect` (`e06a968`).
+- Sincronitzat a `02 LAB/shaper/`; `node --test tests/*.mjs` → 16 pass allà.
+- Pujat a `strk04/SHAPER-001` (`24d2770`) i `strk04/lab` (`e06a968`).
 
 ### Pendent
 - Cap. La neteja de codi mort `applyMotionBehaviors`/`motionBehaviors` a `motion.js`/`engine.js` és
@@ -344,8 +344,8 @@
 
 ### Verificat
 - `node --test tests/*.mjs` → 52 pass (Shaper).
-- Sincronitzat a `02 Pixel Perfect/shaper/`; `node --test tests/*.mjs` → 47 pass allà.
-- Pujat a `strk04/SHAPER-001` (`687e52c`) i `strk04/PIxel-Perfect` (`858a608`).
+- Sincronitzat a `02 LAB/shaper/`; `node --test tests/*.mjs` → 47 pass allà.
+- Pujat a `strk04/SHAPER-001` (`687e52c`) i `strk04/lab` (`858a608`).
 
 ### Pendent
 - Cap ramp/fade "crossfade" entre segments adjacents encara — l'easing sempre va cap al/des del
@@ -382,8 +382,8 @@
 
 ### Verificat
 - `node --test tests/*.mjs` → 47 pass (Shaper).
-- Sincronitzat a `02 Pixel Perfect/shaper/`; `node --test tests/*.mjs` → 42 pass allà.
-- Pujat a `strk04/SHAPER-001` (`0c6acf4`) i `strk04/PIxel-Perfect` (`0b4434e`).
+- Sincronitzat a `02 LAB/shaper/`; `node --test tests/*.mjs` → 42 pass allà.
+- Pujat a `strk04/SHAPER-001` (`0c6acf4`) i `strk04/lab` (`0b4434e`).
 
 ### Pendent
 - Decidir si la durada per defecte d'un segment nou (actualment 1s, `DEFAULT_SEGMENT_LENGTH`) ha de
@@ -404,15 +404,15 @@
 
 ### Verificat
 - `node --test tests/*.mjs` → 46 pass (Shaper).
-- Sincronitzat a `02 Pixel Perfect/shaper/`; `node --test tests/*.mjs` → 41 pass allà.
-- Pujat a `strk04/SHAPER-001` (`5365602`) i `strk04/PIxel-Perfect` (`ec932f5`).
+- Sincronitzat a `02 LAB/shaper/`; `node --test tests/*.mjs` → 41 pass allà.
+- Pujat a `strk04/SHAPER-001` (`5365602`) i `strk04/lab` (`ec932f5`).
 
 ### Pendent
 - L'usuari indicarà quins efectes concrets vol aplicar sobre la línia temporal i com (properes instruccions).
 
 ## 2026-07-01 — CLAUDE.md projecte + proposta summary
 
-- Creat `CLAUDE.md` al projecte amb instrucció permanent de sync dual (commit+push a SHAPER i PP).
+- Creat `CLAUDE.md` al projecte amb instrucció permanent de sync dual (commit+push a SHAPER i LAB).
 - Proposta de summary/changelog per als canvis recents (dues opcions: curta i llarga).
 - Pujat a `strk04/SHAPER-001` (`975083d`).
 
@@ -446,22 +446,22 @@
   del Director (queden com a codi mort), però retocar-los era fora d'abast d'aquest canvi.
 
 ### Pendent
-- Sincronitzar a `02 Pixel Perfect/shaper/`: les mateixes edicions s'han aplicat fitxer a fitxer
+- Sincronitzar a `02 LAB/shaper/`: les mateixes edicions s'han aplicat fitxer a fitxer
   (`director.js`, `director-ui.js`, `main.js`, `styles.css`, `tests/project-wiring.test.mjs`) i els 27
-  tests de PP passen, però `git commit`/`git push` allà queden bloquejats pel classificador d'auto-mode
+  tests de LAB passen, però `git commit`/`git push` allà queden bloquejats pel classificador d'auto-mode
   (detecta contingut copiat entre repos i ho tracta com exfiltració, sense excepció per autorització
-  d'usuari). L'usuari ha de fer `git add` + `commit` + `push` manualment a `02 Pixel Perfect/shaper/`.
+  d'usuari). L'usuari ha de fer `git add` + `commit` + `push` manualment a `02 LAB/shaper/`.
 
-## 2026-06-30 — Director: efectes concrets, intent de sync a PP via edició directa
+## 2026-06-30 — Director: efectes concrets, intent de sync a LAB via edició directa
 
 ### Fet
-- En comptes de `cp`/`diff` entre repos (bloquejat), s'ha llegit cada fitxer de PP i s'hi han aplicat
+- En comptes de `cp`/`diff` entre repos (bloquejat), s'ha llegit cada fitxer de LAB i s'hi han aplicat
   les mateixes transformacions amb `Edit` un a un. Les edicions de fitxer SÍ es permeten; només
-  `git commit`/`git push` a PP queden bloquejats pel classificador.
-- Verificat amb `node --check` i `node --test tests/*.mjs` a PP: 27/27 pass.
+  `git commit`/`git push` a LAB queden bloquejats pel classificador.
+- Verificat amb `node --check` i `node --test tests/*.mjs` a LAB: 27/27 pass.
 
 ### Verificat
-- PP (`02 Pixel Perfect/shaper`): `node --test tests/*.mjs` -> 27 pass, working tree amb 5 fitxers
+- LAB (`02 LAB/shaper`): `node --test tests/*.mjs` -> 27 pass, working tree amb 5 fitxers
   modificats, sense commit.
 
 ### Verificat
@@ -495,7 +495,7 @@
 
 ### Pendent
 - Provar manualment guardar/carregar un preset amb toggles de càmera desactivats i un outline custom.
-- Sincronitzar a `02 Pixel Perfect/shaper/` i pujar també el repo PP.
+- Sincronitzar a `02 LAB/shaper/` i pujar també el repo LAB.
 
 ## 2026-06-30 — Export MP4 de durada fixa més fluid
 
@@ -621,7 +621,7 @@
 - Merge `feat/motion-director` → `main` + push a `origin/main` (`7ac5467`).
 
 ### Pendent
-- Copiar fitxers a `02 Pixel Perfect/shaper/` i push PP001 (l'usuari ho ha d'autoritzar).
+- Copiar fitxers a `02 LAB/shaper/` i push PP001 (l'usuari ho ha d'autoritzar).
 
 ---
 
@@ -637,7 +637,7 @@
 
 ### Queda
 
-- Verificació visual al navegador (checklist Task 10 Step 2-3) — únic gate abans de merge a `main` i copia a `02 Pixel Perfect/shaper/`.
+- Verificació visual al navegador (checklist Task 10 Step 2-3) — únic gate abans de merge a `main` i copia a `02 LAB/shaper/`.
 - Gap menor: ◇ keyframe dins comportament passa `value: 0` placeholder (captura de valor de camp real pendent).
 
 ### Commits (branca)
@@ -676,7 +676,7 @@
 - **Fix desat de presets**: el feedback anava a `#exportStatus` (panell Export, `hidden` des de Presets) → desar fallava en silenci visual. Nou `#presetStatus` al panell Presets + `setPresetStatus()`; tot el feedback de presets hi va.
 - **validateToken()**: ara verifica accés real al repo (push permission) en lloc de només `/user` → "connectat" ja no menteix si el token no pot escriure.
 - **Text UI**: nom del repo corregit (`SHAPER-001` → `strk04/shaper-presets`) + permís correcte.
-- Sync `02 Pixel Perfect/shaper/` ✓ · node --check OK
+- Sync `02 LAB/shaper/` ✓ · node --check OK
 
 ### Pendent
 - Validació visual navegador: scatter + speedVar combinats; desat real amb token amb permisos.
@@ -690,7 +690,7 @@
 - **build3D**: `chainForms` filtra els destins no buits seqüencialment. Càlcul per frame (un cop) de `morphFrom`/`morphTo`/`morphMix`. **Auto** = bucle tancat (base→d1→d2→d3→base), transició eased + hold 8s a cada node. **Manual** (Blend 0–1) = cadena oberta sense tornar a base.
 - **UI**: destí 2 apareix en omplir destí 1, destí 3 en omplir destí 2 (`updateMorphVisibility`). Opcions de destí 2/3 clonades de destí 1 via JS (sense triplicar HTML).
 - **Presets**: `morphForm2`/`morphForm3` a capture/apply.
-- Sync `02 Pixel Perfect/shaper/` ✓ · node --check OK
+- Sync `02 LAB/shaper/` ✓ · node --check OK
 
 ### Pendent
 - Validació visual navegador: cadena 4 formes auto + manual.
@@ -704,7 +704,7 @@
 - **Controls**: `morphForm` (select forma destí, 45 opcions + "cap"), `morphT` (slider Blend 0–1 manual), `morphAuto` (checkbox), `morphSpeed` (durada transició).
 - **Cicle auto amb hold**: transició A→B eased (≈`1/morphSpeed`s), hold 8s a B, transició B→A, hold 8s a A, loop. Usa `morphClock` (segons reals, acumulat a `frame()`, independent de `speed3d`). Reset a 0 en activar Auto.
 - **Fix slowdown perspectiva**: `projectPersp` coïa el `zoom` dins `scale` per glif (≈2.3× al centre) → glifs ~5× més àrea de fill. Ara `scale: dist/denom` → 1 al pla central, només variant per profunditat. Consistent amb isomètrica. Glifs en perspectiva ara més petits (mida real `fontSize`).
-- Sync `02 Pixel Perfect/shaper/` (engine.js, main.js, index.html) ✓
+- Sync `02 LAB/shaper/` (engine.js, main.js, index.html) ✓
 
 ### Pendent
 - Validació visual navegador: morph entre formes diverses, cicle hold 8s, perspectiva fluida.
@@ -719,7 +719,7 @@
 - **Helpers `trace(fixed, isV, steps)`** i **`isoGrid(n, steps)`**: afegits dins `buildGuidesData`. `trace` traça una corba iso-paràmetre (u o v fixat) via `surfaceMap`. `isoGrid` en fa una graella de n−1 × 2 corbes.
 - **Guies customitzades** per a: knot-35/knot-27 (línia central del nus), lissajous-3d (corba de Lissajous), helicoid (2 arestes + eix), hyperboloid-2 (2 fulls: anell + 4 meridians cada full), oloid (2 circumferències perpendiculars), seifert (nus trefoil + 3 talls de strip).
 - **`isoGrid(4, 48)`** per a: enneper, pseudosphere, roman-surface, boy-surface, superformula, cardioid-rev, lemniscate-rev, dupin-cyclide, gyroid, scherk, riemann-minimal, swallowtail, klein-bottle.
-- Sync `02 Pixel Perfect/shaper/engine.js` ✓
+- Sync `02 LAB/shaper/engine.js` ✓
 
 ### Pendent
 - Validació visual al navegador: guies de les 20 formes noves.
@@ -738,7 +738,7 @@
 - **GitHub preset storage** (`presets-github.js`): repo `strk04/SHAPER-001`, path `presets/{projecte}/{nom}.json`.
 - **Auto-play a l'inici**: `play()` incondicionalment a `init()`.
 - **Fix pipeline 3D (sessió 8)**: `extraOp`/`sizeMul`/`skew` propagats a 3D.
-- Sync `02 Pixel Perfect/shaper/` ✓
+- Sync `02 LAB/shaper/` ✓
 
 ### Pendent
 - Validació visual al navegador: 4 colors accent en mode 3D (el default).
@@ -774,7 +774,7 @@
 - **Fix 3D accent**: `accentT` propagat per `build3D` → `buildScene` → `drawScene` 3D. Sense el fix, el color d'accent no tenia efecte visual en mode 3D (era el bug principal de la sessió).
 - **Charmap → Àtom**: click als botons del mapa ara actualitza `state.text` + textarea directament.
 - **Eliminació gradient de color**: `colorRamp`, `colorRampTo`, `lerpHex`, `parseHexColor` eliminats de `engine.js`, `main.js`, `index.html`. Cap referència resta al codi viu.
-- Sync `02 Pixel Perfect/shaper/` ✓
+- Sync `02 LAB/shaper/` ✓
 
 ### Pendent
 - Commit pendent (acumulats des de sessió 3–4–5–6).
@@ -791,7 +791,7 @@
 - **`densityMap`** [0–1]: `dropProb` augmenta linealment cap a la dreta `(dropProb + densityMap * xNorm)`.
 - **`maskShape`** (select: none/circle/diamond/ellipse-h/ellipse-v/triangle) + **`maskRadius`** [0.1–1]: clip canvas; funciona a 2D i 3D (guideMeta fora del clip).
 - Fix `flow` i `cascade`: ara copien tots els atributs del caràcter (`{ ...c, x: px }`).
-- Sync `02 Pixel Perfect/shaper/` ✓
+- Sync `02 LAB/shaper/` ✓
 
 ### Pendent
 - Commit pendent (acumulats des de sessió 3–4–5).
@@ -808,7 +808,7 @@
 - UI: 2D `disabled`, `vNorm` eliminat, canvas size del footer eliminat.
 - Panel "Mapa de caràcters": 23 blocs Unicode, font selector, cerca, copy+live region, lazy build.
 - Fork `18 SHAPER 002` independent (git reinicialitzat, sense remote) → audioreactivitat.
-- Sync `02 Pixel Perfect/shaper/` ✓
+- Sync `02 LAB/shaper/` ✓
 
 ### Pendent
 - Commit pendent (acumulats des de sessió 3).
@@ -853,7 +853,7 @@
 - Guies (dashed wireframe) implementades per totes les formes noves.
 - HTML: 10 opcions noves al select `#form`.
 - `FORM_3D_CONTROLS`: entrades per les 10 noves formes (paràmetres rellevants visibles).
-- Sync a `02 Pixel Perfect/shaper/`.
+- Sync a `02 LAB/shaper/`.
 
 ### Pendent
 - Validació visual al navegador (totes les formes noves).
@@ -874,7 +874,7 @@
 - Canvas draw editors eliminats → SVG file import (perfil 2D + contorn 3D via SVGGeometryElement).
 - `savePNG` afegit al costat de `saveSVG` al footer d'exportació.
 - Teclat: ArrowDown/Up, Home/End, roving tabindex (spec accessibility-lead).
-- Deploy: SHAPER 001 + PP repo.
+- Deploy: SHAPER 001 + LAB repo.
 
 ### Decisions
 - `wireTabs()` implementa l'ARIA tabs pattern (no `<nav>` + button, sinó `role="tablist"`) per coherència semàntica amb la spec W3C.
@@ -892,7 +892,7 @@
   - `count` + `scatter`: cluster
 - Live region `role="status"` anuncia el canvi de forma als lectors de pantalla.
 - `hidden` attribute (no CSS) → fora del tab order i l'arbre d'accessibilitat.
-- Commit + push a GitHub (SHAPER 001 + Pixel Perfect). Vercel auto-deploy a https://q-pp-001.vercel.app/shaper/
+- Commit + push a GitHub (SHAPER 001 + LAB). Vercel auto-deploy a https://lab.querida.si/shaper/
 
 ### Decisions
 - Sliders amagats amb `hidden` (no `display:none`) per coherència amb el patró existent dels editors customProfileEditor/customOutlineEditor.
@@ -902,14 +902,14 @@
 ## 2026-06-13 — Q S 003 design + deploy inicial
 
 ### Fet
-- CSS completament reescrit amb tokens Q S 003 (idèntics a Pixel Perfect/Lumen).
+- CSS completament reescrit amb tokens Q S 003 (idèntics a LAB/Lumen).
 - Font → `'Datatype', monospace`; sidebar → blanc; stage → `#000000`; `--radius: 0`.
 - Sliders: track + thumb 1px amb `--ink-3` (#555555) — fix WCAG 1.4.11 (contrast 7.46:1 vs blanc).
 - Focus → double-ring `box-shadow` (millor que el `outline` blau original).
 - Botons → uppercase, transparent per defecte; `.btn-primary` negre; `#playPause` transparent.
 - Collapsible `<details>` → indicador +/− sense `list-style: disclosure-*`.
 - Git repo inicialitzat i push a GitHub: https://github.com/strk04/SHAPER-001
-- Deploy via PP001: https://q-pp-001.vercel.app/shaper/ (standalone q-shaper-001.vercel.app desactivat)
+- Deploy via PP001: https://lab.querida.si/shaper/ (standalone q-shaper-001.vercel.app desactivat)
 
 ### Decisions
 - Slider track usa `--ink-3` (no `--rule`) per WCAG 1.4.11 — flagejat per revisar el token `--rule: #9d9d9d` a Q S 003 en una sessió futura.
@@ -1012,7 +1012,7 @@
 ### Pendent
 
 - Revisar qualitat d'oclusio en formes amb normals aproximades si es detecta algun cas visual estrany.
-- Sincronitzat a `02 Pixel Perfect/shaper/` i pujat a `strk04/PIxel-Perfect` (`0fba175`).
+- Sincronitzat a `02 LAB/shaper/` i pujat a `strk04/lab` (`0fba175`).
 
 ---
 
@@ -1034,11 +1034,11 @@
 - `node --test tests/*.test.mjs` -> 39 pass
 - Verificacio local a `http://127.0.0.1:8097`: checkbox visible/actiu, canvas renderitzat, i canvi a `roman-surface` restaura `formSize=413` i `zoom=1`.
 
-### Pixel Perfect
+### LAB
 
-- Sincronitzat a `02 Pixel Perfect/shaper/`.
-- Pujat a `strk04/PIxel-Perfect` (`77fe08a`).
-- Verificat dins PP: `node --test tests/*.test.mjs` -> 13 pass, `node --check engine.js`, `node --check main.js`.
+- Sincronitzat a `02 LAB/shaper/`.
+- Pujat a `strk04/lab` (`77fe08a`).
+- Verificat dins LAB: `node --test tests/*.test.mjs` -> 13 pass, `node --check engine.js`, `node --check main.js`.
 
 ---
 
@@ -1076,10 +1076,10 @@
 - `node --check main.js`
 - `node --test tests/*.test.mjs` -> 42 pass
 
-### Pixel Perfect
+### LAB
 
-- Sincronitzat a `02 Pixel Perfect/shaper/`.
-- Verificat dins PP: `node --test tests/*.test.mjs` -> 16 pass, `node --check engine.js`, `node --check main.js`.
+- Sincronitzat a `02 LAB/shaper/`.
+- Verificat dins LAB: `node --test tests/*.test.mjs` -> 16 pass, `node --check engine.js`, `node --check main.js`.
 
 ---
 
@@ -1097,10 +1097,10 @@
 - `node --check main.js`
 - `node --test tests/*.test.mjs` -> 43 pass
 
-### Pixel Perfect
+### LAB
 
-- Sincronitzat a `02 Pixel Perfect/shaper/`.
-- Verificat dins PP: `node --test tests/*.test.mjs` -> 17 pass, `node --check engine.js`, `node --check main.js`.
+- Sincronitzat a `02 LAB/shaper/`.
+- Verificat dins LAB: `node --test tests/*.test.mjs` -> 17 pass, `node --check engine.js`, `node --check main.js`.
 
 ---
 
@@ -1120,10 +1120,10 @@
 - `node --check main.js`
 - `node --test tests/*.test.mjs` -> 44 pass
 
-### Pixel Perfect
+### LAB
 
-- Sincronitzat a `02 Pixel Perfect/shaper/`.
-- Verificat dins PP: `node --test tests/*.test.mjs` -> 18 pass, `node --check engine.js`, `node --check main.js`.
+- Sincronitzat a `02 LAB/shaper/`.
+- Verificat dins LAB: `node --test tests/*.test.mjs` -> 18 pass, `node --check engine.js`, `node --check main.js`.
 
 ---
 
@@ -1142,7 +1142,7 @@
 - `node --check main.js`
 - `node --test tests/*.test.mjs` -> 45 pass
 
-### Pixel Perfect
+### LAB
 
-- Sincronitzat a `02 Pixel Perfect/shaper/`.
-- Verificat dins PP: `node --test tests/*.test.mjs` -> 19 pass, `node --check engine.js`, `node --check main.js`.
+- Sincronitzat a `02 LAB/shaper/`.
+- Verificat dins LAB: `node --test tests/*.test.mjs` -> 19 pass, `node --check engine.js`, `node --check main.js`.

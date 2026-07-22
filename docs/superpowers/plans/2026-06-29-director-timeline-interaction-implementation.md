@@ -60,6 +60,6 @@
   - `node --check main.js`
   - `node --check director.js`
   - `node --check director-ui.js`
-- [ ] Sincronitzar `shaper/` dins Pixel Perfect.
-- [ ] Repetir tests rellevants a Pixel Perfect.
+- [ ] Sincronitzar `shaper/` dins LAB.
+- [ ] Repetir tests rellevants a LAB.
 - [ ] Commit + push als dos repos.

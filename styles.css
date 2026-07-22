@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Datatype&display=swap');
 
-/* ── Q S 003 / Pixel Perfect shell ─────────────────────── */
+/* ── Q S 003 / LAB shell ─────────────────────── */
 :root {
   --font:           'Datatype', monospace;
   --text-xs:        0.875rem;
@@ -204,7 +204,7 @@ input[type="radio"] {
   flex-shrink: 0;
 }
 
-/* ── Pixel Perfect shell ───────────────────────────────── */
+/* ── LAB shell ───────────────────────────────── */
 .app-menu {
   position: fixed;
   inset: 0 auto 0 0;

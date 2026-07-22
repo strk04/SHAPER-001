@@ -192,10 +192,10 @@ git commit -m "style: align director scene layout with design system"
 - Modify: `docs/STATUS.md`
 - Modify: `docs/progress.md`
 - Modify: `docs/decisions.md`
-- Sync: `/Users/albert/Library/CloudStorage/GoogleDrive-albert@querida.si/Mi unidad/EN CURS/CC/02 Pixel Perfect/shaper/director-ui.js`
-- Sync: `/Users/albert/Library/CloudStorage/GoogleDrive-albert@querida.si/Mi unidad/EN CURS/CC/02 Pixel Perfect/shaper/styles.css`
-- Sync: `/Users/albert/Library/CloudStorage/GoogleDrive-albert@querida.si/Mi unidad/EN CURS/CC/02 Pixel Perfect/shaper/main.js` (només si s’ha tocat)
-- Sync: `/Users/albert/Library/CloudStorage/GoogleDrive-albert@querida.si/Mi unidad/EN CURS/CC/02 Pixel Perfect/shaper/index.html` (només si s’ha tocat)
+- Sync: `/Users/albert/Library/CloudStorage/GoogleDrive-albert@querida.si/Mi unidad/EN CURS/CC/02 LAB/shaper/director-ui.js`
+- Sync: `/Users/albert/Library/CloudStorage/GoogleDrive-albert@querida.si/Mi unidad/EN CURS/CC/02 LAB/shaper/styles.css`
+- Sync: `/Users/albert/Library/CloudStorage/GoogleDrive-albert@querida.si/Mi unidad/EN CURS/CC/02 LAB/shaper/main.js` (només si s’ha tocat)
+- Sync: `/Users/albert/Library/CloudStorage/GoogleDrive-albert@querida.si/Mi unidad/EN CURS/CC/02 LAB/shaper/index.html` (només si s’ha tocat)
 
 - [ ] **Step 1: Run full verification**
 
@@ -227,19 +227,19 @@ git commit -m "feat: reorganize director scene sidebar"
 git push origin main
 ```
 
-- [ ] **Step 4: Sync Pixel Perfect and publish**
+- [ ] **Step 4: Sync LAB and publish**
 
 Run:
 
 ```bash
-cp director-ui.js "/Users/albert/Library/CloudStorage/GoogleDrive-albert@querida.si/Mi unidad/EN CURS/CC/02 Pixel Perfect/shaper/director-ui.js"
-cp styles.css "/Users/albert/Library/CloudStorage/GoogleDrive-albert@querida.si/Mi unidad/EN CURS/CC/02 Pixel Perfect/shaper/styles.css"
+cp director-ui.js "/Users/albert/Library/CloudStorage/GoogleDrive-albert@querida.si/Mi unidad/EN CURS/CC/02 LAB/shaper/director-ui.js"
+cp styles.css "/Users/albert/Library/CloudStorage/GoogleDrive-albert@querida.si/Mi unidad/EN CURS/CC/02 LAB/shaper/styles.css"
 ```
 
 Si també canvien `main.js` o `index.html`, copiar-los igualment. Després:
 
 ```bash
-cd "/Users/albert/Library/CloudStorage/GoogleDrive-albert@querida.si/Mi unidad/EN CURS/CC/02 Pixel Perfect"
+cd "/Users/albert/Library/CloudStorage/GoogleDrive-albert@querida.si/Mi unidad/EN CURS/CC/02 LAB"
 git add shaper/director-ui.js shaper/styles.css shaper/main.js shaper/index.html
 git commit -m "sync: reorganize shaper director scene sidebar"
 git push origin main

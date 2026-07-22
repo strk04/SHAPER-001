@@ -7,7 +7,7 @@ _Actualitzat: 2026-07-02 (Secció 2D eliminada completament)_
 Projecte vanilla JS zero-build. Flux habitual de publicació:
 
 - editar a `17 SHAPER 001/`
-- sincronitzar a `02 Pixel Perfect/shaper/`
+- sincronitzar a `02 LAB/shaper/`
 - commit + push als dos repos
 
 ## Secció 2D (eliminada 2026-07-02)
@@ -88,7 +88,7 @@ behavior des d'enlloc); no s'ha tocat perquè és previ al Director i fora d'aba
 - Per defecte: `#d8d8d8` amb transparencia `0.25`.
 - En canviar de forma, `Mida de forma` i `Zoom` tornen als defaults (`413`, `1`).
 - Algunes formes matematiques petites tenen normalitzacio interna de zoom perquè arrenquin a escala comparable.
-- Sincronitzat a `02 Pixel Perfect/shaper/` i pujat a `strk04/PIxel-Perfect` (`77fe08a`).
+- Sincronitzat a `02 LAB/shaper/` i pujat a `strk04/lab` (`77fe08a`).
 
 Ja no hi ha:
 
@@ -113,9 +113,9 @@ node --test tests/*.mjs   # 22 pass
 
 ## Pendent
 
-- Revisar deployment de Pixel Perfect si cal confirmar publicacio web.
+- Revisar deployment de LAB si cal confirmar publicacio web.
 - `engine.js`/`motion.js` conserven `applyMotionBehaviors`/`motionBehaviors` com a codi mort — netejar
   si es vol en una sessió separada (no és Director, és previ).
 
-`17 SHAPER 001` pujat a `strk04/SHAPER-001` (`7c50865`). `02 Pixel Perfect/shaper` sincronitzat i
-pujat a `strk04/PIxel-Perfect` (`723a002`).
+`17 SHAPER 001` pujat a `strk04/SHAPER-001` (`7c50865`). `02 LAB/shaper` sincronitzat i
+pujat a `strk04/lab` (`723a002`).

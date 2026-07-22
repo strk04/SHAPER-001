@@ -10,8 +10,8 @@ _Actualitzat: 2026-07-02_
   `main.js` (`state.grid2d`, `grid2dIntensity`/`Speed`/`SizeVariance`, `renderGrid2D`,
   `wireGrid2D`, etc.). `state.mode` torna a estar sempre a `'3d'`.
 - `preset-state.js` net de qualsevol referència a `grid2d`.
-- Sincronitzat i pujat: `strk04/SHAPER-001` (`7c50865`) i `strk04/PIxel-Perfect` (`723a002`).
-  `node --test tests/*.mjs` → 22 pass (Shaper) / 17 pass (mirall PP).
+- Sincronitzat i pujat: `strk04/SHAPER-001` (`7c50865`) i `strk04/lab` (`723a002`).
+  `node --test tests/*.mjs` → 22 pass (Shaper) / 17 pass (mirall LAB).
 
 ## Estat actual
 

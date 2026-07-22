@@ -97,7 +97,7 @@ només d'aplicació.
 
 Preguntat explícitament si el text de l'Àtom (compartit amb 3D) s'havia de repartir automàticament
 per la graella (word-wrap en 2 eixos) o si cada cel·la hauria de tenir el seu propi text
-independent (com les Text layers de Mosaic a Pixel Perfect). L'usuari va triar **text compartit
+independent (com les Text layers de Mosaic a LAB). L'usuari va triar **text compartit
 auto-ajustat**.
 
 Racional: coherent amb la premissa inicial de la sessió ("2D i 3D comparteixen l'àtom") — una sola

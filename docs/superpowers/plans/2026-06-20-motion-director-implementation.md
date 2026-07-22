@@ -40,7 +40,7 @@ La funcionalitat comparteix un únic esquema temporal i un únic pipeline de ren
 - No modificar l’ordre dels rolls dels PRNG existents a `layout()` o `build3D()`.
 - `Director.enabled === false` ha de conservar el snapshot i el render actuals.
 - No afegir dependències ni `package.json`; les proves s’executen amb `node --test`.
-- No copiar a Pixel Perfect ni desplegar fins que la verificació local completa sigui verda i l’usuari ho demani.
+- No copiar a LAB ni desplegar fins que la verificació local completa sigui verda i l’usuari ho demani.
 
 ---
 
@@ -2079,4 +2079,4 @@ Run: `git log --oneline --decorate -12`
 
 Expected: commits petits i ordenats per esquema, avaluador, moviment, integració, UI, edició, live, export i verificació.
 
-No fer push, còpia a Pixel Perfect ni deploy sense autorització explícita de l’usuari.
+No fer push, còpia a LAB ni deploy sense autorització explícita de l’usuari.

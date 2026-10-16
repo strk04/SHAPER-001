@@ -395,8 +395,10 @@ var COLOR_PRIMARIES_MAP = {
   // ITU-R BT.709
   "bt470bg": 5,
   // ITU-R BT.470BG
-  "smpte170m": 6
+  "smpte170m": 6,
   // ITU-R BT.601 525 - SMPTE 170M
+  "smpte432": 12
+  // SMPTE EG 432-1 (Display P3) — added for P3 exports (27 Scroll Record)
 };
 var TRANSFER_CHARACTERISTICS_MAP = {
   "bt709": 1,

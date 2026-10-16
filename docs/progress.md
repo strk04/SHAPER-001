@@ -1146,3 +1146,7 @@
 
 - Sincronitzat a `02 LAB/shaper/`.
 - Verificat dins LAB: `node --test tests/*.test.mjs` -> 19 pass, `node --check engine.js`, `node --check main.js`.
+
+## 2026-10-16 — Sync mp4-muxer amb la Biblia
+
+- `mp4-muxer.mjs` copiat del canonge (BIBLES/export-video): afegeix la taula `smpte432` (P3). Sense canvis de comportament per sRGB.

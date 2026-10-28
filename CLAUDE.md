@@ -13,6 +13,6 @@ Flux:
 3. Commit + push a SHAPER
 4. Commit + push a LAB
 
-Ruta LAB: `/Users/albert/Library/CloudStorage/GoogleDrive-albert@querida.si/Mi unidad/EN CURS/CC/02 LAB/shaper/`
+Ruta LAB: `/Users/albert/CC/02 LAB/shaper/`
 
 No esperar confirmació. No preguntar. Fer-ho sempre.

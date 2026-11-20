@@ -350,6 +350,26 @@ Per a l’ús real d’aquest projecte, el Director queda orientat a coreografia
 
 Quan l’usuari prem **Afegeix** o **Duplica** dins Director, la selecció passa automàticament a l’escena creada. Racional: el flux mental és “he creat una escena, ara l’edito”; mantenir `Escena 1` seleccionada feia que la columna 2 semblés incorrecta i convertia “Durada segons” en un control ambigu. Conseqüència: les accions d’escena es centralitzen en `applySceneAction()` perquè el comportament sigui testejable i no quedi dispers dins el wiring de `main.js`.
 
+## 2026-06-25 — Cross-sections: layout quadrat r×r
+**Decisió:** `layout(params, r*2, r*2)` per cross-sections i caps (en lloc de canvas width×height).
+**Raó:** `c.y / canvasHeight` donava v≈0 per tot el text (pocs píxels vs canvas gran), concentrant tot al centre. Layout quadrat dóna distribució uniforme en x i z.
+**Conseqüències:** el text omple el cercle de la secció correctament; cal clip `x²+z² ≤ sR²` per no sortir del disc.
+
+## 2026-06-25 — Caps rings vs UV mapping
+**Decisió:** abandonat `capSurface(u,v)` per a la càrrega de caps; nou mapeig polar directe (línia → radi, x → angle).
+**Raó:** el vell mapeig UV distribuïa totes les lletres al centre del disc (v=c.y/height → quasi 0).
+**Conseqüències:** "Anells" dóna anells concèntrics reals; "Panell" dóna graella. Star-prism/custom-prism tenen clip circular (aproximació).
+
+## 2026-06-25 — hasInterior guard al engine
+**Decisió:** `buildInterior` comprova `hasInterior(P.form)` i retorna `[]` si no la suporta.
+**Raó:** `state.regionVolume` persisteix quan es canvia de forma i feia aparèixer interior en formes planes.
+**Conseqüències:** l'estat UI pot ser true però sense efecte visual; no cal reset de UI en canviar forma.
+
+## 2026-06-25 — Sliders d'efecte a 0 per defecte
+**Decisió:** amplitude, charTrack, rotXSpeed, rotYSpeed, rotZSpeed, angleX, angleY, etc. = 0 per defecte.
+**Raó:** canvas havia de quedar buit/neutre en carregar. Però fontSize/zoom/formSize/speed3d es mantenen funcionals.
+**Conseqüències:** l'usuari ha d'activar manualment qualsevol efecte; l'objecte apareix estàtic fins que es toca un slider.
+
 ## 2026-06-20 — Token `--rule-on-dark` per a límits sobre el dock fosc (emergent en implementació)
 
 El dock del Director és `background: var(--ink)` (#000) amb text `--paper`. Cap gris existent supera 3:1 (WCAG 1.4.11) contra **alhora** #fff i #000: `--ink-3` (#555) passa sobre blanc però falla a 2.6:1 sobre negre, i `--rule` (#9d9d9d) ja era marginal sobre blanc. Decisió: afegir un token de superfície fosca dedicat `--rule-on-dark: #8a8a8a` (~6:1 sobre #000) i usar-lo per a totes les vores de controls del dock (escenes, pads, keyframes, lanes), mai `--ink-3`. Els focus rings del dock també s'inverteixen (anella interior `--ink`, exterior `--paper`) per ser visibles tant sobre el dock negre com sobre els botons d'escena actius (blancs).
